@@ -3,9 +3,31 @@
 // Format du texte : paragraphes séparés par une ligne vide ; une ligne qui commence par « — » est
 // la réponse de l'assemblée.
 
-export type PrayerCategory = 'Essentielles' | 'Marie' | 'Saints et anges' | 'Christ et Esprit Saint' | 'Pardon et vertus' | 'Confiance et paix' | 'Repas' | 'Dans la Bible';
+export type PrayerCategory =
+  | 'Essentielles'
+  | 'Marie'
+  | 'Saints et anges'
+  | 'Saint François d’Assise'
+  | 'Christ et Esprit Saint'
+  | 'Pardon et vertus'
+  | 'Confiance et paix'
+  | 'Pour les défunts'
+  | 'Repas'
+  | 'Dans la Bible'
+  | 'Mes prières';
 
-export const PRAYER_CATEGORIES: PrayerCategory[] = ['Essentielles', 'Marie', 'Saints et anges', 'Christ et Esprit Saint', 'Pardon et vertus', 'Confiance et paix', 'Repas', 'Dans la Bible'];
+export const PRAYER_CATEGORIES: PrayerCategory[] = [
+  'Essentielles',
+  'Marie',
+  'Saints et anges',
+  'Saint François d’Assise',
+  'Christ et Esprit Saint',
+  'Pardon et vertus',
+  'Confiance et paix',
+  'Pour les défunts',
+  'Repas',
+  'Dans la Bible',
+];
 
 export type Prayer = {
   id: string;
@@ -17,6 +39,8 @@ export type Prayer = {
   /** Le chapelet a un affichage particulier (mystères du jour). */
   rosary?: boolean;
   note?: string;
+  /** Prière écrite par l'utilisateur. */
+  custom?: boolean;
 };
 
 export const PRAYERS: Prayer[] = [
@@ -137,6 +161,50 @@ export const PRAYERS: Prayer[] = [
     note: 'Prière à l’ange gardien.',
   },
 
+  // ——— Saint François d'Assise (ses propres écrits) ———
+  {
+    id: 'crucifix-saint-damien',
+    title: 'Prière devant le crucifix',
+    category: 'Saint François d’Assise',
+    text: 'Dieu très haut et glorieux,\nviens éclairer les ténèbres de mon cœur.\nDonne-moi une foi droite,\nune espérance solide,\nune charité parfaite !\n\nDonne-moi de sentir et de comprendre, Seigneur,\nafin que je puisse accomplir ta volonté sainte\nqui ne saurait m’égarer.\n\nAmen.',
+    note: 'Priée par le jeune François devant le crucifix de l’église Saint-Damien, vers 1205, au début de sa conversion. C’est là qu’il entendit : « François, va, et répare ma maison. »',
+  },
+  {
+    id: 'cantique-frere-soleil',
+    title: 'Cantique de frère Soleil',
+    category: 'Saint François d’Assise',
+    text: 'Très-Haut, tout-puissant bon Seigneur,\nà toi sont les louanges, la gloire et l’honneur, et toute bénédiction.\nÀ toi seul, Très-Haut, ils conviennent,\net nul homme n’est digne de te nommer.\n\nLoué sois-tu, mon Seigneur, avec toutes tes créatures,\nspécialement messire le frère Soleil,\nlequel est jour, et tu nous illumines par lui.\nEt lui, il est beau et rayonnant avec grande splendeur :\nde toi, Très-Haut, il porte signification.\n\nLoué sois-tu, mon Seigneur, par sœur Lune et les étoiles :\ndans le ciel tu les as formées claires et précieuses et belles.\n\nLoué sois-tu, mon Seigneur, par frère Vent,\net par l’air et le nuage et le ciel serein et tout temps,\npar lesquels à tes créatures tu donnes sustentation.\n\nLoué sois-tu, mon Seigneur, par sœur Eau,\nlaquelle est très utile et humble et précieuse et chaste.\n\nLoué sois-tu, mon Seigneur, par frère Feu,\npar lequel tu nous illumines la nuit ;\net lui, il est beau et joyeux et robuste et fort.\n\nLoué sois-tu, mon Seigneur, par notre sœur mère Terre\nlaquelle nous sustente et gouverne\net produit divers fruits avec les fleurs colorées et l’herbe.\n\nLoué sois-tu, mon Seigneur,\npar ceux qui pardonnent par ton amour\net soutiennent maladies et tribulations.\nBienheureux ceux qui les supporteront en paix,\ncar par toi, Très-Haut, ils seront couronnés.\n\nLoué sois-tu, mon Seigneur, par notre sœur Mort corporelle,\nà laquelle nul homme vivant ne peut échapper.\nMalheur à ceux qui mourront dans les péchés mortels ;\nbienheureux ceux qu’elle trouvera en tes très saintes volontés,\ncar la mort seconde ne leur fera pas mal.\n\nLouez et bénissez mon Seigneur et rendez grâces\net servez-le avec grande humilité.',
+    note: 'Ou Cantique des créatures. Composé vers 1225, à la fin de sa vie, malade et presque aveugle, près de Saint-Damien. Le pape François en a tiré le titre de l’encyclique Laudato si’.',
+  },
+  {
+    id: 'louanges-de-dieu',
+    title: 'Louanges de Dieu',
+    category: 'Saint François d’Assise',
+    text: 'Tu es le seul saint, Seigneur Dieu,\ntoi qui fais des merveilles !\n\nTu es fort, tu es grand,\ntu es le Très-Haut, tu es le roi tout-puissant ;\ntoi, Père saint, roi du ciel et de la terre.\n\nTu es trois et tu es un, Seigneur Dieu unique,\ntu es le bien, tu es tout bien, tu es le souverain bien,\nSeigneur Dieu vivant et vrai.\n\nTu es amour et charité, tu es sagesse,\ntu es humilité, tu es patience,\ntu es beauté, tu es douceur,\ntu es sécurité, tu es repos,\ntu es joie, tu es notre espérance et notre allégresse,\ntu es justice, tu es mesure,\ntu es notre richesse qui nous comble.\n\nTu es beauté, tu es douceur,\ntu es notre abri, notre gardien et notre défenseur,\ntu es force, tu es fraîcheur.\n\nTu es notre espérance,\ntu es notre foi,\ntu es notre amour,\ntu es notre grande douceur,\ntu es notre vie éternelle,\ngrand et admirable Seigneur,\nDieu tout-puissant, miséricordieux Sauveur !',
+    note: 'Écrites de sa main en 1224 sur le mont Alverne, après avoir reçu les stigmates. Le parchemin original est conservé à Assise.',
+  },
+  {
+    id: 'benediction-frere-leon',
+    title: 'Bénédiction à frère Léon',
+    category: 'Saint François d’Assise',
+    text: 'Que le Seigneur te bénisse et te garde ;\nqu’il te montre sa face\net qu’il te fasse miséricorde !\nQu’il tourne vers toi son visage\net te donne la paix !\n\nQue le Seigneur te bénisse, frère Léon !',
+    note: 'Écrite au dos des Louanges de Dieu pour son compagnon frère Léon, en reprenant la bénédiction d’Aaron (Nombres 6:24-26). On peut y mettre le prénom de quelqu’un qu’on aime.',
+  },
+  {
+    id: 'nous-t-adorons',
+    title: 'Nous t’adorons',
+    category: 'Saint François d’Assise',
+    text: 'Nous t’adorons, Seigneur Jésus Christ,\nici et dans toutes tes églises qui sont dans le monde entier,\net nous te bénissons,\nparce que par ta sainte croix tu as racheté le monde.',
+    note: 'Tirée du Testament de saint François : la prière qu’il apprit à ses frères en entrant dans une église.',
+  },
+  {
+    id: 'saint-francois',
+    title: 'Fais de moi un instrument de ta paix',
+    category: 'Saint François d’Assise',
+    text: 'Seigneur, fais de moi un instrument de ta paix.\nLà où est la haine, que je mette l’amour.\nLà où est l’offense, que je mette le pardon.\nLà où est la discorde, que je mette l’union.\nLà où est l’erreur, que je mette la vérité.\nLà où est le doute, que je mette la foi.\nLà où est le désespoir, que je mette l’espérance.\nLà où sont les ténèbres, que je mette la lumière.\nLà où est la tristesse, que je mette la joie.\n\nÔ Seigneur, que je ne cherche pas tant\nà être consolé qu’à consoler,\nà être compris qu’à comprendre,\nà être aimé qu’à aimer.\n\nCar c’est en se donnant qu’on reçoit,\nc’est en s’oubliant qu’on se retrouve,\nc’est en pardonnant qu’on est pardonné,\nc’est en mourant qu’on ressuscite à l’éternelle vie.',
+    note: 'Dite « prière de saint François », elle n’est pas de lui : elle est parue anonymement en 1912 dans la revue La Clochette. Mais elle respire son esprit.',
+  },
+
   // ——— Christ et Esprit Saint ———
   {
     id: 'viens-esprit-saint',
@@ -196,14 +264,33 @@ export const PRAYERS: Prayer[] = [
     note: 'Tirée d’une méditation de saint Charles de Foucauld (1896) sur la dernière parole de Jésus : « Père, je remets mon esprit entre tes mains » (Luc 23:46).',
   },
   {
-    id: 'saint-francois',
-    title: 'Fais de moi un instrument de ta paix',
+    id: 'suscipe',
+    title: 'Prends, Seigneur, et reçois',
     category: 'Confiance et paix',
-    text: 'Seigneur, fais de moi un instrument de ta paix.\nLà où est la haine, que je mette l’amour.\nLà où est l’offense, que je mette le pardon.\nLà où est la discorde, que je mette l’union.\nLà où est l’erreur, que je mette la vérité.\nLà où est le doute, que je mette la foi.\nLà où est le désespoir, que je mette l’espérance.\nLà où sont les ténèbres, que je mette la lumière.\nLà où est la tristesse, que je mette la joie.\n\nÔ Seigneur, que je ne cherche pas tant\nà être consolé qu’à consoler,\nà être compris qu’à comprendre,\nà être aimé qu’à aimer.\n\nCar c’est en se donnant qu’on reçoit,\nc’est en s’oubliant qu’on se retrouve,\nc’est en pardonnant qu’on est pardonné,\nc’est en mourant qu’on ressuscite à l’éternelle vie.',
-    note: 'Attribuée à saint François d’Assise ; parue en 1912 dans la revue La Clochette.',
+    text: 'Prends, Seigneur, et reçois\ntoute ma liberté, ma mémoire, mon intelligence\net toute ma volonté,\ntout ce que j’ai, tout ce que je possède.\n\nTu me l’as donné : à toi, Seigneur, je le rends.\nTout est à toi,\ndispose-en selon ton entière volonté.\n\nDonne-moi de t’aimer, donne-moi ta grâce :\ncelle-ci me suffit.',
+    note: 'Suscipe, saint Ignace de Loyola, à la fin des Exercices spirituels.',
+  },
+  {
+    id: 'que-rien-ne-te-trouble',
+    title: 'Que rien ne te trouble',
+    category: 'Confiance et paix',
+    text: 'Que rien ne te trouble,\nque rien ne t’effraie ;\ntout passe.\nDieu ne change pas,\nla patience obtient tout ;\ncelui qui a Dieu ne manque de rien.\nDieu seul suffit.',
+    note: 'Sainte Thérèse d’Avila. Retrouvé dans son bréviaire à sa mort, en 1582.',
   },
   { id: 'psaume-23', title: 'Le Seigneur est mon berger (Psaume 23)', category: 'Confiance et paix', scripture: [19, 23, 1, 6] },
+  { id: 'psaume-27', title: 'Le Seigneur est ma lumière (Psaume 27)', category: 'Confiance et paix', scripture: [19, 27, 1, 14] },
+  { id: 'psaume-121', title: 'Je lève les yeux vers les montagnes (Psaume 121)', category: 'Confiance et paix', scripture: [19, 121, 1, 8] },
   { id: 'psaume-91', title: 'Sous l’abri du Très-Haut (Psaume 91)', category: 'Confiance et paix', scripture: [19, 91, 1, 16], note: 'Le psaume de la protection, prié à Complies le dimanche.' },
+
+  // ——— Pour les défunts ———
+  {
+    id: 'requiem',
+    title: 'Repos éternel',
+    category: 'Pour les défunts',
+    text: 'Donne-leur, Seigneur, le repos éternel,\net que brille sur eux la lumière de ta face.\nQu’ils reposent en paix.\n\nAmen.',
+    note: 'Requiem aeternam, l’ancienne prière de l’Église pour les morts. On peut dire « donne-lui » pour une personne.',
+  },
+  { id: 'de-profundis', title: 'Du fond de l’abîme (Psaume 130)', category: 'Pour les défunts', scripture: [19, 130, 1, 8], note: 'De profundis, traditionnellement prié pour les défunts.' },
 
   // ——— Repas ———
   {
@@ -227,6 +314,9 @@ export const PRAYERS: Prayer[] = [
   { id: 'nunc-dimittis', title: 'Cantique de Syméon', category: 'Dans la Bible', scripture: [42, 2, 29, 32], note: 'Nunc dimittis, prié chaque soir aux Complies.' },
   { id: 'beatitudes', title: 'Les Béatitudes', category: 'Dans la Bible', scripture: [40, 5, 3, 12] },
   { id: 'benediction-aaron', title: 'La bénédiction d’Aaron', category: 'Dans la Bible', scripture: [4, 6, 24, 26] },
+  { id: 'psaume-63', title: 'Mon âme a soif de toi (Psaume 63)', category: 'Dans la Bible', scripture: [19, 63, 2, 9], note: 'Prié le dimanche matin aux Laudes.' },
+  { id: 'psaume-139', title: 'Tu me sondes et tu me connais (Psaume 139)', category: 'Dans la Bible', scripture: [19, 139, 1, 24] },
+  { id: 'reste-avec-nous', title: 'Reste avec nous', category: 'Dans la Bible', scripture: [42, 24, 29, 29], note: 'Les disciples d’Emmaüs à Jésus ressuscité : une prière pour le soir.' },
   { id: 'hymne-amour', title: 'L’hymne à l’amour', category: 'Dans la Bible', scripture: [46, 13, 4, 7] },
 ];
 

@@ -14,7 +14,9 @@ Les textes liturgiques viennent de l’[API de l’AELF](https://api.aelf.org) (
 
 ## Prières
 
-Un recueil de 39 prières (essentielles, Marie, saints, Esprit Saint, pardon, confiance, repas, prières de la Bible), avec recherche, thèmes et le chapelet avec les mystères du jour. Les prières épinglées apparaissent en tête de l’onglet et sur l’accueil.
+Un recueil de 53 prières (essentielles, Marie, saints, saint François d’Assise, Esprit Saint, pardon, confiance, défunts, repas, prières de la Bible), avec recherche, thèmes et le chapelet avec les mystères du jour. On peut aussi écrire ses propres prières. Les prières épinglées apparaissent en tête de l’onglet et sur l’accueil.
+
+**Préparer ma confession** : une liste personnelle de péchés à noter au fil des jours, un examen de conscience, le déroulement de la confession, et un bouton « J’ai reçu l’absolution » qui efface tout. La liste reste uniquement sur le téléphone.
 
 ## Deux fils
 

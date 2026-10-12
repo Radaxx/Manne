@@ -6,8 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import { SERIF } from './cards';
 import { BOOKS } from './data/bible';
-import { PRAYERS } from './data/prayers';
 import { C } from './liturgy';
+import { useAllPrayers } from './prayers';
 import { formatRange, planById, planStatus, type PlanStatus } from './plans';
 import { TOTAL_CHAPTERS } from './reading';
 import { DAILY_GOAL, today, useApp } from './storage';
@@ -105,7 +105,8 @@ export function HomeScreen() {
     [progress.plans, day],
   );
 
-  const pinnedPrayers = progress.pinnedPrayers.map((id) => PRAYERS.find((p) => p.id === id)).filter((p) => !!p);
+  const allPrayers = useAllPrayers();
+  const pinnedPrayers = progress.pinnedPrayers.map((id) => allPrayers.find((p) => p.id === id)).filter((p) => !!p);
 
   const book = BOOKS[progress.currentBook - 1];
   const pos = progress.positions[progress.currentBook] ?? { chapter: 1, verse: 1 };

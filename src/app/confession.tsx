@@ -1,0 +1,233 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useState, type ReactNode } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SERIF } from '../cards';
+import { C } from '../liturgy';
+import { daysSince } from '../plans';
+import { today, useApp } from '../storage';
+
+// Préparer sa confession : noter ses péchés au fil des jours, s'aider d'un examen de conscience,
+// puis tout effacer une fois l'absolution reçue. La liste ne quitte jamais le téléphone.
+
+const EXAMEN: { title: string; questions: string[] }[] = [
+  {
+    title: 'Envers Dieu',
+    questions: [
+      'Ai-je pris du temps pour prier, ou ai-je oublié Dieu ?',
+      'Ai-je manqué la messe du dimanche sans raison sérieuse ?',
+      'Ai-je mal parlé de Dieu ou des choses saintes ?',
+      'Ai-je mis ma confiance dans l’argent, la réussite ou la superstition plutôt qu’en Dieu ?',
+    ],
+  },
+  {
+    title: 'Envers les autres',
+    questions: [
+      'Ai-je respecté et aidé mes parents, ma famille ?',
+      'Ai-je été en colère, dur ou blessant, en paroles ou en actes ?',
+      'Ai-je refusé de pardonner ? Ai-je gardé de la rancune ?',
+      'Ai-je menti, médit, calomnié, trahi un secret ?',
+      'Ai-je volé, triché, abîmé le bien d’autrui ?',
+      'Ai-je fermé les yeux sur ceux qui étaient dans le besoin ?',
+      'Ai-je été jaloux ou envieux ?',
+    ],
+  },
+  {
+    title: 'Envers moi-même',
+    questions: [
+      'Ai-je respecté mon corps et celui des autres, dans mes regards, mes pensées, mes actes ?',
+      'Ai-je abusé de la nourriture, de l’alcool, des écrans ?',
+      'Ai-je été paresseux dans mon travail ou mes devoirs ?',
+      'Ai-je été orgueilleux, en me croyant meilleur que les autres ?',
+    ],
+  },
+];
+
+const STEPS = [
+  'Prépare-toi par un examen de conscience, en demandant à l’Esprit Saint sa lumière.',
+  'Le prêtre t’accueille. Fais le signe de croix ; tu peux dire : « Bénissez-moi, mon Père, parce que j’ai péché. »',
+  'Dis depuis quand tu ne t’es pas confessé, puis confesse tes péchés simplement.',
+  'Écoute les conseils du prêtre et la pénitence qu’il te propose.',
+  'Exprime ton regret par l’acte de contrition.',
+  'Le prêtre te donne l’absolution : tes péchés sont pardonnés.',
+  'Rends grâce, et accomplis ta pénitence.',
+];
+
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+function lastConfessionLabel(day: string | null) {
+  if (!day) return 'Aucune confession enregistrée dans Manne.';
+  const [y, m, d] = day.split('-').map(Number);
+  const ago = daysSince(day, today());
+  const when = ago === 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `il y a ${ago} jours`;
+  return `Dernière confession : le ${d} ${MONTHS[m - 1]} ${y} (${when}).`;
+}
+
+function Fold({ title, icon, children }: { title: string; icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.fold}>
+      <Pressable onPress={() => setOpen(!open)} style={styles.foldHead}>
+        <Ionicons name={icon} size={18} color={C.gold} />
+        <Text style={styles.foldTitle}>{title}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+      </Pressable>
+      {open && <View style={styles.foldBody}>{children}</View>}
+    </View>
+  );
+}
+
+export default function ConfessionScreen() {
+  const { progress, addConfessionItem, removeConfessionItem, completeConfession } = useApp();
+  const { items, lastConfession } = progress.confession;
+  const [draft, setDraft] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [absolved, setAbsolved] = useState(false);
+
+  const add = () => {
+    const text = draft.trim();
+    if (!text) return;
+    addConfessionItem(text);
+    setDraft('');
+  };
+
+  return (
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <Text style={styles.intro}>
+          Note tes péchés au fil des jours, pour ne rien oublier au moment de te confesser. Après l’absolution, efface tout : Dieu a pardonné.
+        </Text>
+        <Text style={styles.last}>{lastConfessionLabel(lastConfession)}</Text>
+
+        {absolved && (
+          <View style={styles.peace}>
+            <Text style={styles.peaceTitle}>Tes péchés sont pardonnés. Va en paix !</Text>
+            <Text style={styles.peaceText}>N’oublie pas d’accomplir ta pénitence, et rends grâce pour la miséricorde de Dieu.</Text>
+          </View>
+        )}
+
+        <Text style={styles.section}>Ma liste {items.length > 0 ? `(${items.length})` : ''}</Text>
+        <View style={styles.card}>
+          {items.length === 0 && <Text style={styles.empty}>Rien de noté pour l’instant.</Text>}
+          {items.map((item, i) => (
+            <View key={item.id} style={styles.item}>
+              <Text style={styles.itemNum}>{i + 1}.</Text>
+              <Text style={styles.itemText}>{item.text}</Text>
+              <Pressable onPress={() => removeConfessionItem(item.id)} hitSlop={10} accessibilityLabel="Retirer">
+                <Ionicons name="close" size={18} color={C.faint} />
+              </Pressable>
+            </View>
+          ))}
+          <View style={styles.inputRow}>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              onSubmitEditing={add}
+              placeholder="Ajouter un péché…"
+              placeholderTextColor={C.faint}
+              style={styles.input}
+              returnKeyType="done"
+              multiline
+              blurOnSubmit
+            />
+            <Pressable onPress={add} disabled={!draft.trim()} style={[styles.addBtn, !draft.trim() && { opacity: 0.4 }]} accessibilityLabel="Ajouter">
+              <Ionicons name="add" size={22} color={C.bg} />
+            </Pressable>
+          </View>
+        </View>
+        <Text style={styles.privacy}>
+          <Ionicons name="lock-closed" size={12} color={C.faint} /> Cette liste reste uniquement sur ce téléphone.
+        </Text>
+
+        {items.length > 0 &&
+          (confirmReset ? (
+            <View style={styles.confirm}>
+              <Text style={styles.confirmText}>Effacer définitivement toute la liste ?</Text>
+              <View style={styles.confirmRow}>
+                <Pressable onPress={() => setConfirmReset(false)} style={[styles.btn, styles.btnGhost]}>
+                  <Text style={styles.btnGhostText}>Annuler</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    completeConfession();
+                    setConfirmReset(false);
+                    setAbsolved(true);
+                  }}
+                  style={styles.btn}
+                >
+                  <Text style={styles.btnText}>Oui, tout effacer</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable onPress={() => setConfirmReset(true)} style={[styles.btn, styles.absolve]}>
+              <Ionicons name="checkmark-circle" size={20} color={C.bg} />
+              <Text style={styles.btnText}>J’ai reçu l’absolution</Text>
+            </Pressable>
+          ))}
+
+        <View style={{ height: 24 }} />
+        <Fold title="Examen de conscience" icon="search-outline">
+          {EXAMEN.map((g) => (
+            <View key={g.title} style={{ marginBottom: 12 }}>
+              <Text style={styles.groupTitle}>{g.title}</Text>
+              {g.questions.map((q) => (
+                <Text key={q} style={styles.question}>
+                  • {q}
+                </Text>
+              ))}
+            </View>
+          ))}
+        </Fold>
+        <Fold title="Comment se confesser" icon="footsteps-outline">
+          {STEPS.map((s, i) => (
+            <Text key={s} style={styles.step}>
+              {i + 1}. {s}
+            </Text>
+          ))}
+          <Pressable onPress={() => router.push('/priere/acte-de-contrition')} style={styles.link}>
+            <Text style={styles.linkText}>Lire l’acte de contrition</Text>
+            <Ionicons name="arrow-forward" size={15} color={C.gold} />
+          </Pressable>
+        </Fold>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
+  scroll: { padding: 20, paddingBottom: 60 },
+  intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
+  last: { color: C.text, fontSize: 14, fontWeight: '600', marginTop: 10 },
+  peace: { backgroundColor: 'rgba(92,196,138,0.12)', borderRadius: 14, padding: 14, marginTop: 16, gap: 4 },
+  peaceTitle: { color: '#7fd6a4', fontFamily: SERIF, fontSize: 19 },
+  peaceText: { color: C.text, fontSize: 14, lineHeight: 20 },
+  section: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginTop: 22, marginBottom: 8 },
+  card: { backgroundColor: C.card, borderRadius: 16, padding: 14, gap: 10 },
+  empty: { color: C.faint, fontSize: 14 },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  itemNum: { color: C.gold, fontWeight: '700', fontSize: 15, width: 22 },
+  itemText: { color: C.text, fontSize: 16, lineHeight: 22, flex: 1 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  input: { flex: 1, color: C.text, fontSize: 16, backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },
+  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
+  privacy: { color: C.faint, fontSize: 12, marginTop: 8 },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 999 },
+  btnText: { color: C.bg, fontWeight: '800', fontSize: 15 },
+  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
+  btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
+  absolve: { marginTop: 18 },
+  confirm: { marginTop: 18, backgroundColor: C.card, borderRadius: 14, padding: 14, gap: 12 },
+  confirmText: { color: C.text, fontSize: 15, fontWeight: '600' },
+  confirmRow: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
+  fold: { backgroundColor: C.card, borderRadius: 14, marginBottom: 10, overflow: 'hidden' },
+  foldHead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
+  foldTitle: { color: C.text, fontSize: 16, fontWeight: '700', flex: 1 },
+  foldBody: { paddingHorizontal: 14, paddingBottom: 14 },
+  groupTitle: { color: C.red, fontSize: 12, letterSpacing: 1.5, fontWeight: '800', textTransform: 'uppercase', marginBottom: 6 },
+  question: { color: C.text, fontSize: 15, lineHeight: 23 },
+  step: { color: C.text, fontSize: 15, lineHeight: 23, marginBottom: 6 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  linkText: { color: C.gold, fontSize: 15, fontWeight: '600' },
+});

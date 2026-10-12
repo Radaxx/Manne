@@ -26,7 +26,13 @@ export type Progress = {
   plans: Record<string, { start: string; done: string[] }>; // plans de lecture en cours
   reminder: ReminderSettings;
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
+  customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
+  confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
 };
+
+export type ConfessionItem = { id: string; text: string; at: number };
+
+export type CustomPrayer = { id: string; title: string; text: string; updatedAt: number };
 
 const KEY = 'manne/progress/v1';
 
@@ -53,6 +59,8 @@ const initial = (): Progress => ({
   plans: {},
   reminder: DEFAULT_REMINDER,
   pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
+  customPrayers: [],
+  confession: { items: [], lastConfession: null },
 });
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
@@ -158,6 +166,35 @@ export function useProgress() {
     setProgress((p) => ({ ...p, pinnedPrayers: p.pinnedPrayers.includes(id) ? p.pinnedPrayers.filter((x) => x !== id) : [...p.pinnedPrayers, id] }));
   }, []);
 
+  /** Crée ou met à jour une prière personnelle ; renvoie son identifiant. */
+  const saveCustomPrayer = useCallback((prayer: { id?: string; title: string; text: string }) => {
+    const id = prayer.id ?? `perso-${Date.now().toString(36)}`;
+    const entry: CustomPrayer = { id, title: prayer.title, text: prayer.text, updatedAt: Date.now() };
+    setProgress((p) => ({
+      ...p,
+      customPrayers: p.customPrayers.some((c) => c.id === id) ? p.customPrayers.map((c) => (c.id === id ? entry : c)) : [entry, ...p.customPrayers],
+    }));
+    return id;
+  }, []);
+
+  const deleteCustomPrayer = useCallback((id: string) => {
+    setProgress((p) => ({ ...p, customPrayers: p.customPrayers.filter((c) => c.id !== id), pinnedPrayers: p.pinnedPrayers.filter((x) => x !== id) }));
+  }, []);
+
+  const addConfessionItem = useCallback((text: string) => {
+    const item: ConfessionItem = { id: `c-${Date.now().toString(36)}`, text, at: Date.now() };
+    setProgress((p) => ({ ...p, confession: { ...p.confession, items: [...p.confession.items, item] } }));
+  }, []);
+
+  const removeConfessionItem = useCallback((id: string) => {
+    setProgress((p) => ({ ...p, confession: { ...p.confession, items: p.confession.items.filter((i) => i.id !== id) } }));
+  }, []);
+
+  /** Après l'absolution : la liste est effacée, on garde seulement la date. */
+  const completeConfession = useCallback(() => {
+    setProgress((p) => ({ ...p, confession: { items: [], lastConfession: today() } }));
+  }, []);
+
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
   }, []);
@@ -190,7 +227,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;

@@ -33,6 +33,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="office/[id]" options={{ title: '' }} />
           <Stack.Screen name="priere/[id]" options={{ title: '' }} />
+          <Stack.Screen name="confession" options={{ title: 'Confession' }} />
+          <Stack.Screen name="priere-edition" options={{ title: 'Ma prière', presentation: 'modal' }} />
           <Stack.Screen name="messe" options={{ title: 'Messe du jour' }} />
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />

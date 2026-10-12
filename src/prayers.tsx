@@ -7,7 +7,15 @@ import { SERIF } from './cards';
 import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, ROSARY_STEPS, type Prayer, type PrayerCategory } from './data/prayers';
 import { C } from './liturgy';
-import { useApp } from './storage';
+import { useApp, type CustomPrayer } from './storage';
+
+const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
+
+/** Le recueil plus les prières écrites par l'utilisateur. */
+export function useAllPrayers(): Prayer[] {
+  const { progress } = useApp();
+  return useMemo(() => [...progress.customPrayers.map(asPrayer), ...PRAYERS], [progress.customPrayers]);
+}
 
 /** Pour la recherche : minuscules, sans accents ni apostrophes typographiques. */
 const fold = (s: string) => {
@@ -49,14 +57,16 @@ function PrayerRow({ prayer }: { prayer: Prayer }) {
 /** Onglet Prières : épinglées en haut, puis tout le recueil par thème, avec recherche. */
 export function PrayersScreen() {
   const { progress } = useApp();
+  const all = useAllPrayers();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<PrayerCategory | null>(null);
 
-  const pinned = progress.pinnedPrayers.map((id) => PRAYERS.find((p) => p.id === id)).filter((p): p is Prayer => !!p);
+  const pinned = progress.pinnedPrayers.map((id) => all.find((p) => p.id === id)).filter((p): p is Prayer => !!p);
+  const mine = all.filter((p) => p.custom);
   const results = useMemo(() => {
     const q = fold(query.trim());
-    return PRAYERS.filter((p) => (!category || p.category === category) && (!q || fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q)));
-  }, [query, category]);
+    return all.filter((p) => (!category || p.category === category) && (!q || fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q)));
+  }, [all, query, category]);
   const searching = query.trim().length > 0 || category !== null;
 
   return (
@@ -84,6 +94,21 @@ export function PrayersScreen() {
 
         {!searching && (
           <>
+            <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.confession, pressed && styles.pressed]}>
+              <View style={styles.confessionIcon}>
+                <Ionicons name="key-outline" size={20} color={C.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Préparer ma confession</Text>
+                <Text style={styles.rowPreview}>
+                  {progress.confession.items.length > 0
+                    ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
+                    : 'Examen de conscience et liste personnelle'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
+
             <Text style={styles.section}>Épinglées</Text>
             {pinned.length === 0 ? (
               <Text style={styles.empty}>Touche l’épingle d’une prière pour la retrouver ici et sur l’accueil.</Text>
@@ -94,6 +119,20 @@ export function PrayersScreen() {
                 ))}
               </View>
             )}
+
+            <Text style={styles.section}>Mes prières</Text>
+            <View style={styles.group}>
+              {mine.map((p) => (
+                <PrayerRow key={p.id} prayer={p} />
+              ))}
+              <Pressable onPress={() => router.push('/priere-edition')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+                <Ionicons name="create-outline" size={20} color={C.gold} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: C.gold }]}>Écrire une prière</Text>
+                  {mine.length === 0 && <Text style={styles.rowPreview}>Une intention, une prière qui te touche, tes propres mots…</Text>}
+                </View>
+              </Pressable>
+            </View>
           </>
         )}
 
@@ -188,9 +227,35 @@ function Rosary() {
   );
 }
 
+function CustomActions({ id }: { id: string }) {
+  const { deleteCustomPrayer } = useApp();
+  // Supprimer est définitif : on demande une seconde confirmation.
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <View style={styles.actions}>
+      <Pressable onPress={() => router.push({ pathname: '/priere-edition', params: { id } })} style={styles.actionBtn}>
+        <Ionicons name="create-outline" size={17} color={C.text} />
+        <Text style={styles.actionText}>Modifier</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => {
+          if (!confirm) return setConfirm(true);
+          deleteCustomPrayer(id);
+          if (router.canGoBack()) router.back();
+          else router.replace('/prieres');
+        }}
+        style={[styles.actionBtn, confirm && styles.actionDanger]}
+      >
+        <Ionicons name="trash-outline" size={17} color={C.red} />
+        <Text style={[styles.actionText, { color: C.red }]}>{confirm ? 'Confirmer la suppression' : 'Supprimer'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function PrayerScreen({ id }: { id: string }) {
-  const prayer = PRAYERS.find((p) => p.id === id);
-  if (!prayer) return <Text style={styles.empty}>Prière introuvable.</Text>;
+  const prayer = useAllPrayers().find((p) => p.id === id);
+  if (!prayer) return <Text style={[styles.empty, { padding: 24 }]}>Cette prière n’existe plus.</Text>;
   const ref = scriptureRef(prayer);
   return (
     <>
@@ -204,6 +269,7 @@ export function PrayerScreen({ id }: { id: string }) {
         {prayer.scripture ? <ScriptureText scripture={prayer.scripture} /> : null}
         {prayer.rosary ? <Rosary /> : null}
         {prayer.note ? <Text style={styles.note}>{prayer.note}</Text> : null}
+        {prayer.custom ? <CustomActions id={prayer.id} /> : null}
       </ScrollView>
     </>
   );
@@ -242,4 +308,10 @@ const styles = StyleSheet.create({
   mysteriesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   todayBadge: { color: C.bg, backgroundColor: C.gold, fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
   mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
+  confession: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 14, marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,209,102,0.2)' },
+  confessionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
+  actionDanger: { borderColor: C.red },
+  actionText: { color: C.text, fontSize: 14, fontWeight: '600' },
 });
