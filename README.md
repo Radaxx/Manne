@@ -8,6 +8,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 - **Évangile du jour** et toutes les lectures de la messe.
 - **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Les chapitres lus dans l’onglet Lecture font avancer les plans.
 - **Continuer ma lecture** et quelques statistiques.
+- **Rappel quotidien** (cloche) : une notification par jour à l’heure choisie, avec un verset, seulement si l’app n’a pas encore été ouverte ce jour-là.
 
 Les textes liturgiques viennent de l’[API de l’AELF](https://api.aelf.org) (© AELF), mis en cache pour la journée.
 
@@ -24,6 +25,10 @@ Louis Segond 1910 (domaine public), embarquée dans l’app pour fonctionner hor
 
 - `scripts/build-bible.mjs` régénère `src/data/bible/` (un fichier JSON par livre).
 - `scripts/build-verses.mjs` régénère `src/data/verses.json` (versets du fil Découvrir).
+
+## Logo
+
+« La Parole lumière » : un livre ouvert d’où rayonne la lumière (« la vie était la lumière des hommes », Jean 1:4). `node scripts/build-icons.mjs` génère l’icône iOS, l’icône adaptative Android (avec sa version monochrome), le splash, l’icône de notification et le favicon depuis un même dessin SVG.
 
 ## Lancer
 

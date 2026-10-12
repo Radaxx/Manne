@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1c25"/><stop offset="1" stop-color="#0d0e12"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe29a"/><stop offset="0.45" stop-color="#f2b544"/><stop offset="1" stop-color="#d48f22"/></linearGradient>
+    <!-- en coordonnées absolues : un dégradé relatif ne s'applique pas à une ligne parfaitement verticale -->
+    <linearGradient id="ray" gradientUnits="userSpaceOnUse" x1="0" y1="230" x2="0" y2="460"><stop offset="0" stop-color="#ffe29a"/><stop offset="1" stop-color="#f2b544"/></linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd166" stop-opacity="0.5"/><stop offset="1" stop-color="#ffd166" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(512 512) scale(1) translate(-512 -521)">
+    <circle cx="512" cy="480" r="300" fill="url(#halo)"/>
+    <line x1="399.2" y1="519.0" x2="258.3" y2="467.7" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/><line x1="425.7" y1="476.6" x2="317.8" y2="372.4" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/><line x1="465.1" y1="449.5" x2="394.8" y2="283.8" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/><line x1="512.0" y1="440.0" x2="512.0" y2="230.0" stroke="url(#ray)" stroke-width="26" stroke-linecap="round" opacity="1"/><line x1="558.9" y1="449.5" x2="629.2" y2="283.8" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/><line x1="598.3" y1="476.6" x2="706.2" y2="372.4" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/><line x1="624.8" y1="519.0" x2="765.7" y2="467.7" stroke="url(#ray)" stroke-width="18" stroke-linecap="round" opacity="0.8"/>
+    <!-- Livre ouvert -->
+    <g transform="translate(512 700) scale(0.9) translate(-512 -640)">
+      <path d="M496 544 C428 494 328 484 228 512 L228 734 C328 708 428 716 496 766 Z" fill="url(#gold)"/>
+      <path d="M528 544 C596 494 696 484 796 512 L796 734 C696 708 596 716 528 766 Z" fill="url(#gold)"/>
+      <g fill="none" stroke="#a86a14" stroke-width="9" stroke-linecap="round" opacity="0.45">
+        <path d="M282 574 C352 556 424 562 468 588"/><path d="M282 622 C352 604 424 610 468 636"/><path d="M282 670 C352 652 424 658 468 684"/>
+        <path d="M742 574 C672 556 600 562 556 588"/><path d="M742 622 C672 604 600 610 556 636"/><path d="M742 670 C672 652 600 658 556 684"/>
+      </g>
+    </g>
+  </g>
+</svg>

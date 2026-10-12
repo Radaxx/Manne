@@ -123,17 +123,20 @@ export function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* En-tête : salutation, date et jour liturgique */}
         <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>{hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour'}</Text>
-            <Text style={styles.date}>
-              {capitalize(DAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
-            </Text>
-          </View>
-          <View style={styles.streak}>
-            <Ionicons name="flame" size={16} color="#ffb703" />
-            <Text style={styles.streakText}>{progress.streak}</Text>
+          <Text style={styles.greeting}>{hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour'}</Text>
+          <View style={styles.headerRight}>
+            <Pressable onPress={() => router.push('/rappel')} hitSlop={10} accessibilityLabel="Rappel quotidien" style={styles.bell}>
+              <Ionicons name={progress.reminder.enabled ? 'notifications' : 'notifications-outline'} size={19} color={progress.reminder.enabled ? C.gold : C.muted} />
+            </Pressable>
+            <View style={styles.streak}>
+              <Ionicons name="flame" size={16} color="#ffb703" />
+              <Text style={styles.streakText}>{progress.streak}</Text>
+            </View>
           </View>
         </View>
+        <Text style={styles.date}>
+          {capitalize(DAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
+        </Text>
         {info && (
           <View style={styles.liturgy}>
             <View style={[styles.colorDot, { backgroundColor: LITURGICAL_COLORS[info.couleur] ?? C.muted }]} />
@@ -238,9 +241,11 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { padding: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   greeting: { color: C.muted, fontSize: 15, fontWeight: '600' },
   date: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   streak: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   streakText: { color: C.text, fontWeight: '700', fontSize: 15 },
   liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },

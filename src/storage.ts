@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { VERSES, type Passage, type Theme } from './data/content';
 import { planById } from './plans';
+import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
 import { normalize, type Position } from './reading';
 
 /** Objectif quotidien, en versets lus (un chapitre en compte souvent 20 à 40). */
@@ -23,6 +24,7 @@ export type Progress = {
   positions: Record<number, { chapter: number; verse: number }>;
   chaptersRead: string[]; // clés « livre:chapitre »
   plans: Record<string, { start: string; done: string[] }>; // plans de lecture en cours
+  reminder: ReminderSettings;
 };
 
 const KEY = 'manne/progress/v1';
@@ -48,6 +50,7 @@ const initial = (): Progress => ({
   positions: {},
   chaptersRead: [],
   plans: {},
+  reminder: DEFAULT_REMINDER,
 });
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
@@ -149,6 +152,10 @@ export function useProgress() {
     });
   }, []);
 
+  const setReminder = useCallback((reminder: ReminderSettings) => {
+    setProgress((p) => ({ ...p, reminder }));
+  }, []);
+
   const toggleLike = useCallback((id: string, theme?: Theme, force?: boolean) => {
     setProgress((p) => {
       const has = p.liked.includes(id);
@@ -177,7 +184,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;
