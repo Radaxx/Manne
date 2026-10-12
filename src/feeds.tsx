@@ -1,19 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BookIntroCard, ChapterEndCard, FactCard, PassageCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './src/cards';
-import type { Passage, Theme } from './src/data/content';
-import { INTROS } from './src/data/intros';
-import { FeedGenerator, type Card } from './src/feed';
-import { ReadingGenerator, type ReadingCard } from './src/reading';
-import { BooksSheet, ChapterSheet, SavedSheet } from './src/sheets';
-import { DAILY_GOAL, readingPosition, useProgress } from './src/storage';
-
-type ProgressApi = ReturnType<typeof useProgress>;
-type Tab = 'lecture' | 'decouvrir';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BookIntroCard, ChapterEndCard, FactCard, PassageCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
+import type { Passage, Theme } from './data/content';
+import { INTROS } from './data/intros';
+import { FeedGenerator, type Card } from './feed';
+import { ReadingGenerator, type ReadingCard } from './reading';
+import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
+import { DAILY_GOAL, readingPosition, useApp, type ProgressApi } from './storage';
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -78,7 +74,7 @@ function Pager<T extends { key: string }>(props: {
 }
 
 /** Lecture suivie : chaque glissement fait avancer dans le texte, et le marque-page suit. */
-function ReadingFeed({ api, height }: { api: ProgressApi; height: number }) {
+function ReadingPager({ api, height }: { api: ProgressApi; height: number }) {
   // Générateur et premières cartes créés ensemble : sûr même si React rejoue l'initialiseur.
   const [{ generator, initial }] = useState(() => {
     const g = new ReadingGenerator(readingPosition(api.progress));
@@ -121,7 +117,7 @@ function ReadingFeed({ api, height }: { api: ProgressApi; height: number }) {
 }
 
 /** Découvrir : versets choisis, anecdotes, quiz, personnages — selon tes goûts. */
-function DiscoverFeed({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
+function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
   const [{ generator, initial }] = useState(() => {
     const g = new FeedGenerator(api.getScores);
     return { generator: g, initial: g.next(12) };
@@ -161,16 +157,14 @@ function DiscoverFeed({ api, height, onContext }: { api: ProgressApi; height: nu
   );
 }
 
-function Main() {
+/** Écran plein de cartes avec, par-dessus, l'objectif du jour, la série et les favoris. */
+function FeedScreen({ title, left, children }: { title: string; left?: ReactNode; children: (height: number, openContext: (p: Passage) => void) => ReactNode }) {
   const insets = useSafeAreaInsets();
-  const api = useProgress();
+  const api = useApp();
   const { progress } = api;
-  const [tab, setTab] = useState<Tab>('lecture');
   const [height, setHeight] = useState(0);
   const [chapter, setChapter] = useState<Passage | null>(null);
-  const [sheet, setSheet] = useState<'saved' | 'books' | null>(null);
-  // Change uniquement quand on choisit un livre : relance la lecture à la bonne position.
-  const [readingSession, setReadingSession] = useState(0);
+  const [showSaved, setShowSaved] = useState(false);
 
   const celebrate = useRef(new Animated.Value(0)).current;
   const readCount = progress.readToday.length;
@@ -187,46 +181,20 @@ function Main() {
     prevCount.current = readCount;
   }, [readCount, celebrate]);
 
-  const { selectBook } = api;
-  const pickBook = useCallback(
-    (book: number, restart: boolean) => {
-      selectBook(book, restart);
-      setSheet(null);
-      setTab('lecture');
-      setReadingSession((n) => n + 1);
-    },
-    [selectBook],
-  );
-
   return (
     <View style={styles.root} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
-      <StatusBar style="light" />
-      {height > 0 &&
-        api.loaded &&
-        (tab === 'lecture' ? <ReadingFeed key={readingSession} api={api} height={height} /> : <DiscoverFeed api={api} height={height} onContext={setChapter} />)}
+      {height > 0 && api.loaded && children(height, setChapter)}
 
-      {/* Barre du haut : livres, onglets, série, objectif du jour */}
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
-          <View style={styles.side}>
-            <Pressable onPress={() => setSheet('books')} hitSlop={10} accessibilityLabel="Livres">
-              <Ionicons name="library-outline" size={22} color="#fff" />
-            </Pressable>
-          </View>
-          <View style={styles.tabs}>
-            {(['lecture', 'decouvrir'] as const).map((t) => (
-              <Pressable key={t} onPress={() => setTab(t)} hitSlop={8}>
-                <Text style={[styles.tab, tab === t && styles.tabActive]}>{t === 'lecture' ? 'Lecture' : 'Découvrir'}</Text>
-                <View style={[styles.tabUnderline, tab !== t && { opacity: 0 }]} />
-              </Pressable>
-            ))}
-          </View>
+          <View style={styles.side}>{left}</View>
+          <Text style={styles.title}>{title}</Text>
           <View style={[styles.side, styles.topRight]}>
             <View style={styles.streak}>
               <Ionicons name="flame" size={15} color="#ffb703" />
               <Text style={styles.streakText}>{progress.streak}</Text>
             </View>
-            <Pressable onPress={() => setSheet('saved')} hitSlop={10} accessibilityLabel="Mes versets">
+            <Pressable onPress={() => setShowSaved(true)} hitSlop={10} accessibilityLabel="Mes versets">
               <Ionicons name="bookmarks-outline" size={21} color="#fff" />
             </Pressable>
           </View>
@@ -248,14 +216,13 @@ function Main() {
       </Animated.View>
 
       {chapter && <ChapterSheet passage={chapter} onClose={() => setChapter(null)} />}
-      {sheet === 'books' && <BooksSheet current={progress.currentBook} chaptersRead={progress.chaptersRead} onPick={pickBook} onClose={() => setSheet(null)} />}
-      {sheet === 'saved' && (
+      {showSaved && (
         <SavedSheet
           saved={progress.saved}
           onRemove={api.toggleSave}
-          onClose={() => setSheet(null)}
+          onClose={() => setShowSaved(false)}
           onOpen={(p) => {
-            setSheet(null);
+            setShowSaved(false);
             setTimeout(() => setChapter(p), 400);
           }}
         />
@@ -264,12 +231,41 @@ function Main() {
   );
 }
 
-export default function App() {
+export function ReadingScreen() {
+  const api = useApp();
+  const [showBooks, setShowBooks] = useState(false);
+  const { selectBook, restartReading } = api;
   return (
-    <SafeAreaProvider>
-      <Main />
-    </SafeAreaProvider>
+    <>
+      <FeedScreen
+        title="Lecture"
+        left={
+          <Pressable onPress={() => setShowBooks(true)} hitSlop={10} accessibilityLabel="Choisir un livre" style={styles.booksBtn}>
+            <Ionicons name="library-outline" size={21} color="#fff" />
+          </Pressable>
+        }
+      >
+        {(height) => <ReadingPager key={api.readingSession} api={api} height={height} />}
+      </FeedScreen>
+      {showBooks && (
+        <BooksSheet
+          current={api.progress.currentBook}
+          chaptersRead={api.progress.chaptersRead}
+          onPick={(book, restart) => {
+            selectBook(book, restart);
+            setShowBooks(false);
+            restartReading();
+          }}
+          onClose={() => setShowBooks(false)}
+        />
+      )}
+    </>
   );
+}
+
+export function DiscoverScreen() {
+  const api = useApp();
+  return <FeedScreen title="Découvrir">{(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}</FeedScreen>;
 }
 
 const styles = StyleSheet.create({
@@ -277,11 +273,9 @@ const styles = StyleSheet.create({
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { width: 84 },
+  booksBtn: { alignSelf: 'flex-start' },
+  title: { color: '#fff', fontSize: 17, fontWeight: '700' },
   topRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 12 },
-  tabs: { flexDirection: 'row', gap: 20 },
-  tab: { color: 'rgba(255,255,255,0.6)', fontSize: 17, fontWeight: '700' },
-  tabActive: { color: '#fff' },
-  tabUnderline: { height: 2, backgroundColor: '#fff', borderRadius: 1, marginTop: 4, width: 22, alignSelf: 'center' },
   streak: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   streakText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   goalTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 10, overflow: 'hidden' },
