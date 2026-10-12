@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookIntroCard, ChapterEndCard, PassageCard, PlanEndCard, PlanGoalCard } from './cards';
 import { INTROS } from './data/intros';
 import { actionsFor, Pager } from './feeds';
-import { formatRange, planById, planStatus, type Plan } from './plans';
+import { formatRange, planById, planIndex, planStatus, type Plan } from './plans';
 import { cardsUntil, isResumeCard, PlanReadingGenerator, type PlanReadingCard } from './reading';
 import { today, useApp } from './storage';
 
@@ -33,6 +33,35 @@ function PlanReader({ plan }: { plan: Plan }) {
   });
   const [cards, setCards] = useState<PlanReadingCard[]>(initial);
 
+  // La carte affichée, traduite en position dans le plan, pour « Marquer ici ».
+  const [here, setHere] = useState<{ pos: number; verse: number; label: string } | null>(null);
+  const [toast, setToast] = useState('');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!toast) return;
+    toastOpacity.setValue(1);
+    Animated.timing(toastOpacity, { toValue: 0, duration: 400, delay: 1800, useNativeDriver: true }).start(() => setToast(''));
+  }, [toast, toastOpacity]);
+
+  const locate = (card: PlanReadingCard) => {
+    if (card.kind === 'passage') {
+      const { book, chapter, from, bookName } = card.passage;
+      return { pos: planIndex(plan, book, chapter), verse: from, label: `${bookName} ${chapter}${from > 1 ? `, v. ${from}` : ''}` };
+    }
+    if (card.kind === 'chapterEnd') {
+      // Sur la fin d'un chapitre : ce chapitre est terminé, on reprendra au suivant.
+      return { pos: planIndex(plan, card.book.n, card.chapter) + 1, verse: 1, label: `la fin de ${card.book.name} ${card.chapter}` };
+    }
+    if (card.kind === 'intro') return { pos: planIndex(plan, card.book.n, 1), verse: 1, label: `${card.book.name} 1` };
+    return null;
+  };
+
+  const markHere = () => {
+    if (!here || here.pos < 0) return;
+    api.setPlanPosition(plan.id, here.pos, here.verse);
+    setToast(`Plan placé à ${here.label}`);
+  };
+
   const subtitle = status.finished
     ? 'Plan terminé ✓'
     : status.todayComplete
@@ -53,6 +82,7 @@ function PlanReader({ plan }: { plan: Plan }) {
             if (more.length) setCards((c) => [...c, ...more]);
           }}
           onViewed={(card) => {
+            setHere(locate(card));
             if (card.kind === 'passage') {
               api.markRead(card.passage);
               api.advancePlan(plan.id, card.passage, card.chapterEnd);
@@ -91,11 +121,22 @@ function PlanReader({ plan }: { plan: Plan }) {
               Jour {status.day + 1}/{plan.days} · {subtitle}
             </Text>
           </View>
+          <Pressable onPress={markHere} disabled={!here || here.pos < 0} hitSlop={8} style={[styles.mark, (!here || here.pos < 0) && { opacity: 0.4 }]} accessibilityLabel="Placer le marque-page du plan ici">
+            <Ionicons name="bookmark" size={14} color="#fff" />
+            <Text style={styles.markText}>Marquer ici</Text>
+          </Pressable>
         </View>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${Math.round(todayProgress * 100)}%` }]} />
         </View>
       </View>
+
+      {toast ? (
+        <Animated.View pointerEvents="none" style={[styles.toast, { top: insets.top + 74, opacity: toastOpacity }]}>
+          <Ionicons name="bookmark" size={15} color="#5cc48a" />
+          <Text style={styles.toastText}>{toast}</Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -123,4 +164,8 @@ const styles = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600', marginTop: 1 },
   track: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 10, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: '#5cc48a' },
+  mark: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999 },
+  markText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  toast: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(15,16,20,0.92)', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  toastText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 });

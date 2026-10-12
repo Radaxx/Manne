@@ -190,6 +190,11 @@ export function useProgress() {
     }));
   }, []);
 
+  /** Place le marque-page d'un plan à une position précise, en avant comme en arrière (« Marquer ici »). */
+  const setPlanPosition = useCallback((id: string, pos: number, verse: number) => {
+    setProgress((p) => (p.plans[id] ? { ...p, plans: { ...p.plans, [id]: { ...p.plans[id], pos, verse } } } : p));
+  }, []);
+
   /** Lecture libre : place le marque-page au début d'un chapitre choisi. */
   const goTo = useCallback((book: number, chapter: number) => {
     setProgress((p) => ({ ...p, currentBook: book, positions: { ...p.positions, [book]: { chapter, verse: 1 } } }));
@@ -288,7 +293,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, setPlanPosition, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;
