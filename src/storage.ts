@@ -25,6 +25,7 @@ export type Progress = {
   chaptersRead: string[]; // clés « livre:chapitre »
   plans: Record<string, { start: string; done: string[] }>; // plans de lecture en cours
   reminder: ReminderSettings;
+  pinnedPrayers: string[]; // dans l'ordre d'épinglage
 };
 
 const KEY = 'manne/progress/v1';
@@ -51,6 +52,7 @@ const initial = (): Progress => ({
   chaptersRead: [],
   plans: {},
   reminder: DEFAULT_REMINDER,
+  pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
 });
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
@@ -152,6 +154,10 @@ export function useProgress() {
     });
   }, []);
 
+  const togglePin = useCallback((id: string) => {
+    setProgress((p) => ({ ...p, pinnedPrayers: p.pinnedPrayers.includes(id) ? p.pinnedPrayers.filter((x) => x !== id) : [...p.pinnedPrayers, id] }));
+  }, []);
+
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
   }, []);
@@ -184,7 +190,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;

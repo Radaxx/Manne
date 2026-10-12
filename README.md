@@ -12,6 +12,10 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 
 Les textes liturgiques viennent de l’[API de l’AELF](https://api.aelf.org) (© AELF), mis en cache pour la journée.
 
+## Prières
+
+Un recueil de 39 prières (essentielles, Marie, saints, Esprit Saint, pardon, confiance, repas, prières de la Bible), avec recherche, thèmes et le chapelet avec les mystères du jour. Les prières épinglées apparaissent en tête de l’onglet et sur l’accueil.
+
 ## Deux fils
 
 - **Lecture** : la Bible en lecture suivie, quelques versets par écran. Chaque glissement fait avancer le marque-page ; on reprend toujours là où on s’était arrêté. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
@@ -46,6 +50,7 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 - `src/feeds.tsx` : les fils de cartes plein écran
 - `src/aelf.ts` / `src/liturgy.tsx` : textes liturgiques AELF et leur affichage
 - `src/plans.ts` : plans de lecture
+- `src/prayers.tsx` / `src/data/prayers.ts` : l’onglet Prières et son recueil
 - `src/reading.ts` : découpage du texte en passages pour la lecture suivie
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes

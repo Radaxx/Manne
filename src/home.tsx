@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import { SERIF } from './cards';
 import { BOOKS } from './data/bible';
+import { PRAYERS } from './data/prayers';
 import { C } from './liturgy';
 import { formatRange, planById, planStatus, type PlanStatus } from './plans';
 import { TOTAL_CHAPTERS } from './reading';
@@ -104,6 +105,8 @@ export function HomeScreen() {
     [progress.plans, day],
   );
 
+  const pinnedPrayers = progress.pinnedPrayers.map((id) => PRAYERS.find((p) => p.id === id)).filter((p) => !!p);
+
   const book = BOOKS[progress.currentBook - 1];
   const pos = progress.positions[progress.currentBook] ?? { chapter: 1, verse: 1 };
   const bookDone = (pos.chapter - 1 + (pos.verse - 1) / book.verses[pos.chapter - 1]) / book.verses.length;
@@ -167,6 +170,25 @@ export function HomeScreen() {
             </Pressable>
           ))}
         </ScrollView>
+
+        {/* Prières épinglées : accès en un geste */}
+        <SectionTitle action={{ label: 'Toutes', onPress: () => router.navigate('/prieres') }}>Mes prières</SectionTitle>
+        {pinnedPrayers.length === 0 ? (
+          <Card onPress={() => router.navigate('/prieres')}>
+            <Text style={styles.muted}>Épingle tes prières préférées pour les retrouver ici.</Text>
+          </Card>
+        ) : (
+          <View style={styles.prayerGrid}>
+            {pinnedPrayers.map((p) => (
+              <Pressable key={p.id} onPress={() => router.push(`/priere/${p.id}`)} style={({ pressed }) => [styles.prayerChip, pressed && styles.pressed]}>
+                <Ionicons name="rose-outline" size={15} color={C.gold} />
+                <Text style={styles.prayerChipText} numberOfLines={1}>
+                  {p.title}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         {/* Parole du jour : l'Évangile de la messe */}
         <SectionTitle action={{ label: 'Toutes les lectures', onPress: () => router.push('/messe') }}>Évangile du jour</SectionTitle>
@@ -262,6 +284,9 @@ const styles = StyleSheet.create({
   chips: { gap: 8, paddingVertical: 2 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
   chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
+  prayerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  prayerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, maxWidth: '100%' },
+  prayerChipText: { color: C.text, fontSize: 15, fontWeight: '600', flexShrink: 1 },
   kicker: { color: C.red, fontSize: 12, letterSpacing: 1.5, fontWeight: '800', textTransform: 'uppercase' },
   gospelTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 19, lineHeight: 27 },
   gospelText: { color: C.muted, fontFamily: SERIF, fontSize: 16, lineHeight: 24 },
