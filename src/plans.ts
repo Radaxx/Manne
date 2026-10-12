@@ -27,13 +27,6 @@ export function planChapters(plan: Plan): ChapterRef[] {
   return chaptersCache.get(plan.id)!;
 }
 
-/** Les chapitres prévus pour un jour donné du plan (jour 0 = jour de départ). */
-export function dayChapters(plan: Plan, day: number): ChapterRef[] {
-  const all = planChapters(plan);
-  const d = Math.min(Math.max(day, 0), plan.days - 1);
-  return all.slice(Math.floor((d * all.length) / plan.days), Math.floor(((d + 1) * all.length) / plan.days));
-}
-
 export function daysSince(start: string, today: string) {
   const [y1, m1, d1] = start.split('-').map(Number);
   const [y2, m2, d2] = today.split('-').map(Number);
@@ -53,34 +46,58 @@ export function formatRange(chapters: ChapterRef[]) {
   return `${name(first.book)} ${first.chapter} – ${name(last.book)} ${last.chapter}`;
 }
 
+/**
+ * État d'un plan : son propre marque-page, indépendant de la lecture libre.
+ * pos = index (dans planChapters) du prochain chapitre à lire ; tous ceux d'avant sont lus.
+ * verse = verset où reprendre dans ce chapitre.
+ */
+export type PlanState = { start: string; pos: number; verse: number };
+
+const indexCache = new Map<string, Map<string, number>>();
+
+/** Position d'un chapitre dans le plan, ou -1 s'il n'en fait pas partie. */
+export function planIndex(plan: Plan, book: number, chapter: number): number {
+  if (!indexCache.has(plan.id)) indexCache.set(plan.id, new Map(planChapters(plan).map((c, i) => [c.key, i])));
+  return indexCache.get(plan.id)!.get(`${book}:${chapter}`) ?? -1;
+}
+
 export type PlanStatus = {
   plan: Plan;
   day: number; // jour courant du plan, à partir de 0
-  done: number;
+  done: number; // chapitres lus
   total: number;
-  today: ChapterRef[];
+  today: ChapterRef[]; // portion prévue aujourd'hui
   todayDone: number;
-  next: ChapterRef | null; // premier chapitre non lu du plan
-  behind: number; // chapitres de retard sur le rythme prévu
+  todayComplete: boolean; // la lecture prévue jusqu'à aujourd'hui inclus est faite
+  expected: number; // chapitres qui devraient être lus à la fin de la journée
+  next: ChapterRef | null; // où reprendre
+  nextVerse: number;
+  behind: number; // chapitres en retard sur les jours précédents
+  ahead: number; // chapitres d'avance sur le rythme prévu
   finished: boolean;
 };
 
-export function planStatus(plan: Plan, start: string, doneKeys: string[], today: string): PlanStatus {
+export function planStatus(plan: Plan, state: PlanState, today: string): PlanStatus {
   const all = planChapters(plan);
-  const done = new Set(doneKeys);
-  const day = Math.min(daysSince(start, today), plan.days - 1);
-  const todayChapters = dayChapters(plan, day);
-  const expected = Math.floor(((day + 1) * all.length) / plan.days);
-  const doneCount = all.filter((c) => done.has(c.key)).length;
+  const total = all.length;
+  const day = Math.min(Math.max(daysSince(state.start, today), 0), plan.days - 1);
+  const todayStart = Math.floor((day * total) / plan.days);
+  const expected = Math.floor(((day + 1) * total) / plan.days);
+  const done = Math.min(state.pos, total);
+  const todays = all.slice(todayStart, expected);
   return {
     plan,
     day,
-    done: doneCount,
-    total: all.length,
-    today: todayChapters,
-    todayDone: todayChapters.filter((c) => done.has(c.key)).length,
-    next: all.find((c) => !done.has(c.key)) ?? null,
-    behind: Math.max(0, expected - todayChapters.length - all.slice(0, expected - todayChapters.length).filter((c) => done.has(c.key)).length),
-    finished: doneCount === all.length,
+    done,
+    total,
+    today: todays,
+    todayDone: Math.min(Math.max(done - todayStart, 0), todays.length),
+    todayComplete: done >= expected,
+    expected,
+    next: all[done] ?? null,
+    nextVerse: done < total ? state.verse : 1,
+    behind: Math.max(0, todayStart - done),
+    ahead: Math.max(0, done - expected),
+    finished: done >= total,
   };
 }

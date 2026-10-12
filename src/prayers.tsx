@@ -7,6 +7,8 @@ import { SERIF } from './cards';
 import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, ROSARY_STEPS, type Prayer, type PrayerCategory } from './data/prayers';
 import { C } from './liturgy';
+import { biometricName, lockSupported } from './lock';
+import { sessionLabel } from './rosary';
 import { useApp, type CustomPrayer } from './storage';
 
 const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
@@ -96,14 +98,29 @@ export function PrayersScreen() {
           <>
             <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.confession, pressed && styles.pressed]}>
               <View style={styles.confessionIcon}>
-                <Ionicons name="key-outline" size={20} color={C.gold} />
+                <Ionicons name={progress.confessionLock && lockSupported ? 'lock-closed-outline' : 'key-outline'} size={20} color={C.gold} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>Préparer ma confession</Text>
                 <Text style={styles.rowPreview}>
-                  {progress.confession.items.length > 0
+                  {progress.confessionLock && lockSupported
+                    ? 'Protégé par ' + biometricName
+                    : progress.confession.items.length > 0
                     ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
                     : 'Examen de conscience et liste personnelle'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
+
+            <Pressable onPress={() => router.push('/chapelet')} style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}>
+              <View style={styles.confessionIcon}>
+                <Ionicons name="rose-outline" size={20} color={C.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{progress.rosary.session ? 'Reprendre mon chapelet' : 'Prier le chapelet'}</Text>
+                <Text style={styles.rowPreview}>
+                  {progress.rosary.session ? sessionLabel(progress.rosary.session) : `Guidé grain après grain · ${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name.toLowerCase()}`}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
@@ -201,6 +218,10 @@ function Rosary() {
   const today = new Date().getDay();
   return (
     <>
+      <Pressable onPress={() => router.push('/chapelet')} style={styles.guided}>
+        <Ionicons name="rose" size={20} color={C.bg} />
+        <Text style={styles.guidedText}>Prier le chapelet guidé</Text>
+      </Pressable>
       <Text style={styles.subhead}>Comment le prier</Text>
       {ROSARY_STEPS.map((s, i) => (
         <Text key={i} style={styles.step}>
@@ -310,6 +331,8 @@ const styles = StyleSheet.create({
   mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
   confession: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 14, marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,209,102,0.2)' },
   confessionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center' },
+  guided: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingVertical: 13, borderRadius: 999, marginBottom: 18 },
+  guidedText: { color: C.bg, fontWeight: '800', fontSize: 16 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: C.line },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
   actionDanger: { borderColor: C.red },

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { VERSES, type Passage, type Theme } from './data/content';
-import { planById } from './plans';
+import { planById, planChapters, planIndex, type PlanState } from './plans';
 import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
 import { normalize, type Position } from './reading';
 
@@ -23,11 +23,24 @@ export type Progress = {
   currentBook: number;
   positions: Record<number, { chapter: number; verse: number }>;
   chaptersRead: string[]; // clés « livre:chapitre »
-  plans: Record<string, { start: string; done: string[] }>; // plans de lecture en cours
+  plans: Record<string, PlanState>; // plans de lecture en cours, chacun avec son marque-page
   reminder: ReminderSettings;
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
   customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
   confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
+  confessionLock: boolean; // protéger la confession par empreinte / Face ID
+  rosary: RosaryProgress; // chapelet guidé
+};
+
+/** Un chapelet commencé : on peut le quitter et le reprendre là où on s'était arrêté. */
+export type RosarySession = { set: number; decade: number | null; fatima: boolean; step: number; intention: string; day: string };
+
+export type RosaryProgress = {
+  session: RosarySession | null;
+  last: string | null; // dernier chapelet terminé (AAAA-MM-JJ)
+  count: number; // chapelets et dizaines terminés
+  fatima: boolean; // « Ô mon Jésus » après chaque dizaine
+  texts: boolean; // afficher le texte complet des prières
 };
 
 export type ConfessionItem = { id: string; text: string; at: number };
@@ -61,6 +74,8 @@ const initial = (): Progress => ({
   pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
   customPrayers: [],
   confession: { items: [], lastConfession: null },
+  confessionLock: true,
+  rosary: { session: null, last: null, count: 0, fatima: true, texts: true },
 });
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
@@ -91,6 +106,16 @@ export function useProgress() {
         stored.saved = (stored.saved as (Passage | string)[])
           .map((s) => (typeof s === 'string' ? VERSES.find((v) => v.id === s) : s))
           .filter((s): s is Passage => !!s);
+        // Anciennes versions : un plan gardait la liste des chapitres lus ; on la convertit en marque-page.
+        for (const [id, state] of Object.entries(stored.plans as Record<string, PlanState & { done?: string[] }>)) {
+          const plan = planById(id);
+          if (!plan) delete stored.plans[id];
+          else if (state.pos === undefined) {
+            const done = new Set(state.done ?? []);
+            const pos = planChapters(plan).findIndex((c) => !done.has(c.key));
+            stored.plans[id] = { start: state.start, pos: pos === -1 ? planChapters(plan).length : pos, verse: 1 };
+          }
+        }
         // Nouveau jour : on remet les compteurs quotidiens à zéro.
         if (stored.day !== today()) {
           stored.day = today();
@@ -115,26 +140,45 @@ export function useProgress() {
     });
   }, []);
 
-  /** Avance le marque-page de lecture juste après ce passage. */
+  /** Compte un chapitre comme lu (statistiques et progression par livre). */
+  const withChapterRead = (p: Progress, book: number, chapter: number): Progress => {
+    const key = `${book}:${chapter}`;
+    return {
+      ...p,
+      chaptersRead: p.chaptersRead.includes(key) ? p.chaptersRead : [...p.chaptersRead, key],
+      chaptersToday: p.chaptersToday.includes(key) ? p.chaptersToday : [...p.chaptersToday, key],
+    };
+  };
+
+  const markChapterRead = useCallback((book: number, chapter: number) => {
+    setProgress((p) => withChapterRead(p, book, chapter));
+  }, []);
+
+  /** Lecture libre : avance le marque-page juste après ce passage. N'a aucun effet sur les plans. */
   const advanceReading = useCallback((passage: Passage, chapterEnd: boolean) => {
     setProgress((p) => {
       const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 });
-      const chapterKey = `${passage.book}:${passage.chapter}`;
-      // Un chapitre terminé compte pour chaque plan en cours qui le contient.
-      const plans = { ...p.plans };
-      if (chapterEnd) {
-        for (const [id, state] of Object.entries(plans)) {
-          if (planById(id)?.books.includes(passage.book) && !state.done.includes(chapterKey)) plans[id] = { ...state, done: [...state.done, chapterKey] };
-        }
-      }
-      return {
-        ...p,
-        currentBook: next.book,
-        positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } },
-        chaptersRead: chapterEnd && !p.chaptersRead.includes(chapterKey) ? [...p.chaptersRead, chapterKey] : p.chaptersRead,
-        chaptersToday: chapterEnd && !p.chaptersToday.includes(chapterKey) ? [...p.chaptersToday, chapterKey] : p.chaptersToday,
-        plans,
-      };
+      const moved = { ...p, currentBook: next.book, positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } } };
+      return chapterEnd ? withChapterRead(moved, passage.book, passage.chapter) : moved;
+    });
+  }, []);
+
+  /**
+   * Lecture d'un plan : avance son propre marque-page jusqu'après ce passage, sans jamais reculer.
+   * Tout ce qui précède la position atteinte compte comme lu, même si on a glissé vite.
+   */
+  const advancePlan = useCallback((id: string, passage: Pick<Passage, 'book' | 'chapter' | 'to'>, chapterEnd: boolean) => {
+    setProgress((p) => {
+      const plan = planById(id);
+      const state = p.plans[id];
+      if (!plan || !state) return p;
+      const idx = planIndex(plan, passage.book, passage.chapter);
+      if (idx === -1) return p;
+      const pos = chapterEnd ? idx + 1 : idx;
+      const verse = chapterEnd ? 1 : passage.to + 1;
+      if (pos < state.pos || (pos === state.pos && verse <= state.verse)) return chapterEnd ? withChapterRead(p, passage.book, passage.chapter) : p;
+      const updated = { ...p, plans: { ...p.plans, [id]: { ...state, pos, verse } } };
+      return chapterEnd ? withChapterRead(updated, passage.book, passage.chapter) : updated;
     });
   }, []);
 
@@ -146,13 +190,13 @@ export function useProgress() {
     }));
   }, []);
 
-  /** Place le marque-page au début d'un chapitre précis (plans de lecture, « continuer »). */
+  /** Lecture libre : place le marque-page au début d'un chapitre choisi. */
   const goTo = useCallback((book: number, chapter: number) => {
     setProgress((p) => ({ ...p, currentBook: book, positions: { ...p.positions, [book]: { chapter, verse: 1 } } }));
   }, []);
 
   const startPlan = useCallback((id: string) => {
-    setProgress((p) => ({ ...p, plans: { ...p.plans, [id]: { start: today(), done: [] } } }));
+    setProgress((p) => ({ ...p, plans: { ...p.plans, [id]: { start: today(), pos: 0, verse: 1 } } }));
   }, []);
 
   const stopPlan = useCallback((id: string) => {
@@ -195,6 +239,23 @@ export function useProgress() {
     setProgress((p) => ({ ...p, confession: { items: [], lastConfession: today() } }));
   }, []);
 
+  const setConfessionLock = useCallback((confessionLock: boolean) => {
+    setProgress((p) => ({ ...p, confessionLock }));
+  }, []);
+
+  const setRosarySession = useCallback((session: RosarySession | null) => {
+    setProgress((p) => ({ ...p, rosary: { ...p.rosary, session } }));
+  }, []);
+
+  /** Chapelet terminé : on garde seulement la date et le compte. */
+  const completeRosary = useCallback(() => {
+    setProgress((p) => ({ ...p, rosary: { ...p.rosary, session: null, last: today(), count: p.rosary.count + 1 } }));
+  }, []);
+
+  const setRosaryPrefs = useCallback((prefs: Partial<Pick<RosaryProgress, 'fatima' | 'texts'>>) => {
+    setProgress((p) => ({ ...p, rosary: { ...p.rosary, ...prefs } }));
+  }, []);
+
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
   }, []);
@@ -227,7 +288,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, advanceReading, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;

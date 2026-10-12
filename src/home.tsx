@@ -47,7 +47,7 @@ function Bar({ value, color = C.gold }: { value: number; color?: string }) {
 }
 
 function PlanCard({ status, onRead }: { status: PlanStatus; onRead: () => void }) {
-  const { plan, day, done, total, today: todays, todayDone, behind, finished } = status;
+  const { plan, day, done, total, today: todays, todayDone, todayComplete, behind, ahead, finished, next, nextVerse } = status;
   return (
     <Card onPress={finished ? undefined : onRead}>
       <View style={styles.rowBetween}>
@@ -62,17 +62,32 @@ function PlanCard({ status, onRead }: { status: PlanStatus; onRead: () => void }
       ) : (
         <>
           <View style={styles.rowBetween}>
-            <Text style={styles.planToday}>
-              Aujourd’hui : <Text style={styles.strong}>{formatRange(todays)}</Text>
-            </Text>
-            <Text style={todayDone === todays.length ? styles.ok : styles.muted}>
-              {todayDone === todays.length ? '✓ fait' : `${todayDone}/${todays.length}`}
-            </Text>
+            {todayComplete ? (
+              <Text style={styles.planToday}>
+                <Text style={styles.ok}>Lecture du jour faite ✓</Text>
+                {ahead > 0 ? ` · ${ahead} chapitre${ahead > 1 ? 's' : ''} d’avance` : ''}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.planToday}>
+                  Aujourd’hui : <Text style={styles.strong}>{formatRange(todays)}</Text>
+                </Text>
+                <Text style={styles.muted}>
+                  {todayDone}/{todays.length}
+                </Text>
+              </>
+            )}
           </View>
           <View style={styles.rowBetween}>
-            <Text style={styles.small}>{behind > 0 ? `${behind} chapitre${behind > 1 ? 's' : ''} de retard, pas de panique` : 'Tu es à jour'}</Text>
+            <Text style={styles.small}>
+              {behind > 0
+                ? `${behind} chapitre${behind > 1 ? 's' : ''} de retard, pas de panique`
+                : next
+                  ? `Reprendre : ${BOOKS[next.book - 1].name} ${next.chapter}${nextVerse > 1 ? `, v. ${nextVerse}` : ''}`
+                  : ''}
+            </Text>
             <View style={styles.readBtn}>
-              <Text style={styles.readBtnText}>Lire</Text>
+              <Text style={styles.readBtnText}>{todayComplete ? 'Continuer' : 'Lire'}</Text>
               <Ionicons name="arrow-forward" size={14} color={C.bg} />
             </View>
           </View>
@@ -99,7 +114,7 @@ export function HomeScreen() {
       Object.entries(progress.plans)
         .map(([id, state]) => {
           const plan = planById(id);
-          return plan ? planStatus(plan, state.start, state.done, day) : null;
+          return plan ? planStatus(plan, state, day) : null;
         })
         .filter((s): s is PlanStatus => !!s),
     [progress.plans, day],
@@ -112,15 +127,8 @@ export function HomeScreen() {
   const pos = progress.positions[progress.currentBook] ?? { chapter: 1, verse: 1 };
   const bookDone = (pos.chapter - 1 + (pos.verse - 1) / book.verses[pos.chapter - 1]) / book.verses.length;
 
-  const readPlan = (s: PlanStatus) => {
-    const next = s.next;
-    if (!next) return;
-    // Si on est déjà au milieu de ce chapitre, on reprend là où on en était.
-    if (progress.positions[next.book]?.chapter === next.chapter) api.selectBook(next.book);
-    else api.goTo(next.book, next.chapter);
-    api.restartReading();
-    router.navigate('/lecture');
-  };
+  // Chaque plan a son propre fil de lecture : il n'interfère pas avec la lecture libre.
+  const readPlan = (s: PlanStatus) => router.push(`/plan/${s.plan.id}`);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>

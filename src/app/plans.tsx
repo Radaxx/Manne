@@ -15,7 +15,7 @@ export default function PlansScreen() {
       {PLANS.map((plan) => {
         const state = progress.plans[plan.id];
         const chapters = planChapters(plan).length;
-        const status = state ? planStatus(plan, state.start, state.done, today()) : null;
+        const status = state ? planStatus(plan, state, today()) : null;
         return (
           <View key={plan.id} style={[styles.card, state && styles.cardActive]}>
             <Text style={styles.title}>{plan.title}</Text>

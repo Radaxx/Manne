@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SERIF } from '../cards';
 import { C } from '../liturgy';
+import { authenticate, biometricName, lockAvailability, lockSupported } from '../lock';
 import { daysSince } from '../plans';
 import { today, useApp } from '../storage';
 
@@ -78,11 +79,64 @@ function Fold({ title, icon, children }: { title: string; icon: keyof typeof Ion
 }
 
 export default function ConfessionScreen() {
-  const { progress, addConfessionItem, removeConfessionItem, completeConfession } = useApp();
+  const { progress, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock } = useApp();
   const { items, lastConfession } = progress.confession;
   const [draft, setDraft] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [absolved, setAbsolved] = useState(false);
+
+  // Verrou : null tant qu'on ne sait pas ce que le téléphone permet.
+  const [availability, setAvailability] = useState<'biometric' | 'passcode' | 'none' | null>(lockSupported ? null : 'none');
+  const [unlocked, setUnlocked] = useState(false);
+  const locked = progress.confessionLock && availability !== 'none';
+
+  const tryUnlock = useCallback(async () => {
+    if (await authenticate('Ouvre ta préparation à la confession')) setUnlocked(true);
+  }, []);
+
+  useEffect(() => {
+    lockAvailability().then(setAvailability);
+  }, []);
+
+  // Demande l'empreinte dès l'ouverture.
+  useEffect(() => {
+    if (availability && availability !== 'none' && progress.confessionLock) tryUnlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availability]);
+
+  // Se reverrouille dès que l'app passe en arrière-plan (« inactive » arrive aussi pendant Face ID : on l'ignore).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') setUnlocked(false);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const toggleLock = async (enabled: boolean) => {
+    // Activer comme désactiver la protection demande d'être le propriétaire du téléphone.
+    if (await authenticate(enabled ? 'Active la protection de la confession' : 'Désactive la protection de la confession')) {
+      setUnlocked(true);
+      setConfessionLock(enabled);
+    }
+  };
+
+  if (availability === null) return <View style={styles.root} />;
+
+  if (locked && !unlocked) {
+    return (
+      <View style={[styles.root, styles.lockedWrap]}>
+        <View style={styles.lockIcon}>
+          <Ionicons name="lock-closed" size={34} color={C.gold} />
+        </View>
+        <Text style={styles.lockedTitle}>Espace protégé</Text>
+        <Text style={styles.lockedText}>Ta préparation à la confession est protégée par {availability === 'biometric' ? biometricName : 'le code de ton téléphone'}.</Text>
+        <Pressable onPress={tryUnlock} style={[styles.btn, { marginTop: 24 }]}>
+          <Ionicons name={Platform.OS === 'ios' ? 'scan-outline' : 'finger-print'} size={20} color={C.bg} />
+          <Text style={styles.btnText}>Déverrouiller</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   const add = () => {
     const text = draft.trim();
@@ -136,7 +190,7 @@ export default function ConfessionScreen() {
           </View>
         </View>
         <Text style={styles.privacy}>
-          <Ionicons name="lock-closed" size={12} color={C.faint} /> Cette liste reste uniquement sur ce téléphone.
+          <Ionicons name="lock-closed" size={12} color={C.faint} /> Cette liste reste uniquement sur ce téléphone{locked ? `, protégée par ${biometricName}` : ''}.
         </Text>
 
         {items.length > 0 &&
@@ -190,6 +244,20 @@ export default function ConfessionScreen() {
             <Ionicons name="arrow-forward" size={15} color={C.gold} />
           </Pressable>
         </Fold>
+
+        {lockSupported && (
+          <View style={styles.lockRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.lockLabel}>Protéger par {biometricName}</Text>
+              <Text style={styles.lockHint}>
+                {availability === 'none'
+                  ? 'Configure un code ou une empreinte dans les réglages du téléphone pour pouvoir protéger cet espace.'
+                  : 'Demandé à chaque ouverture de cet espace. Le code du téléphone reste possible en secours.'}
+              </Text>
+            </View>
+            <Switch value={progress.confessionLock && availability !== 'none'} onValueChange={toggleLock} disabled={availability === 'none'} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -230,4 +298,11 @@ const styles = StyleSheet.create({
   step: { color: C.text, fontSize: 15, lineHeight: 23, marginBottom: 6 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   linkText: { color: C.gold, fontSize: 15, fontWeight: '600' },
+  lockedWrap: { alignItems: 'center', justifyContent: 'center', padding: 32 },
+  lockIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  lockedTitle: { color: C.text, fontFamily: SERIF, fontSize: 26 },
+  lockedText: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 10 },
+  lockLabel: { color: C.text, fontSize: 16, fontWeight: '700' },
+  lockHint: { color: C.faint, fontSize: 13, lineHeight: 18, marginTop: 2 },
 });

@@ -1,0 +1,412 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { router, Stack } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SERIF } from '../cards';
+import { MYSTERIES, prayerById } from '../data/prayers';
+import { C } from '../liturgy';
+import { daysSince } from '../plans';
+import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, rosarySteps, sessionLabel, type RosaryStep } from '../rosary';
+import { today, useApp, type RosarySession } from '../storage';
+
+// Prier le chapelet, guidé grain après grain : on choisit ses mystères, on touche le chapelet
+// (ou le bouton) à chaque prière, et Manne compte à notre place. On peut quitter et reprendre.
+
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+const CLOSING = 'Priez pour nous, sainte Mère de Dieu,\n— afin que nous soyons rendus dignes des promesses du Christ.\n\nAu nom du Père, et du Fils, et du Saint-Esprit. Amen.';
+
+const todaySet = () => MYSTERIES.findIndex((s) => s.days.includes(new Date().getDay()));
+
+const haptic = (kind: 'bead' | 'decade' | 'end') => {
+  if (Platform.OS === 'web') return;
+  if (kind === 'end') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  else Haptics.impactAsync(kind === 'decade' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+};
+
+function lastRosaryLabel(day: string | null, count: number) {
+  if (!day) return 'Aucun chapelet prié avec Manne pour l’instant.';
+  const [y, m, d] = day.split('-').map(Number);
+  const ago = daysSince(day, today());
+  const when = ago === 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `le ${d} ${MONTHS[m - 1]} ${y}`;
+  return `Dernière fois : ${when} · ${count} au total.`;
+}
+
+function Kicker({ step, set }: { step: RosaryStep; set: number }) {
+  let text = 'Introduction';
+  if (step.kind === 'mystery' && step.decade !== null) text = mysteryOrdinal(set, step.decade);
+  else if (step.decade !== null) text = `Dizaine ${step.decade + 1} · ${MYSTERIES[set].mysteries[step.decade]}`;
+  else if (step.kind === 'salve' || step.kind === 'closing') text = 'Conclusion';
+  return <Text style={styles.kicker}>{text}</Text>;
+}
+
+/** Une ligne « — … » est la réponse, en doré. */
+function PrayerLines({ text }: { text: string }) {
+  return (
+    <>
+      {text.split('\n\n').map((para, i) => (
+        <Text key={i} style={styles.prayer}>
+          {para.split('\n').map((line, j, lines) => (
+            <Text key={j} style={line.startsWith('—') ? { color: C.gold } : undefined}>
+              {line}
+              {j < lines.length - 1 ? '\n' : ''}
+            </Text>
+          ))}
+        </Text>
+      ))}
+    </>
+  );
+}
+
+function StepBody({ step, session, texts }: { step: RosaryStep; session: RosarySession; texts: boolean }) {
+  if (step.kind === 'mystery' && step.decade !== null) {
+    const set = MYSTERIES[session.set];
+    const verse = mysteryVerse(session.set, step.decade);
+    return (
+      <>
+        <Text style={styles.title}>{set.mysteries[step.decade]}</Text>
+        <Text style={styles.fruit}>
+          <Text style={{ color: C.muted }}>Fruit du mystère : </Text>
+          {set.fruits[step.decade]}
+        </Text>
+        <View style={styles.verse}>
+          <Text style={styles.verseText}>« {verse.text} »</Text>
+          <Text style={styles.verseRef}>{verse.ref}</Text>
+        </View>
+        <Text style={styles.hint}>Prends un instant pour contempler ce mystère, puis continue.</Text>
+      </>
+    );
+  }
+
+  const prayer = PRAYER_OF[step.kind] ? prayerById(PRAYER_OF[step.kind]!) : undefined;
+  const title = step.kind === 'closing' ? 'Pour conclure' : prayer?.title ?? '';
+  const text = step.kind === 'closing' ? CLOSING : prayer?.text ?? '';
+  const isFirst = step.kind === 'sign';
+  return (
+    <>
+      <Text style={[styles.title, step.intent ? { marginBottom: 0 } : null]}>{title}</Text>
+      {step.intent ? <Text style={styles.intent}>{step.intent}</Text> : null}
+      {isFirst && session.intention ? (
+        <View style={styles.intentionBox}>
+          <Text style={styles.intentionLabel}>Je te confie ce chapelet</Text>
+          <Text style={styles.intentionText}>{session.intention}</Text>
+        </View>
+      ) : null}
+      {texts || isFirst || step.kind === 'closing' || step.kind === 'fatima' ? <PrayerLines text={text} /> : null}
+    </>
+  );
+}
+
+function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: () => void; onExit: () => void }) {
+  const { progress, setRosarySession, setRosaryPrefs } = useApp();
+  const { texts } = progress.rosary;
+  const steps = useMemo(() => rosarySteps(session.decade, session.fatima), [session.decade, session.fatima]);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const index = Math.min(session.step, steps.length - 1);
+  const step = steps[index];
+  const last = index === steps.length - 1;
+  // L'anneau prend environ un tiers de l'écran, sans déborder sur les petits téléphones.
+  const diameter = Math.min(width - 120, height * 0.27, 260);
+
+  const go = (delta: number) => {
+    const next = index + delta;
+    if (next < 0) return;
+    if (next >= steps.length) {
+      haptic('end');
+      onDone();
+      return;
+    }
+    haptic(steps[next].kind === 'mystery' ? 'decade' : 'bead');
+    setRosarySession({ ...session, step: next });
+  };
+
+  const center =
+    step.kind === 'ave' ? (
+      <>
+        <Text style={styles.count}>{step.count}</Text>
+        <Text style={styles.countOf}>sur {step.of}</Text>
+      </>
+    ) : step.kind === 'mystery' && step.decade !== null ? (
+      <>
+        <Text style={styles.centerSmall}>Mystère</Text>
+        <Text style={styles.count}>{step.decade + 1}</Text>
+      </>
+    ) : (
+      <Ionicons name={step.kind === 'sign' || step.kind === 'closing' ? 'add' : 'rose-outline'} size={26} color={C.faint} />
+    );
+
+  const buttonLabel = last ? 'Terminer' : step.kind === 'mystery' ? 'Prier la dizaine' : step.kind === 'sign' && index === 0 ? 'Commencer' : 'Amen';
+
+  return (
+    <View style={styles.root}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <Pressable onPress={() => setRosaryPrefs({ texts: !texts })} hitSlop={10} accessibilityLabel={texts ? 'Masquer le texte des prières' : 'Afficher le texte des prières'}>
+                <Ionicons name={texts ? 'document-text' : 'document-text-outline'} size={22} color={texts ? C.gold : C.muted} />
+              </Pressable>
+              <Pressable onPress={onExit} hitSlop={10} accessibilityLabel="Mettre en pause">
+                <Ionicons name="pause-circle-outline" size={24} color={C.text} />
+              </Pressable>
+            </View>
+          ),
+        }}
+      />
+      <RosaryBeads steps={steps} index={index} diameter={diameter} onPress={() => go(1)}>
+        {center}
+      </RosaryBeads>
+
+      <ScrollView style={styles.card} contentContainerStyle={styles.cardBody}>
+        <Kicker step={step} set={session.set} />
+        <StepBody step={step} session={session} texts={texts} />
+      </ScrollView>
+
+      <View style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Pressable onPress={() => go(-1)} disabled={index === 0} style={[styles.backBtn, index === 0 && { opacity: 0.3 }]} accessibilityLabel="Revenir à la prière précédente">
+          <Ionicons name="arrow-undo" size={20} color={C.text} />
+        </Pressable>
+        <Pressable onPress={() => go(1)} style={({ pressed }) => [styles.btn, styles.mainBtn, pressed && { opacity: 0.85 }]}>
+          <Text style={styles.btnText}>{buttonLabel}</Text>
+          <Ionicons name={last ? 'checkmark' : 'arrow-forward'} size={20} color={C.bg} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function Finished({ decade, intention, onAgain }: { decade: boolean; intention: string; onAgain: () => void }) {
+  const { progress } = useApp();
+  return (
+    <ScrollView style={styles.root} contentContainerStyle={[styles.scroll, { alignItems: 'center', paddingTop: 50 }]}>
+      <View style={styles.doneIcon}>
+        <Ionicons name="rose" size={38} color={C.gold} />
+      </View>
+      <Text style={styles.doneTitle}>{decade ? 'Dizaine terminée' : 'Chapelet terminé'}</Text>
+      <Text style={styles.doneText}>Que la Vierge Marie te garde dans la paix de son Fils.</Text>
+      {intention ? <Text style={styles.doneIntention}>Ton intention lui est confiée : {intention}</Text> : null}
+      <Text style={styles.doneCount}>
+        {progress.rosary.count === 1 ? 'C’est la première fois que tu pries le chapelet avec Manne.' : `${progress.rosary.count} chapelets et dizaines priés avec Manne.`}
+      </Text>
+      <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/prieres'))} style={[styles.btn, { marginTop: 28, alignSelf: 'stretch' }]}>
+        <Text style={styles.btnText}>Revenir aux prières</Text>
+      </Pressable>
+      <Pressable onPress={onAgain} style={[styles.btn, styles.btnGhost, { marginTop: 10, alignSelf: 'stretch' }]}>
+        <Text style={styles.btnGhostText}>Prier encore</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
+  const { progress, setRosaryPrefs, setRosarySession } = useApp();
+  const { session, fatima, texts, last, count } = progress.rosary;
+  const [set, setSet] = useState(todaySet());
+  const [single, setSingle] = useState(false);
+  const [decade, setDecade] = useState(0);
+  const [intention, setIntention] = useState('');
+  const weekday = new Date().getDay();
+
+  const start = () => onStart({ set, decade: single ? decade : null, fatima, step: 0, intention: intention.trim(), day: today() });
+
+  return (
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <Text style={styles.intro}>Laisse-toi guider grain après grain. Touche le chapelet ou le bouton à chaque prière : Manne compte pour toi, et tu peux faire une pause à tout moment.</Text>
+        <Text style={styles.last}>{lastRosaryLabel(last, count)}</Text>
+
+        {session && (
+          <Pressable onPress={() => onStart(session)} style={({ pressed }) => [styles.resume, pressed && { opacity: 0.85 }]}>
+            <View style={styles.resumeIcon}>
+              <Ionicons name="play" size={18} color={C.bg} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.resumeTitle}>Reprendre mon chapelet</Text>
+              <Text style={styles.resumeText}>{sessionLabel(session)}</Text>
+            </View>
+            <Pressable onPress={() => setRosarySession(null)} hitSlop={10} accessibilityLabel="Abandonner ce chapelet">
+              <Ionicons name="close" size={20} color={C.muted} />
+            </Pressable>
+          </Pressable>
+        )}
+
+        <Text style={styles.section}>Les mystères</Text>
+        <View style={styles.group}>
+          {MYSTERIES.map((m, i) => (
+            <Pressable key={m.name} onPress={() => setSet(i)} style={[styles.row, i === MYSTERIES.length - 1 && { borderBottomWidth: 0 }]}>
+              <Ionicons name={set === i ? 'radio-button-on' : 'radio-button-off'} size={20} color={set === i ? C.gold : C.faint} />
+              <Text style={[styles.rowTitle, { flex: 1 }]}>{m.name}</Text>
+              {m.days.includes(weekday) && <Text style={styles.badge}>Aujourd’hui</Text>}
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.segment}>
+          {[false, true].map((one) => (
+            <Pressable key={String(one)} onPress={() => setSingle(one)} style={[styles.segmentItem, single === one && styles.segmentActive]}>
+              <Text style={[styles.segmentText, single === one && { color: C.bg }]}>{one ? 'Une dizaine' : 'Chapelet entier'}</Text>
+              <Text style={[styles.segmentHint, single === one && { color: 'rgba(13,14,18,0.6)' }]}>{one ? '≈ 4 min' : '5 dizaines · ≈ 20 min'}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={[styles.group, { marginTop: 10 }]}>
+          {MYSTERIES[set].mysteries.map((name, d) => {
+            const chosen = single && decade === d;
+            return (
+              <Pressable key={name} disabled={!single} onPress={() => setDecade(d)} style={[styles.mysteryRow, d === 4 && { borderBottomWidth: 0 }]}>
+                {single ? (
+                  <Ionicons name={chosen ? 'radio-button-on' : 'radio-button-off'} size={18} color={chosen ? C.gold : C.faint} />
+                ) : (
+                  <Text style={styles.mysteryNum}>{d + 1}</Text>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.mysteryName, single && !chosen && { color: C.muted }]}>{name}</Text>
+                  <Text style={styles.mysteryFruit}>{MYSTERIES[set].fruits[d]}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.section}>Mon intention</Text>
+        <TextInput
+          value={intention}
+          onChangeText={setIntention}
+          placeholder="Pour qui, pour quoi veux-tu prier ? (facultatif)"
+          placeholderTextColor={C.faint}
+          style={styles.input}
+          multiline
+          maxLength={200}
+        />
+
+        <View style={[styles.group, { marginTop: 18 }]}>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Prière de Fatima</Text>
+              <Text style={styles.rowHint}>« Ô mon Jésus… » après chaque dizaine</Text>
+            </View>
+            <Switch value={fatima} onValueChange={(v) => setRosaryPrefs({ fatima: v })} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+          </View>
+          <View style={[styles.row, { borderBottomWidth: 0 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Afficher le texte des prières</Text>
+              <Text style={styles.rowHint}>À désactiver quand on les connaît par cœur</Text>
+            </View>
+            <Switch value={texts} onValueChange={(v) => setRosaryPrefs({ texts: v })} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+          </View>
+        </View>
+
+        <Pressable onPress={start} style={({ pressed }) => [styles.btn, { marginTop: 24 }, pressed && { opacity: 0.85 }]}>
+          <Ionicons name="rose" size={20} color={C.bg} />
+          <Text style={styles.btnText}>{single ? 'Commencer la dizaine' : 'Commencer le chapelet'}</Text>
+        </Pressable>
+        {session && <Text style={styles.warn}>Commencer remplacera le chapelet en cours.</Text>}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+export default function ChapeletScreen() {
+  const { progress, setRosarySession, completeRosary } = useApp();
+  const [mode, setMode] = useState<'setup' | 'praying' | 'done'>('setup');
+  const [finished, setFinished] = useState<RosarySession | null>(null);
+  const session = progress.rosary.session;
+  // Les boutons d'en-tête n'existent que pendant la prière.
+  const noHeaderActions = <Stack.Screen options={{ headerRight: () => null }} />;
+
+  if (mode === 'done' && finished) {
+    return (
+      <>
+        {noHeaderActions}
+        <Finished decade={finished.decade !== null} intention={finished.intention} onAgain={() => setMode('setup')} />
+      </>
+    );
+  }
+  if (mode === 'praying' && session) {
+    return (
+      <Praying
+        session={session}
+        onExit={() => setMode('setup')}
+        onDone={() => {
+          setFinished(session);
+          completeRosary();
+          setMode('done');
+        }}
+      />
+    );
+  }
+  return (
+    <>
+      {noHeaderActions}
+      <Setup
+        onStart={(s) => {
+          setRosarySession(s);
+          setMode('praying');
+        }}
+      />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
+  scroll: { padding: 20, paddingBottom: 60 },
+  intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
+  last: { color: C.text, fontSize: 14, fontWeight: '600', marginTop: 10 },
+  section: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginTop: 22, marginBottom: 8 },
+  group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
+  rowHint: { color: C.faint, fontSize: 13, marginTop: 2 },
+  badge: { color: C.bg, backgroundColor: C.gold, fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
+  segment: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  segmentItem: { flex: 1, backgroundColor: C.card, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
+  segmentActive: { backgroundColor: C.gold },
+  segmentText: { color: C.text, fontSize: 15, fontWeight: '700' },
+  segmentHint: { color: C.faint, fontSize: 12, marginTop: 2 },
+  mysteryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  mysteryNum: { color: C.gold, fontWeight: '800', fontSize: 15, width: 18, textAlign: 'center' },
+  mysteryName: { color: C.text, fontFamily: SERIF, fontSize: 16 },
+  mysteryFruit: { color: C.faint, fontSize: 12, marginTop: 1 },
+  input: { color: C.text, fontSize: 16, backgroundColor: C.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, minHeight: 52 },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 999 },
+  btnText: { color: C.bg, fontWeight: '800', fontSize: 16 },
+  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
+  btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
+  warn: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 8 },
+  resume: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,209,102,0.1)', borderRadius: 16, padding: 14, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,209,102,0.35)' },
+  resumeIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
+  resumeTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+  resumeText: { color: C.muted, fontSize: 13, marginTop: 2 },
+  // Pendant la prière
+  card: { flex: 1, marginHorizontal: 16, backgroundColor: C.card, borderRadius: 20 },
+  cardBody: { padding: 20, paddingBottom: 28 },
+  kicker: { color: C.red, fontSize: 12, letterSpacing: 1.6, fontWeight: '800', textTransform: 'uppercase' },
+  title: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 33, marginTop: 6, marginBottom: 12 },
+  intent: { color: C.gold, fontFamily: SERIF, fontSize: 17, fontStyle: 'italic', marginTop: 2, marginBottom: 12 },
+  prayer: { color: C.text, fontFamily: SERIF, fontSize: 19, lineHeight: 29, marginBottom: 14 },
+  fruit: { color: C.text, fontSize: 15, fontWeight: '600', marginBottom: 14 },
+  verse: { borderLeftWidth: 2, borderColor: C.gold, paddingLeft: 14, marginBottom: 14 },
+  verseText: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 18, lineHeight: 28 },
+  verseRef: { color: C.muted, fontSize: 13, marginTop: 6 },
+  hint: { color: C.faint, fontSize: 14, lineHeight: 20 },
+  intentionBox: { backgroundColor: 'rgba(255,209,102,0.08)', borderRadius: 12, padding: 12, marginBottom: 14 },
+  intentionLabel: { color: C.gold, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+  intentionText: { color: C.text, fontSize: 16, lineHeight: 22, marginTop: 4 },
+  count: { color: C.text, fontFamily: SERIF, fontSize: 40, lineHeight: 46 },
+  countOf: { color: C.faint, fontSize: 13, fontWeight: '600' },
+  centerSmall: { color: C.faint, fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 14 },
+  backBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+  mainBtn: { flex: 1, paddingVertical: 16 },
+  doneIcon: { width: 86, height: 86, borderRadius: 43, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  doneTitle: { color: C.text, fontFamily: SERIF, fontSize: 30 },
+  doneText: { color: C.muted, fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
+  doneIntention: { color: C.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
+  doneCount: { color: C.gold, fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 18 },
+});

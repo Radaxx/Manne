@@ -104,6 +104,13 @@ export const PRAYERS: Prayer[] = [
     note: 'Salve Regina.',
   },
   {
+    id: 'o-mon-jesus',
+    title: 'Ô mon Jésus',
+    category: 'Marie',
+    text: 'Ô mon Jésus, pardonnez-nous nos péchés,\npréservez-nous du feu de l’enfer,\net conduisez au ciel toutes les âmes,\nspécialement celles qui ont le plus besoin de votre miséricorde.',
+    note: 'Prière enseignée par la Vierge aux enfants de Fatima en 1917, dite après chaque dizaine du chapelet.',
+  },
+  {
     id: 'souvenez-vous',
     title: 'Souvenez-vous',
     category: 'Marie',
@@ -324,19 +331,58 @@ export const prayerById = (id: string) => PRAYERS.find((p) => p.id === id);
 
 // ——— Le chapelet ———
 
-export type MysterySet = { name: string; days: number[]; mysteries: string[] };
+export type MysterySet = {
+  name: string;
+  /** « 2ᵉ mystère joyeux » */
+  adjective: string;
+  days: number[];
+  mysteries: string[];
+  /** La grâce qu'on demande en méditant chaque mystère. */
+  fruits: string[];
+  /** Un verset de l'Écriture pour chaque mystère : [livre, chapitre, premier verset, dernier verset]. */
+  verses: [number, number, number, number][];
+};
 
 /** Les quatre séries de mystères ; days : jours de la semaine (0 = dimanche) où on les médite. */
 export const MYSTERIES: MysterySet[] = [
-  { name: 'Mystères joyeux', days: [1, 6], mysteries: ['L’Annonciation', 'La Visitation', 'La Nativité', 'La Présentation de Jésus au Temple', 'Le Recouvrement de Jésus au Temple'] },
-  { name: 'Mystères lumineux', days: [4], mysteries: ['Le Baptême de Jésus', 'Les Noces de Cana', 'L’Annonce du Royaume', 'La Transfiguration', 'L’Institution de l’Eucharistie'] },
-  { name: 'Mystères douloureux', days: [2, 5], mysteries: ['L’Agonie de Jésus', 'La Flagellation', 'Le Couronnement d’épines', 'Le Portement de la croix', 'La Crucifixion'] },
-  { name: 'Mystères glorieux', days: [0, 3], mysteries: ['La Résurrection', 'L’Ascension', 'La Pentecôte', 'L’Assomption de Marie', 'Le Couronnement de Marie'] },
+  {
+    name: 'Mystères joyeux',
+    adjective: 'joyeux',
+    days: [1, 6],
+    mysteries: ['L’Annonciation', 'La Visitation', 'La Nativité', 'La Présentation de Jésus au Temple', 'Le Recouvrement de Jésus au Temple'],
+    fruits: ['L’humilité', 'La charité envers le prochain', 'L’esprit de pauvreté', 'L’obéissance', 'La recherche de Dieu en toute chose'],
+    verses: [[42, 1, 38, 38], [42, 1, 41, 42], [42, 2, 7, 7], [42, 2, 29, 30], [42, 2, 49, 49]],
+  },
+  {
+    name: 'Mystères lumineux',
+    adjective: 'lumineux',
+    days: [4],
+    mysteries: ['Le Baptême de Jésus', 'Les Noces de Cana', 'L’Annonce du Royaume', 'La Transfiguration', 'L’Institution de l’Eucharistie'],
+    fruits: ['La fidélité à notre baptême', 'La confiance en Marie', 'La conversion du cœur', 'L’écoute de la Parole', 'L’amour de l’Eucharistie'],
+    verses: [[40, 3, 16, 17], [43, 2, 5, 5], [41, 1, 15, 15], [42, 9, 35, 35], [42, 22, 19, 19]],
+  },
+  {
+    name: 'Mystères douloureux',
+    adjective: 'douloureux',
+    days: [2, 5],
+    mysteries: ['L’Agonie de Jésus', 'La Flagellation', 'Le Couronnement d’épines', 'Le Portement de la croix', 'La Crucifixion'],
+    fruits: ['L’abandon à la volonté de Dieu', 'La pureté', 'Le courage face aux humiliations', 'La patience dans les épreuves', 'Le don de soi'],
+    verses: [[42, 22, 42, 42], [43, 19, 1, 1], [40, 27, 29, 29], [43, 19, 17, 17], [42, 23, 46, 46]],
+  },
+  {
+    name: 'Mystères glorieux',
+    adjective: 'glorieux',
+    days: [0, 3],
+    mysteries: ['La Résurrection', 'L’Ascension', 'La Pentecôte', 'L’Assomption de Marie', 'Le Couronnement de Marie'],
+    fruits: ['La foi', 'L’espérance', 'L’amour de Dieu et les dons de l’Esprit', 'La grâce d’une sainte mort', 'La persévérance et la confiance en Marie'],
+    verses: [[40, 28, 6, 6], [44, 1, 9, 9], [44, 2, 4, 4], [42, 1, 48, 49], [66, 12, 1, 1]],
+  },
 ];
 
 export const ROSARY_STEPS = [
   'Signe de croix, puis Je crois en Dieu.',
   'Un Notre Père, trois Je vous salue Marie, un Gloire au Père.',
   'Pour chacun des cinq mystères : on annonce le mystère, puis un Notre Père, dix Je vous salue Marie et un Gloire au Père.',
+  'On peut ajouter après chaque dizaine la prière de Fatima : Ô mon Jésus…',
   'On termine par le Salut, ô Reine.',
 ];

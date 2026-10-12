@@ -1,5 +1,6 @@
 import { BOOKS, loadBook, type BookMeta } from './data/bible';
 import type { Passage } from './data/content';
+import { planChapters, planIndex, type Plan } from './plans';
 
 export type Position = { book: number; chapter: number; verse: number };
 
@@ -104,4 +105,85 @@ export class ReadingGenerator {
     this.pos = normalize({ book, chapter, verse: to + 1 });
     return out;
   }
+}
+
+// ——— Lecture d'un plan ———
+
+export type PlanReadingCard = ReadingCard | { key: string; kind: 'planGoal' } | { key: string; kind: 'planEnd' };
+
+/**
+ * Le fil d'un plan : la lecture suivie à partir de son propre marque-page, avec une carte quand la
+ * portion du jour est atteinte (on peut continuer pour prendre de l'avance) et une fin de plan.
+ */
+export class PlanReadingGenerator {
+  private gen: ReadingGenerator | null;
+  private done = false;
+  private n = 0;
+  private total: number;
+
+  /** goal : nombre de chapitres qui devraient être lus à la fin de la journée. */
+  constructor(
+    private plan: Plan,
+    startIdx: number,
+    verse: number,
+    private goal: number,
+  ) {
+    const chapters = planChapters(plan);
+    this.total = chapters.length;
+    const start = chapters[startIdx];
+    this.gen = start ? new ReadingGenerator({ book: start.book, chapter: start.chapter, verse }) : null;
+  }
+
+  next(count: number): PlanReadingCard[] {
+    const out: PlanReadingCard[] = [];
+    if (!this.gen) {
+      if (!this.done) out.push({ key: 'plan-end', kind: 'planEnd' });
+      this.done = true;
+      return out;
+    }
+    while (out.length < count && !this.done) {
+      for (const card of this.gen.next(1)) {
+        out.push(card);
+        if (card.kind !== 'chapterEnd') continue;
+        const idx = planIndex(this.plan, card.book.n, card.chapter);
+        if (idx + 1 === this.goal && idx + 1 < this.total) out.push({ key: `plan-goal-${++this.n}`, kind: 'planGoal' });
+        if (idx + 1 >= this.total) {
+          out.push({ key: 'plan-end', kind: 'planEnd' });
+          this.done = true;
+          break;
+        }
+      }
+    }
+    return out;
+  }
+}
+
+// ——— Reprendre au marque-page en gardant ce qui précède ———
+
+type AnyCard = { kind: string; passage?: { book: number; chapter: number; from: number; to: number }; book?: BookMeta };
+
+/** La carte où reprendre : le passage qui contient la position (ou la présentation du livre en tout début). */
+export function isResumeCard(card: AnyCard, pos: Position): boolean {
+  if (pos.chapter === 1 && pos.verse === 1 && card.kind === 'intro') return card.book?.n === pos.book;
+  const p = card.passage;
+  return card.kind === 'passage' && !!p && p.book === pos.book && p.chapter === pos.chapter && p.from <= pos.verse && pos.verse <= p.to;
+}
+
+/**
+ * Génère les cartes depuis un point de départ antérieur jusqu'à la carte cible (comprise), plus quelques
+ * suivantes, et renvoie l'index de la cible : le fil s'ouvre là, mais on peut remonter pour relire.
+ */
+export function cardsUntil<C extends AnyCard>(gen: { next(n: number): C[] }, isTarget: (c: C) => boolean, after = 6, limit = 800) {
+  const cards: C[] = [];
+  let index = -1;
+  while (index === -1 && cards.length < limit) {
+    const batch = gen.next(10);
+    if (batch.length === 0) break;
+    for (const c of batch) {
+      if (index === -1 && isTarget(c)) index = cards.length;
+      cards.push(c);
+    }
+  }
+  cards.push(...gen.next(after));
+  return { cards, index: Math.max(0, index) };
 }

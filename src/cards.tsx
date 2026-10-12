@@ -269,6 +269,36 @@ export function ReflectionCard({ prompt, height }: { prompt: string; height: num
   );
 }
 
+export function PlanGoalCard({ planTitle, height }: { planTitle: string; height: number }) {
+  return (
+    <Shell colors={['#06140e', '#0f2a1f', '#1f4a36']} height={height}>
+      <View style={styles.center}>
+        <Kicker icon="checkmark-done-outline" label="PLAN DE LECTURE" />
+        <Text style={styles.title}>Lecture du jour terminée ✓</Text>
+        <Text style={styles.body}>Tu as lu la portion prévue aujourd’hui pour « {planTitle} ». Tu peux t’arrêter là, ou continuer pour prendre de l’avance.</Text>
+        <View style={styles.swipeHint}>
+          <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
+          <Text style={styles.footerHint}>Glisse pour continuer</Text>
+        </View>
+      </View>
+    </Shell>
+  );
+}
+
+export function PlanEndCard({ planTitle, total, height }: { planTitle: string; total: number; height: number }) {
+  return (
+    <Shell colors={['#1f1205', '#6b4310', '#c4882c']} height={height}>
+      <View style={styles.center}>
+        <Kicker icon="trophy-outline" label="PLAN TERMINÉ" />
+        <Text style={styles.title}>Bravo !</Text>
+        <Text style={styles.body}>
+          Tu as lu les {total} chapitres de « {planTitle} ». Rends grâce pour ce chemin parcouru avec la Parole.
+        </Text>
+      </View>
+    </Shell>
+  );
+}
+
 const BREATH_CYCLES = 4;
 
 export function PauseCard({ count, minutes, height }: { count: number; minutes: number; height: number }) {

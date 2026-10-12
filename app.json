@@ -39,6 +39,12 @@
           "icon": "./assets/notification-icon.png",
           "color": "#f2b544"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Manne utilise Face ID pour protéger ta préparation à la confession."
+        }
       ]
     ],
     "scheme": "manne",

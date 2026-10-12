@@ -7,7 +7,7 @@ import { BookIntroCard, ChapterEndCard, FactCard, PassageCard, PauseCard, Person
 import type { Passage, Theme } from './data/content';
 import { INTROS } from './data/intros';
 import { FeedGenerator, type Card } from './feed';
-import { ReadingGenerator, type ReadingCard } from './reading';
+import { cardsUntil, isResumeCard, normalize, ReadingGenerator, type ReadingCard } from './reading';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, readingPosition, useApp, type ProgressApi } from './storage';
 
@@ -20,7 +20,7 @@ const share = (p: Passage) => {
 };
 
 /** Les actions communes à toute carte de texte biblique. */
-function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
+export function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
   return {
     liked: api.progress.liked.includes(p.id),
     saved: api.progress.saved.some((s) => s.id === p.id),
@@ -37,13 +37,15 @@ function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
 }
 
 /** Le défilement plein écran, carte par carte, façon réels. */
-function Pager<T extends { key: string }>(props: {
+export function Pager<T extends { key: string }>(props: {
   data: T[];
   height: number;
   extraData: unknown;
   renderItem: (item: T) => ReactElement;
   onEndReached: () => void;
   onViewed: (item: T, index: number) => void;
+  /** Carte sur laquelle s'ouvrir ; celles d'avant restent accessibles en remontant. */
+  initialIndex?: number;
 }) {
   const onViewed = useRef(props.onViewed);
   onViewed.current = props.onViewed;
@@ -64,6 +66,7 @@ function Pager<T extends { key: string }>(props: {
       decelerationRate="fast"
       showsVerticalScrollIndicator={false}
       getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
+      initialScrollIndex={props.initialIndex || undefined}
       onEndReached={props.onEndReached}
       onEndReachedThreshold={3}
       onViewableItemsChanged={onViewableItemsChanged}
@@ -76,17 +79,22 @@ function Pager<T extends { key: string }>(props: {
 /** Lecture suivie : chaque glissement fait avancer dans le texte, et le marque-page suit. */
 function ReadingPager({ api, height }: { api: ProgressApi; height: number }) {
   // Générateur et premières cartes créés ensemble : sûr même si React rejoue l'initialiseur.
-  const [{ generator, initial }] = useState(() => {
-    const g = new ReadingGenerator(readingPosition(api.progress));
-    return { generator: g, initial: g.next(8) };
+  // On commence au début du chapitre précédent pour pouvoir remonter, et on s'ouvre au marque-page.
+  const [{ generator, initial, initialIndex }] = useState(() => {
+    const pos = normalize(readingPosition(api.progress));
+    const g = new ReadingGenerator({ book: pos.book, chapter: Math.max(1, pos.chapter - 1), verse: 1 });
+    const { cards, index } = cardsUntil(g, (c) => isResumeCard(c, pos));
+    return { generator: g, initial: cards, initialIndex: index };
   });
   const [cards, setCards] = useState<ReadingCard[]>(initial);
-  const furthest = useRef(-1);
+  // Relire ce qui précède le marque-page ne le fait pas reculer.
+  const furthest = useRef(initialIndex - 1);
 
   return (
     <Pager
       data={cards}
       height={height}
+      initialIndex={initialIndex}
       extraData={api.progress}
       onEndReached={() => {
         // Générer hors du updater : React peut l'appeler deux fois en dev.
@@ -94,13 +102,13 @@ function ReadingPager({ api, height }: { api: ProgressApi; height: number }) {
         setCards((c) => [...c, ...more]);
       }}
       onViewed={(card, index) => {
+        // Relire ce qui précède (en remontant) ne compte pas comme une nouvelle lecture.
+        const forward = index > furthest.current;
+        if (forward) furthest.current = index;
+        if (card.kind === 'chapterEnd' && forward) api.markChapterRead(card.book.n, card.chapter);
         if (card.kind !== 'passage') return;
         api.markRead(card.passage);
-        // Revenir en arrière ne recule pas le marque-page.
-        if (index > furthest.current) {
-          furthest.current = index;
-          api.advanceReading(card.passage, card.chapterEnd);
-        }
+        if (forward) api.advanceReading(card.passage, card.chapterEnd);
       }}
       renderItem={(card) => {
         switch (card.kind) {
@@ -234,7 +242,7 @@ function FeedScreen({ title, left, children }: { title: string; left?: ReactNode
 export function ReadingScreen() {
   const api = useApp();
   const [showBooks, setShowBooks] = useState(false);
-  const { selectBook, restartReading } = api;
+  const { selectBook, goTo, restartReading } = api;
   return (
     <>
       <FeedScreen
@@ -250,9 +258,11 @@ export function ReadingScreen() {
       {showBooks && (
         <BooksSheet
           current={api.progress.currentBook}
+          positions={api.progress.positions}
           chaptersRead={api.progress.chaptersRead}
-          onPick={(book, restart) => {
-            selectBook(book, restart);
+          onPick={(book, chapter) => {
+            if (chapter) goTo(book, chapter);
+            else selectBook(book);
             setShowBooks(false);
             restartReading();
           }}
