@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookIntroCard, ChapterEndCard, PassageCard, PlanEndCard, PlanGoalCard } from './cards';
+import { useCommunity } from './community';
 import { INTROS } from './data/intros';
 import { actionsFor, Pager } from './feeds';
 import { formatRange, type Plan, planById, planIndex, planStatus } from './plans';
@@ -13,6 +14,8 @@ import { today, useApp } from './storage';
 /** Le fil plein écran d'un plan de lecture, avec son propre marque-page. */
 function PlanReader({ plan }: { plan: Plan }) {
   const api = useApp();
+  const community = useCommunity();
+  const extraData = useMemo(() => ({ progress: api.progress, revision: community.revision }), [api.progress, community.revision]);
   const insets = useSafeAreaInsets();
   const [height, setHeight] = useState(0);
   const state = api.progress.plans[plan.id];
@@ -76,7 +79,7 @@ function PlanReader({ plan }: { plan: Plan }) {
           data={cards}
           height={height}
           initialIndex={initialIndex}
-          extraData={api.progress}
+          extraData={extraData}
           onEndReached={() => {
             const more = generator.next(8);
             if (more.length) setCards((c) => [...c, ...more]);
@@ -84,6 +87,7 @@ function PlanReader({ plan }: { plan: Plan }) {
           onViewed={(card) => {
             setHere(locate(card));
             if (card.kind === 'passage') {
+              community.watch(card.passage);
               api.markRead(card.passage);
               api.advancePlan(plan.id, card.passage, card.chapterEnd);
             } else if (card.kind === 'chapterEnd') {
@@ -96,7 +100,15 @@ function PlanReader({ plan }: { plan: Plan }) {
               case 'intro':
                 return <BookIntroCard book={card.book} intro={INTROS[card.book.n]} height={height} />;
               case 'passage':
-                return <PassageCard passage={card.passage} book={card.book} height={height} {...actionsFor(card.passage, api)} />;
+                return (
+                  <PassageCard
+                    passage={card.passage}
+                    book={card.book}
+                    height={height}
+                    {...actionsFor(card.passage, api)}
+                    {...community.rail(card.passage)}
+                  />
+                );
               case 'chapterEnd':
                 return (
                   <ChapterEndCard

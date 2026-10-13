@@ -77,7 +77,16 @@ function Intentions({ empty }: { empty?: string }) {
       {intentions.map((item) => (
         <View key={item.id} style={styles.intention}>
           <Ionicons name="flame-outline" size={16} color={C.gold} style={{ marginTop: 3 }} />
-          <Text style={styles.intentionText}>{item.text}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.intentionText}>{item.text}</Text>
+            <Pressable
+              onPress={() => router.push({ pathname: '/intentions', params: { draft: item.text } })}
+              hitSlop={6}
+              accessibilityLabel="Confier cette intention à la communauté"
+            >
+              <Text style={styles.confide}>Confier à la communauté</Text>
+            </Pressable>
+          </View>
           <Pressable onPress={() => removeAdorationIntention(item.id)} hitSlop={10} accessibilityLabel="Retirer cette intention">
             <Ionicons name="close" size={18} color={C.faint} />
           </Pressable>
@@ -629,7 +638,8 @@ const styles = StyleSheet.create({
   warn: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 8 },
   // Intentions
   intention: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8 },
-  intentionText: { color: C.text, fontSize: 16, lineHeight: 22, flex: 1 },
+  intentionText: { color: C.text, fontSize: 16, lineHeight: 22 },
+  confide: { color: C.gold, fontSize: 13, fontWeight: '700', marginTop: 4 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
   input: {
     flex: 1,

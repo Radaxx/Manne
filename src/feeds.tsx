@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { type ReactElement, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import { ChapterReader } from './chapter';
+import { communityKey, useCommunity } from './community';
 import type { Passage, Theme } from './data/content';
 import { type Card, FeedGenerator } from './feed';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
@@ -26,7 +27,7 @@ export function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
     saved: api.progress.saved.some((s) => s.id === p.id),
     onLike: (force?: boolean) => {
       haptic();
-      api.toggleLike(p.id, theme, force);
+      api.toggleLike(p.id, theme, force, communityKey(p));
     },
     onSave: () => {
       haptic();
@@ -78,6 +79,8 @@ export function Pager<T extends { key: string }>(props: {
 
 /** Découvrir : versets choisis, anecdotes, quiz, personnages — selon tes goûts. */
 function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
+  const community = useCommunity();
+  const extraData = useMemo(() => ({ progress: api.progress, revision: community.revision }), [api.progress, community.revision]);
   const [{ generator, initial }] = useState(() => {
     const g = new FeedGenerator(api.getScores);
     return { generator: g, initial: g.next(12) };
@@ -89,13 +92,16 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
     <Pager
       data={cards}
       height={height}
-      extraData={api.progress}
+      extraData={extraData}
       onEndReached={() => {
         const more = generator.next(10);
         setCards((c) => [...c, ...more]);
       }}
       onViewed={(card) => {
-        if (card.kind === 'verse') api.markRead(card.verse);
+        if (card.kind === 'verse') {
+          community.watch(card.verse);
+          api.markRead(card.verse);
+        }
       }}
       renderItem={(card) => {
         switch (card.kind) {
@@ -106,6 +112,7 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
                 height={height}
                 onRead={() => onContext(card.verse)}
                 {...actionsFor(card.verse, api, card.verse.theme)}
+                {...community.rail(card.verse)}
               />
             );
           case 'fact':

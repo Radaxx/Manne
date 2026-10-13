@@ -9,6 +9,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 - **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Chaque plan a son propre fil de lecture et son propre marque-page, indépendants de la lecture libre ; on peut prendre de l’avance, et rattraper son retard.
 - **Arbre généalogique** : la lignée d’Adam et Ève jusqu’à Jésus, en un seul fil vertical. Il suit la Genèse et Ruth jusqu’à David, puis se partage en deux colonnes là où Matthieu (les rois de Juda) et Luc (par Nathan) divergent, et se rejoint à Salathiel puis à Joseph. Les personnages clés ont leur carte ; on la touche pour lire le passage dans son chapitre, sans déplacer le marque-page.
 - **Continuer ma lecture** et quelques statistiques.
+- **Intentions confiées** : porter la prière de quelqu’un, ou confier la sienne.
 - **Rappel quotidien** (cloche) : une notification par jour à l’heure choisie, avec un verset, seulement si l’app n’a pas encore été ouverte ce jour-là.
 
 Les textes liturgiques viennent de l’[API de l’AELF](https://api.aelf.org) (© AELF), mis en cache pour la journée.
@@ -32,6 +33,16 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 Et pour ne pas reproduire le « doomscrolling » : un objectif quotidien de 30 versets, une série de jours, et une carte Pause toutes les 15 cartes dans Découvrir.
 
+## Ensemble
+
+Sur les versets de Découvrir et les passages d’un plan, le cœur compte pour tout le monde : le nombre s’affiche sous l’icône. Dans la lecture libre, aimer une sélection de versets envoie le même compteur. Le double-tap de Découvrir reste le tien. Hors connexion, le geste est gardé sur le téléphone et le compteur se met à jour au retour du réseau. Anecdotes, quiz, personnages et cartes Pause n’ont pas ce rail.
+
+**Échos** : une courte méditation sur le passage, une phrase, sans réponse. On peut retirer la sienne ou signaler celle d’un autre ; trois signalements la retirent. La feuille le dit quand le réseau manque, et n’envoie rien.
+
+**Intentions confiées** : une liste de prières publiées exprès. « Je la porte » dit qu’on s’en charge, et l’auteur peut retirer la sienne. Depuis l’adoration, « Confier à la communauté » ouvre cet écran avec le texte déjà écrit : rien ne part sans confirmation, et la liste privée de l’adoration ne change pas. Trois signalements retirent une intention.
+
+La confession, le chapelet, les favoris, la série et les intentions d’adoration restent sur le téléphone. Sans projet Supabase configuré, la lecture continue ; les compteurs et les textes communs restent silencieux.
+
 ## Texte
 
 Louis Segond 1910 (domaine public), embarquée dans l’app pour fonctionner hors connexion. Source : [getbible.net](https://getbible.net) (module CrossWire).
@@ -52,9 +63,11 @@ npx expo start
 
 Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la version web.
 
+Pour les j’aime, les échos et les intentions : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes dans le projet Supabase, et appliquer `supabase/migrations/001_community.sql`. La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
+
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration, intentions confiées
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier, sélection de versets, J’aime / Garder / Partager
@@ -70,4 +83,6 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 - `src/cards.tsx` : les cartes
 - `src/sheets.tsx` : chapitre complet, favoris, liste des livres
 - `src/storage.ts` : progression (marque-page, série, favoris), stockée sur l’appareil
+- `src/supabase.ts` / `src/community.ts` / `src/echoes.tsx` : session anonyme, j’aime, échos et intentions (Supabase)
+- `supabase/migrations/` : schéma communautaire (compteurs, échos, intentions, signalements)
 - `src/data/` : Bible, présentations des livres, anecdotes, quiz

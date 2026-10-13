@@ -213,6 +213,18 @@ export function HomeScreen() {
           </View>
         )}
 
+        <SectionTitle>Intentions confiées</SectionTitle>
+        <Card onPress={() => router.push('/intentions')} style={styles.officeCard}>
+          <View style={styles.officeIcon}>
+            <Ionicons name="people-outline" size={26} color={C.gold} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.officeName}>Porter une prière</Text>
+            <Text style={styles.muted}>Confie une intention, ou porte celle de quelqu’un.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={C.muted} />
+        </Card>
+
         {/* Parole du jour : l'Évangile de la messe */}
         <SectionTitle action={{ label: 'Toutes les lectures', onPress: () => router.push('/messe') }}>Évangile du jour</SectionTitle>
         <Card onPress={() => router.push('/messe')}>

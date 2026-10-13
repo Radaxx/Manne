@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bookGradient, SERIF } from './cards';
+import { communityKey } from './community';
 import { loadBook } from './data/bible';
 import type { Passage } from './data/content';
 import { INTROS } from './data/intros';
@@ -184,10 +185,11 @@ function ChapterView({
       // Retire tous les « j'aime » qui touchent la sélection.
       for (const id of liked) {
         const r = likedRange(id, loc);
-        if (r && overlaps(r, selectedSet)) api.toggleLike(id);
+        if (r && overlaps(r, selectedSet))
+          api.toggleLike(id, undefined, undefined, communityKey({ book: loc.book, chapter: loc.chapter, ...r }));
       }
     } else {
-      for (const p of passages) if (!liked.includes(p.id)) api.toggleLike(p.id);
+      for (const p of passages) if (!liked.includes(p.id)) api.toggleLike(p.id, undefined, undefined, communityKey(p));
     }
   };
 
