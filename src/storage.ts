@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { queueLike } from './community';
 import { type Passage, type Theme, VERSES } from './data/content';
 import { type PlanState, planById, planChapters, planIndex } from './plans';
 import { normalize, type Position } from './reading';
@@ -322,17 +323,25 @@ export function useProgress() {
     setProgress((p) => ({ ...p, reminder }));
   }, []);
 
-  const toggleLike = useCallback((id: string, theme?: Theme, force?: boolean) => {
+  const toggleLike = useCallback((id: string, theme?: Theme, force?: boolean, target?: string) => {
+    const has = ref.current.liked.includes(id);
+    if (force && has) return;
+    const liked = !has;
+    ref.current = {
+      ...ref.current,
+      liked: liked ? [...ref.current.liked, id] : ref.current.liked.filter((x) => x !== id),
+    };
     setProgress((p) => {
-      const has = p.liked.includes(id);
-      if (force && has) return p;
-      const delta = has ? -1 : 1;
+      const currently = p.liked.includes(id);
+      if (currently === liked) return p;
+      const delta = liked ? 1 : -1;
       return {
         ...p,
-        liked: has ? p.liked.filter((x) => x !== id) : [...p.liked, id],
+        liked: liked ? [...p.liked, id] : p.liked.filter((x) => x !== id),
         themeScores: theme ? { ...p.themeScores, [theme]: Math.max(0, (p.themeScores[theme] ?? 0) + delta) } : p.themeScores,
       };
     });
+    if (target) void queueLike(target, liked);
   }, []);
 
   const toggleSave = useCallback((passage: Passage) => {

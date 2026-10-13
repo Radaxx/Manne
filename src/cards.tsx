@@ -30,20 +30,31 @@ function Kicker({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: 
 function RailButton({
   icon,
   label,
+  count,
   active,
   color,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  count?: number;
   active?: boolean;
   color?: string;
   onPress: () => void;
 }) {
+  const visible = count === undefined ? label : String(count);
   return (
-    <Pressable onPress={onPress} hitSlop={8} style={styles.railBtn} accessibilityRole="button" accessibilityLabel={label}>
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={styles.railBtn}
+      accessibilityRole="button"
+      accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
+    >
       <Ionicons name={icon} size={30} color={active && color ? color : '#fff'} />
-      <Text style={styles.railLabel}>{label}</Text>
+      <Text style={styles.railLabel} numberOfLines={1}>
+        {visible}
+      </Text>
     </Pressable>
   );
 }
@@ -54,6 +65,9 @@ type Actions = {
   onLike: (force?: boolean) => void;
   onSave: () => void;
   onShare: () => void;
+  likeCount?: number;
+  echoCount?: number;
+  onEchoes?: () => void;
 };
 
 /** Zone de contenu : un double-tap aime le passage, avec le gros cœur des réels. */
@@ -90,10 +104,18 @@ function DoubleTapArea({ onLike, children }: { onLike: (force?: boolean) => void
   );
 }
 
-function Rail({ liked, saved, onLike, onSave, onShare, extra }: Actions & { extra?: ReactNode }) {
+function Rail({ liked, saved, onLike, onSave, onShare, likeCount, echoCount, onEchoes, extra }: Actions & { extra?: ReactNode }) {
   return (
     <View style={styles.rail}>
-      <RailButton icon={liked ? 'heart' : 'heart-outline'} label="J’aime" active={liked} color="#ff4d6d" onPress={() => onLike()} />
+      <RailButton
+        icon={liked ? 'heart' : 'heart-outline'}
+        label="J’aime"
+        count={likeCount}
+        active={liked}
+        color="#ff4d6d"
+        onPress={() => onLike()}
+      />
+      {onEchoes ? <RailButton icon="chatbubble-outline" label="Échos" count={echoCount} onPress={onEchoes} /> : null}
       <RailButton icon={saved ? 'bookmark' : 'bookmark-outline'} label="Garder" active={saved} color="#ffd166" onPress={onSave} />
       {extra}
       <RailButton icon="share-outline" label="Partager" onPress={onShare} />

@@ -2,6 +2,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { EchoHost } from '../echoes';
 import { C } from '../liturgy';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
@@ -32,6 +33,7 @@ export default function RootLayout() {
       <ProgressProvider>
         <StatusBar style="light" />
         <ReminderSync />
+        <EchoHost />
         <Stack
           screenOptions={{
             headerTintColor: C.text,
@@ -51,6 +53,7 @@ export default function RootLayout() {
           <Stack.Screen name="genealogie" options={{ title: 'D’Adam à Jésus' }} />
           <Stack.Screen name="plan/[id]" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
+          <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
         </Stack>
       </ProgressProvider>
