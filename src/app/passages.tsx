@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
-import { C } from '../liturgy';
 import { useApp } from '../storage';
+import { useThemed } from '../theme';
 
 export default function PassagesScreen() {
+  const { styles } = useThemed(stylesFor);
   const { progress, goTo } = useApp();
 
   return (
@@ -30,12 +32,13 @@ export default function PassagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 48 },
-  muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, marginBottom: 10 },
-  link: { color: C.gold, fontSize: 14, fontWeight: '700' },
-  passage: { color: C.muted, fontFamily: SERIF, fontSize: 15, lineHeight: 22 },
-  pressed: { opacity: 0.75 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { padding: 20, paddingBottom: 48 },
+    muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
+    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, marginBottom: 10 },
+    link: { color: C.gold, fontSize: 14, fontWeight: '700' },
+    passage: { color: C.muted, fontFamily: SERIF, fontSize: 15, lineHeight: 22 },
+    pressed: { opacity: 0.75 },
+  });

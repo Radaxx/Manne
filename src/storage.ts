@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { type AppearanceSettings, DEFAULT_APPEARANCE, normalizeAppearance } from './appearance';
 import { queueLike } from './community';
 import { type Passage, type Theme, VERSES } from './data/content';
 import { type PlanState, planById, planChapters, planIndex } from './plans';
@@ -31,6 +32,7 @@ export type Progress = {
   chaptersRead: string[]; // clés « livre:chapitre »
   plans: Record<string, PlanState>; // plans de lecture en cours, chacun avec son marque-page
   reminder: ReminderSettings;
+  appearance: AppearanceSettings; // thème, chapelet, fond de lecture
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
   customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
   confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
@@ -41,7 +43,7 @@ export type Progress = {
    * Date (ms) du dernier geste explicite sur un élément : retrait, remise, déplacement en arrière,
    * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
    * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
-   * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration.
+   * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance.
    */
   stamps: Record<string, number>;
 };
@@ -101,6 +103,7 @@ const initial = (): Progress => ({
   chaptersRead: [],
   plans: {},
   reminder: DEFAULT_REMINDER,
+  appearance: DEFAULT_APPEARANCE,
   pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
   customPrayers: [],
   confession: { items: [], lastConfession: null },
@@ -198,6 +201,7 @@ export function prepareStored(raw: unknown): Progress {
   stored.adoration = { ...initial().adoration, ...(stored.adoration ?? {}) };
   stored.confession = { ...initial().confession, ...(stored.confession ?? {}) };
   stored.reminder = { ...initial().reminder, ...(stored.reminder ?? {}) };
+  stored.appearance = normalizeAppearance(stored.appearance);
   stored.days = stored.days && typeof stored.days === 'object' && !Array.isArray(stored.days) ? stored.days : {};
   stored.stamps = stored.stamps && typeof stored.stamps === 'object' && !Array.isArray(stored.stamps) ? stored.stamps : {};
   stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
@@ -460,6 +464,7 @@ export function useProgress() {
     setProgress((p) => ({
       ...initial(),
       reminder: p.reminder,
+      appearance: p.appearance,
       confession: { ...initial().confession, items: p.confession.items },
       confessionLock: p.confessionLock,
     }));
@@ -488,6 +493,19 @@ export function useProgress() {
 
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
+  }, []);
+
+  const setAppearance = useCallback((patch: Partial<AppearanceSettings>) => {
+    setProgress((p) => {
+      const appearance = normalizeAppearance({ ...p.appearance, ...patch });
+      if (
+        appearance.scheme === p.appearance.scheme &&
+        appearance.rosary === p.appearance.rosary &&
+        appearance.reading === p.appearance.reading
+      )
+        return p;
+      return { ...p, appearance, stamps: stamped(p, 'appearance') };
+    });
   }, []);
 
   const toggleLike = useCallback((id: string, theme?: Theme, force?: boolean, target?: string) => {
@@ -544,6 +562,7 @@ export function useProgress() {
     startPlan,
     stopPlan,
     setReminder,
+    setAppearance,
     togglePin,
     saveCustomPrayer,
     deleteCustomPrayer,

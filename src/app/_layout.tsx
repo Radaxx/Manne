@@ -1,19 +1,23 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { AppState, useColorScheme } from 'react-native';
+import { type Palette, paletteFor } from '../appearance';
 import { EchoHost } from '../echoes';
-import { C } from '../liturgy';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
 import { supabase } from '../supabase';
 import { syncProgress } from '../sync';
+import { PaletteProvider } from '../theme';
 import { dayComplete, liveLog } from '../today';
 
-const theme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: C.bg, card: C.bg, primary: C.gold, text: C.text, border: C.line },
-};
+function navigationTheme(palette: Palette) {
+  const base = palette.statusBar === 'light' ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: { ...base.colors, background: palette.bg, card: palette.bg, primary: palette.gold, text: palette.text, border: palette.line },
+  };
+}
 
 /** Envoie la progression dès qu'une session existe, et la fusionne au retour du cloud. */
 function ProgressSync() {
@@ -56,20 +60,25 @@ function ReminderSync() {
   return null;
 }
 
-export default function RootLayout() {
+function ThemedShell() {
+  const { progress } = useApp();
+  const system = useColorScheme();
+  const palette = useMemo(() => paletteFor(progress.appearance.scheme, system), [progress.appearance.scheme, system]);
+  const theme = useMemo(() => navigationTheme(palette), [palette]);
   return (
-    <ThemeProvider value={theme}>
-      <ProgressProvider>
-        <StatusBar style="light" />
+    <PaletteProvider value={palette}>
+      <ThemeProvider value={theme}>
+        <StatusBar style={palette.statusBar} />
         <ReminderSync />
         <ProgressSync />
         <EchoHost />
         <Stack
           screenOptions={{
-            headerTintColor: C.text,
-            headerStyle: { backgroundColor: C.bg },
+            headerTintColor: palette.text,
+            headerStyle: { backgroundColor: palette.bg },
             headerShadowVisible: false,
             headerBackTitle: 'Retour',
+            contentStyle: { backgroundColor: palette.bg },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -86,9 +95,18 @@ export default function RootLayout() {
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
           <Stack.Screen name="compte" options={{ title: 'Compte' }} />
+          <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>
-      </ProgressProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </PaletteProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ProgressProvider>
+      <ThemedShell />
+    </ProgressProvider>
   );
 }

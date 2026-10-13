@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { C } from '../liturgy';
+import type { Palette } from '../appearance';
 import {
   formatTime,
   notificationsSupported,
@@ -11,8 +11,10 @@ import {
   requestReminderPermission,
 } from '../reminder';
 import { useApp } from '../storage';
+import { useThemed } from '../theme';
 
 export default function ReminderScreen() {
+  const { C, styles } = useThemed(stylesFor);
   const { progress, setReminder } = useApp();
   const { reminder } = progress;
   // null : on ne sait pas encore ; false : l'utilisateur a refusé les notifications.
@@ -93,48 +95,49 @@ export default function ReminderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  intro: { color: C.muted, fontSize: 15, lineHeight: 22, marginBottom: 18 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.card,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  label: { color: C.text, fontSize: 17, fontWeight: '700' },
-  section: { color: C.text, fontSize: 15, fontWeight: '700', marginTop: 26, marginBottom: 10 },
-  disabled: { opacity: 0.4 },
-  times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  time: {
-    backgroundColor: C.card,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  timeActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
-  timeText: { color: C.text, fontSize: 15, fontWeight: '600' },
-  timeTextActive: { color: C.gold },
-  preview: { backgroundColor: '#24262e', borderRadius: 18, padding: 14, gap: 4 },
-  previewHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  previewApp: { color: C.muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
-  previewTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
-  previewBody: { color: C.text, fontSize: 14, lineHeight: 20 },
-  warningBox: { backgroundColor: 'rgba(224,122,107,0.1)', borderRadius: 12, padding: 12, marginTop: 12, gap: 10 },
-  warning: { color: C.red, fontSize: 14, lineHeight: 20 },
-  settingsBtn: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: C.red,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  settingsText: { color: C.red, fontWeight: '700', fontSize: 13 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { padding: 20, paddingBottom: 60 },
+    intro: { color: C.muted, fontSize: 15, lineHeight: 22, marginBottom: 18 },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: C.card,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    label: { color: C.text, fontSize: 17, fontWeight: '700' },
+    section: { color: C.text, fontSize: 15, fontWeight: '700', marginTop: 26, marginBottom: 10 },
+    disabled: { opacity: 0.4 },
+    times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    time: {
+      backgroundColor: C.card,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    timeActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
+    timeText: { color: C.text, fontSize: 15, fontWeight: '600' },
+    timeTextActive: { color: C.gold },
+    preview: { backgroundColor: '#24262e', borderRadius: 18, padding: 14, gap: 4 },
+    previewHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+    previewApp: { color: C.muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
+    previewTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
+    previewBody: { color: C.text, fontSize: 14, lineHeight: 20 },
+    warningBox: { backgroundColor: 'rgba(224,122,107,0.1)', borderRadius: 12, padding: 12, marginTop: 12, gap: 10 },
+    warning: { color: C.red, fontSize: 14, lineHeight: 20 },
+    settingsBtn: {
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: C.red,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+    },
+    settingsText: { color: C.red, fontWeight: '700', fontSize: 13 },
+  });

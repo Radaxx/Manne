@@ -1,11 +1,14 @@
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LITURGICAL_COLORS, plainText, useMass } from '../aelf';
+import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
-import { C, MassBody } from '../liturgy';
+import { MassBody } from '../liturgy';
 import { useApp } from '../storage';
+import { useThemed } from '../theme';
 import { liveLog } from '../today';
 
 export default function MassScreen() {
+  const { C, styles } = useThemed(stylesFor);
   const { data, error } = useMass();
   const { progress, markGospel } = useApp();
   const gospelRead = liveLog(progress).gospel;
@@ -37,13 +40,14 @@ export default function MassScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingHorizontal: 22, paddingBottom: 60 },
-  title: { color: C.text, fontFamily: SERIF, fontSize: 30, lineHeight: 38, marginTop: 8 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 8 },
-  dot: { width: 9, height: 9, borderRadius: 5 },
-  info: { color: C.muted, fontSize: 14, flexShrink: 1, lineHeight: 20 },
-  massName: { color: C.gold, fontSize: 16, fontWeight: '800', marginTop: 24 },
-  credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 30 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { paddingHorizontal: 22, paddingBottom: 60 },
+    title: { color: C.text, fontFamily: SERIF, fontSize: 30, lineHeight: 38, marginTop: 8 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 8 },
+    dot: { width: 9, height: 9, borderRadius: 5 },
+    info: { color: C.muted, fontSize: 14, flexShrink: 1, lineHeight: 20 },
+    massName: { color: C.gold, fontSize: 16, fontWeight: '800', marginTop: 24 },
+    credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 30 },
+  });

@@ -15,12 +15,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Palette } from '../appearance';
 import { listIntentions, postIntention, reportIntention, type SharedIntention, setCarry, withdrawIntention } from '../community';
-import { C } from '../liturgy';
+import { useThemed } from '../theme';
 
 const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 1 ? '1 personne la porte' : `${n} personnes la portent`);
 
 export default function IntentionsScreen() {
+  const { C, styles } = useThemed(stylesFor);
   const params = useLocalSearchParams<{ draft?: string | string[] }>();
   const prefill = (Array.isArray(params.draft) ? params.draft[0] : params.draft)?.trim().slice(0, 280) ?? '';
   const [intentions, setIntentions] = useState<SharedIntention[] | null>(null);
@@ -176,51 +178,52 @@ export default function IntentionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  list: { padding: 20, gap: 12, paddingBottom: 24 },
-  lead: { color: C.muted, fontSize: 15, lineHeight: 22, marginBottom: 4 },
-  muted: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 12 },
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 10 },
-  body: { color: C.text, fontSize: 17, lineHeight: 24 },
-  count: { color: C.faint, fontSize: 13, fontWeight: '600' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  carry: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,209,102,0.45)',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  carryOn: { backgroundColor: C.gold, borderColor: C.gold },
-  carryText: { color: C.gold, fontWeight: '700', fontSize: 14 },
-  carryTextOn: { color: C.bg },
-  link: { color: C.faint, fontSize: 13, fontWeight: '700' },
-  notice: { color: C.red, fontSize: 14, textAlign: 'center' },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  input: {
-    flex: 1,
-    minHeight: 46,
-    maxHeight: 120,
-    color: C.text,
-    fontSize: 16,
-    backgroundColor: C.cardHi,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  send: { backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
-  sendText: { color: C.bg, fontWeight: '800', fontSize: 15 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    list: { padding: 20, gap: 12, paddingBottom: 24 },
+    lead: { color: C.muted, fontSize: 15, lineHeight: 22, marginBottom: 4 },
+    muted: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 12 },
+    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 10 },
+    body: { color: C.text, fontSize: 17, lineHeight: 24 },
+    count: { color: C.faint, fontSize: 13, fontWeight: '600' },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    carry: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(255,209,102,0.45)',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    carryOn: { backgroundColor: C.gold, borderColor: C.gold },
+    carryText: { color: C.gold, fontWeight: '700', fontSize: 14 },
+    carryTextOn: { color: C.onGold },
+    link: { color: C.faint, fontSize: 13, fontWeight: '700' },
+    notice: { color: C.red, fontSize: 14, textAlign: 'center' },
+    composer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 8,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    input: {
+      flex: 1,
+      minHeight: 46,
+      maxHeight: 120,
+      color: C.text,
+      fontSize: 16,
+      backgroundColor: C.cardHi,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    send: { backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
+    sendText: { color: C.onGold, fontWeight: '800', fontSize: 15 },
+  });

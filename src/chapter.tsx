@@ -15,23 +15,26 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type ReadingChrome, readingTheme } from './appearance';
 import { bookGradient, SERIF } from './cards';
 import { communityKey } from './community';
 import { loadBook } from './data/bible';
 import type { Passage } from './data/content';
 import { INTROS } from './data/intros';
 import { bookMeta, chapterPrompt, normalize } from './reading';
-import { type ProgressApi, readingPosition } from './storage';
+import { type ProgressApi, readingPosition, useApp } from './storage';
 
 export type Loc = { book: number; chapter: number };
 
 /** Voile sombre sous le bandeau du haut, pour que le texte qui défile dessous ne le gêne pas. */
 export function TopScrim({ extra = 108 }: { extra?: number }) {
   const insets = useSafeAreaInsets();
+  const chrome = readingTheme(useApp().progress.appearance.reading);
+  const styles = useMemo(() => readingStyles(chrome), [chrome]);
   return (
     <LinearGradient
       pointerEvents="none"
-      colors={['rgba(6,7,10,0.98)', 'rgba(6,7,10,0.97)', 'rgba(6,7,10,0)']}
+      colors={chrome.scrim}
       locations={[0, 0.78, 1]}
       style={[styles.scrim, { height: insets.top + extra }]}
     />
@@ -292,7 +295,9 @@ export function ChapterView({
   };
 
   const last = loc.chapter === book.verses.length;
-  const [bg0, bg1, bg2] = bookGradient(book.n);
+  const chrome = readingTheme(api.progress.appearance.reading);
+  const styles = useMemo(() => readingStyles(chrome), [chrome]);
+  const [bg0, bg1, bg2] = chrome.colors ?? bookGradient(book.n);
 
   return (
     <View style={{ height }}>
@@ -311,7 +316,7 @@ export function ChapterView({
         <View style={styles.nav}>
           {onPrev ? (
             <Pressable onPress={onPrev} hitSlop={10} style={styles.navBtn} accessibilityLabel="Chapitre précédent">
-              <Ionicons name="chevron-back" size={16} color="rgba(255,255,255,0.75)" />
+              <Ionicons name="chevron-back" size={16} color={chrome.muted} />
               <Text style={styles.navText}>Précédent</Text>
             </Pressable>
           ) : (
@@ -320,7 +325,7 @@ export function ChapterView({
           {onNext ? (
             <Pressable onPress={onNext} hitSlop={10} style={styles.navBtn} accessibilityLabel="Chapitre suivant">
               <Text style={styles.navText}>Suivant</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.75)" />
+              <Ionicons name="chevron-forward" size={16} color={chrome.muted} />
             </Pressable>
           ) : (
             <View />
@@ -353,7 +358,7 @@ export function ChapterView({
                 <View style={styles.numCol}>
                   <Text style={styles.num}>{n}</Text>
                   {likedVerses.has(n) && <Ionicons name="heart" size={12} color="#ff4d6d" />}
-                  {savedVerses.has(n) && <Ionicons name="bookmark" size={12} color="#ffd166" />}
+                  {savedVerses.has(n) && <Ionicons name="bookmark" size={12} color={chrome.accent} />}
                 </View>
                 <Text selectable={false} style={styles.verseText}>
                   {text}
@@ -364,7 +369,7 @@ export function ChapterView({
         </View>
 
         <View style={styles.end}>
-          <Ionicons name="checkmark-circle-outline" size={22} color="rgba(255,255,255,0.8)" />
+          <Ionicons name="checkmark-circle-outline" size={22} color={chrome.muted} />
           <Text style={styles.endKicker}>{last ? 'LIVRE TERMINÉ' : 'FIN DU CHAPITRE'}</Text>
           <Text style={styles.endPrompt}>{chapterPrompt(loc.book, loc.chapter)}</Text>
           <Text style={styles.hint}>
@@ -376,7 +381,7 @@ export function ChapterView({
           {onNext && (
             <Pressable onPress={onNext} style={styles.nextBtn} accessibilityRole="button">
               <Text style={styles.nextText}>{last ? 'Livre suivant' : 'Chapitre suivant'}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#1a1306" />
+              <Ionicons name="arrow-forward" size={18} color={chrome.onAccent} />
             </Pressable>
           )}
         </View>
@@ -392,11 +397,16 @@ export function ChapterView({
               {reference}
             </Text>
           </View>
-          <BarButton icon={selLiked ? 'heart' : 'heart-outline'} label="J’aime" color={selLiked ? '#ff4d6d' : '#fff'} onPress={onLike} />
+          <BarButton
+            icon={selLiked ? 'heart' : 'heart-outline'}
+            label="J’aime"
+            color={selLiked ? '#ff4d6d' : chrome.ink}
+            onPress={onLike}
+          />
           <BarButton
             icon={selSaved ? 'bookmark' : 'bookmark-outline'}
             label="Garder"
-            color={selSaved ? '#ffd166' : '#fff'}
+            color={selSaved ? chrome.accent : chrome.ink}
             onPress={onSave}
           />
           <BarButton icon="share-outline" label="Partager" onPress={onShare} />
@@ -417,7 +427,7 @@ export function ChapterView({
 function BarButton({
   icon,
   label,
-  color = '#fff',
+  color,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -425,66 +435,69 @@ function BarButton({
   color?: string;
   onPress: () => void;
 }) {
+  const chrome = readingTheme(useApp().progress.appearance.reading);
+  const styles = useMemo(() => readingStyles(chrome), [chrome]);
   return (
     <Pressable onPress={onPress} hitSlop={6} style={styles.barBtn} accessibilityRole="button" accessibilityLabel={label}>
-      <Ionicons name={icon} size={26} color={color} />
+      <Ionicons name={icon} size={26} color={color ?? chrome.ink} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0 },
-  nav: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-  navBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  navText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600' },
-  kicker: { color: 'rgba(255,255,255,0.7)', fontSize: 12, letterSpacing: 2.5, fontWeight: '700' },
-  bookName: { color: '#fff', fontSize: 34, lineHeight: 42, fontWeight: '700', marginTop: 6 },
-  chapterNum: { color: '#ffd166', fontSize: 18, fontWeight: '700', marginTop: 2 },
-  intro: { color: 'rgba(255,255,255,0.85)', fontSize: 16, lineHeight: 25, marginTop: 18 },
-  hint: { color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 17, marginTop: 14, marginBottom: 14 },
-  verse: { flexDirection: 'row', gap: 10, paddingVertical: 7, paddingHorizontal: 8, marginHorizontal: -8, borderRadius: 10 },
-  verseSelected: { backgroundColor: 'rgba(255,209,102,0.2)' },
-  numCol: { width: 26, alignItems: 'flex-end', gap: 3, paddingTop: 4 },
-  num: { color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: '700' },
-  verseText: { flex: 1, color: '#fff', fontFamily: SERIF, fontSize: 20, lineHeight: 31 },
-  end: {
-    alignItems: 'center',
-    marginTop: 36,
-    paddingTop: 28,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.25)',
-  },
-  endKicker: { color: 'rgba(255,255,255,0.8)', fontSize: 12, letterSpacing: 2.5, fontWeight: '700', marginTop: 6 },
-  endPrompt: { color: '#fff', fontFamily: SERIF, fontSize: 20, lineHeight: 29, fontStyle: 'italic', textAlign: 'center', marginTop: 14 },
-  nextBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#ffd166',
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    borderRadius: 999,
-    marginTop: 8,
-  },
-  nextText: { color: '#1a1306', fontSize: 16, fontWeight: '700' },
-  bar: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(12,13,18,0.94)',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingLeft: 16,
-    paddingRight: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
-  barInfo: { flex: 1, marginRight: 4 },
-  barCount: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  barRef: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 1 },
-  barBtn: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-});
+const readingStyles = (t: ReadingChrome) =>
+  StyleSheet.create({
+    scrim: { position: 'absolute', top: 0, left: 0, right: 0 },
+    nav: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
+    navBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    navText: { color: t.muted, fontSize: 13, fontWeight: '600' },
+    kicker: { color: t.muted, fontSize: 12, letterSpacing: 2.5, fontWeight: '700' },
+    bookName: { color: t.ink, fontSize: 34, lineHeight: 42, fontWeight: '700', marginTop: 6 },
+    chapterNum: { color: t.accent, fontSize: 18, fontWeight: '700', marginTop: 2 },
+    intro: { color: t.ink, fontSize: 16, lineHeight: 25, marginTop: 18 },
+    hint: { color: t.faint, fontSize: 12, lineHeight: 17, marginTop: 14, marginBottom: 14 },
+    verse: { flexDirection: 'row', gap: 10, paddingVertical: 7, paddingHorizontal: 8, marginHorizontal: -8, borderRadius: 10 },
+    verseSelected: { backgroundColor: t.selected },
+    numCol: { width: 26, alignItems: 'flex-end', gap: 3, paddingTop: 4 },
+    num: { color: t.faint, fontSize: 12, fontWeight: '700' },
+    verseText: { flex: 1, color: t.ink, fontFamily: SERIF, fontSize: 20, lineHeight: 31 },
+    end: {
+      alignItems: 'center',
+      marginTop: 36,
+      paddingTop: 28,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.barLine,
+    },
+    endKicker: { color: t.muted, fontSize: 12, letterSpacing: 2.5, fontWeight: '700', marginTop: 6 },
+    endPrompt: { color: t.ink, fontFamily: SERIF, fontSize: 20, lineHeight: 29, fontStyle: 'italic', textAlign: 'center', marginTop: 14 },
+    nextBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: t.accent,
+      paddingHorizontal: 22,
+      paddingVertical: 13,
+      borderRadius: 999,
+      marginTop: 8,
+    },
+    nextText: { color: t.onAccent, fontSize: 16, fontWeight: '700' },
+    bar: {
+      position: 'absolute',
+      left: 12,
+      right: 12,
+      bottom: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: t.bar,
+      borderRadius: 20,
+      paddingVertical: 10,
+      paddingLeft: 16,
+      paddingRight: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.barLine,
+    },
+    barInfo: { flex: 1, marginRight: 4 },
+    barCount: { color: t.ink, fontSize: 14, fontWeight: '700' },
+    barRef: { color: t.muted, fontSize: 12, marginTop: 1 },
+    barBtn: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  });

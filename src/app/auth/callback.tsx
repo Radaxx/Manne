@@ -2,8 +2,9 @@ import * as Linking from 'expo-linking';
 import { router, Stack, useGlobalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Palette } from '../../appearance';
 import { openAuthUrl } from '../../auth';
-import { C } from '../../liturgy';
+import { useThemed } from '../../theme';
 
 const AUTH_KEYS = ['code', 'access_token', 'refresh_token', 'token_hash', 'type', 'error_code', 'error_description', 'sb_flow_id'] as const;
 
@@ -33,6 +34,7 @@ function usable(url: string | null | undefined): url is string {
 
 /** Le lien du mail revient ici et termine la création du compte. */
 export default function AuthCallback() {
+  const { C, styles } = useThemed(stylesFor);
   const linkingUrl = Linking.useLinkingURL();
   const params = useGlobalSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -90,10 +92,11 @@ export default function AuthCallback() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  muted: { color: C.muted, fontSize: 16 },
-  error: { color: C.red, fontSize: 16, textAlign: 'center', lineHeight: 22 },
-  btn: { backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 12 },
-  btnText: { color: C.bg, fontWeight: '800', fontSize: 15 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
+    muted: { color: C.muted, fontSize: 16 },
+    error: { color: C.red, fontSize: 16, textAlign: 'center', lineHeight: 22 },
+    btn: { backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 12 },
+    btnText: { color: C.onGold, fontWeight: '800', fontSize: 15 },
+  });

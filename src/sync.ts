@@ -129,6 +129,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     chaptersRead: [...new Set([...here.chaptersRead, ...there.chaptersRead])],
     plans,
     reminder: here.reminder,
+    appearance: byStamp(here, there, 'appearance', here.appearance, there.appearance, (mine) => mine),
     pinnedPrayers: mergeItems(
       here,
       there,

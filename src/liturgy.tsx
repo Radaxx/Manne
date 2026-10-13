@@ -1,22 +1,15 @@
 import { Fragment, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Mass, parseHtml, plainText } from './aelf';
+import type { Palette } from './appearance';
 import { SERIF } from './cards';
+import { useThemed } from './theme';
 
-export const C = {
-  bg: '#0d0e12',
-  card: '#17191f',
-  cardHi: '#1f222a',
-  text: '#ece8df',
-  muted: 'rgba(236,232,223,0.6)',
-  faint: 'rgba(236,232,223,0.35)',
-  gold: '#ffd166',
-  red: '#e07a6b', // les rubriques liturgiques sont traditionnellement en rouge
-  line: 'rgba(255,255,255,0.08)',
-};
+export { DARK as C } from './appearance';
 
 /** Texte AELF (HTML) rendu en paragraphes, avec numéros de versets et gras. */
 export function LiturgyText({ html, style }: { html: string | null | undefined; style?: object }) {
+  const { styles } = useThemed(stylesFor);
   const paragraphs = parseHtml(html);
   return (
     <>
@@ -50,6 +43,7 @@ function Section({
   title?: string | null;
   children: ReactNode;
 }) {
+  const { styles } = useThemed(stylesFor);
   return (
     <View style={styles.section}>
       <View style={styles.labelRow}>
@@ -63,6 +57,7 @@ function Section({
 }
 
 function Antienne({ html }: { html: unknown }) {
+  const { styles } = useThemed(stylesFor);
   if (typeof html !== 'string' || !html.trim()) return null;
   return (
     <Text style={styles.antienne}>
@@ -96,6 +91,7 @@ function psalmHeading(ref: string): { label: string; reference: string } {
 
 /** Un office de la Liturgie des Heures, dans l'ordre où il se prie. */
 export function OfficeBody({ office }: { office: Record<string, unknown> }) {
+  const { styles } = useThemed(stylesFor);
   const out: ReactNode[] = [];
   const add = (key: string, node: ReactNode) => out.push(<Fragment key={key}>{node}</Fragment>);
 
@@ -283,6 +279,7 @@ export const readingLabel = (type: string) =>
 
 /** Les lectures d'une messe. L'Évangile se marque à la main : l'avoir affiché ne veut pas dire l'avoir lu. */
 export function MassBody({ mass, gospelRead, onGospelRead }: { mass: Mass; gospelRead?: boolean; onGospelRead?: () => void }) {
+  const { styles } = useThemed(stylesFor);
   return (
     <>
       {mass.lectures.map((l, i) => (
@@ -318,32 +315,33 @@ export function MassBody({ mass, gospelRead, onGospelRead }: { mass: Mass; gospe
   );
 }
 
-const styles = StyleSheet.create({
-  section: { paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 10 },
-  label: { color: C.red, fontSize: 12, letterSpacing: 2, fontWeight: '800', textTransform: 'uppercase', flexShrink: 1 },
-  ref: { color: C.muted, fontSize: 12, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
-  sectionTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 18, lineHeight: 26, marginBottom: 12 },
-  para: { color: C.text, fontFamily: SERIF, fontSize: 18, lineHeight: 29, marginBottom: 12 },
-  poem: { fontStyle: 'italic' },
-  verseNum: { color: C.gold, fontSize: 11, fontWeight: '700', fontFamily: undefined },
-  bold: { fontWeight: '700' },
-  italic: { fontStyle: 'italic' },
-  antienne: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 17, lineHeight: 26, marginBottom: 12 },
-  rubric: { color: C.red, fontWeight: '700', fontStyle: 'normal', fontFamily: undefined, fontSize: 13 },
-  introLue: { color: C.muted, fontStyle: 'italic', fontSize: 15, marginBottom: 12 },
-  refrain: { backgroundColor: 'rgba(224,122,107,0.08)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
-  acclamation: { backgroundColor: 'rgba(255,209,102,0.06)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
-  doneBtn: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    backgroundColor: C.gold,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  doneBtnOn: { backgroundColor: 'rgba(255,209,102,0.12)' },
-  doneBtnText: { color: C.bg, fontWeight: '800', fontSize: 15 },
-  doneBtnTextOn: { color: C.gold },
-  pressed: { opacity: 0.7 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    section: { paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+    labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 10 },
+    label: { color: C.red, fontSize: 12, letterSpacing: 2, fontWeight: '800', textTransform: 'uppercase', flexShrink: 1 },
+    ref: { color: C.muted, fontSize: 12, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
+    sectionTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 18, lineHeight: 26, marginBottom: 12 },
+    para: { color: C.text, fontFamily: SERIF, fontSize: 18, lineHeight: 29, marginBottom: 12 },
+    poem: { fontStyle: 'italic' },
+    verseNum: { color: C.gold, fontSize: 11, fontWeight: '700', fontFamily: undefined },
+    bold: { fontWeight: '700' },
+    italic: { fontStyle: 'italic' },
+    antienne: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 17, lineHeight: 26, marginBottom: 12 },
+    rubric: { color: C.red, fontWeight: '700', fontStyle: 'normal', fontFamily: undefined, fontSize: 13 },
+    introLue: { color: C.muted, fontStyle: 'italic', fontSize: 15, marginBottom: 12 },
+    refrain: { backgroundColor: 'rgba(224,122,107,0.08)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
+    acclamation: { backgroundColor: 'rgba(255,209,102,0.06)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
+    doneBtn: {
+      alignSelf: 'flex-start',
+      marginTop: 8,
+      backgroundColor: C.gold,
+      borderRadius: 999,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    doneBtnOn: { backgroundColor: 'rgba(255,209,102,0.12)' },
+    doneBtnText: { color: C.onGold, fontWeight: '800', fontSize: 15 },
+    doneBtnTextOn: { color: C.gold },
+    pressed: { opacity: 0.7 },
+  });
