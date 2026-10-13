@@ -1,5 +1,6 @@
 import { currentOffice } from './aelf';
 import { BOOKS } from './data/bible';
+import { longDate } from './dates';
 import { daysSince, formatRange, planById, planStatus } from './plans';
 import { TOTAL_CHAPTERS } from './reading';
 import type { Progress } from './storage';
@@ -207,6 +208,14 @@ export function agoPhrase(day: string | null, now: string): string {
   if (ago <= 0) return 'aujourd’hui';
   if (ago === 1) return 'hier';
   return `il y a ${ago} jours`;
+}
+
+/** « Dernière fois : hier · 3 au total. » pour le chapelet et l'adoration. */
+export function lastTimeLabel(day: string | null, count: number, now: string, never: string): string {
+  if (!day) return never;
+  const ago = daysSince(day, now);
+  const when = ago <= 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `le ${longDate(day)}`;
+  return `Dernière fois : ${when} · ${count} au total.`;
 }
 
 function prayerTaskLabel(log: DayLog): string {

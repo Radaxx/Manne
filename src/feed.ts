@@ -65,7 +65,8 @@ export class FeedGenerator {
   /** Tirage pondéré : les thèmes que l'utilisateur aime remontent, sans jamais exclure les autres. */
   private pickVerse(): Verse {
     const scores = this.getScores();
-    const candidates = VERSES.filter((v) => !this.recent.includes(v.id));
+    const recent = new Set(this.recent);
+    const candidates = VERSES.filter((v) => !recent.has(v.id));
     const weights = candidates.map((v) => 1 + Math.min(scores[v.theme] ?? 0, 8) * 0.6);
     let r = Math.random() * weights.reduce((a, b) => a + b, 0);
     let chosen = candidates[candidates.length - 1];

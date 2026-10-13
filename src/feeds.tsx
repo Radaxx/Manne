@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
+import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ReadingChrome, readingTheme } from './appearance';
 import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
@@ -10,14 +9,11 @@ import { ChapterReader, TopScrim } from './chapter';
 import { communityKey, useCommunity } from './community';
 import type { Passage, Theme } from './data/content';
 import { type Card, FeedGenerator } from './feed';
+import { haptic } from './haptics';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
 import { FocusedStatusBar } from './theme';
 import { goalCaption, goalToast } from './today';
-
-const haptic = () => {
-  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-};
 
 const share = (p: Passage) => {
   Share.share({ message: `« ${p.text} »\n— ${p.reference} (Louis Segond 1910)\n\nLu sur Manne` }).catch(() => {});

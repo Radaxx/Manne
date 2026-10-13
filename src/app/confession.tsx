@@ -4,10 +4,11 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
+import { longDate } from '../dates';
 import { authenticate, biometricName, lockAvailability, lockSupported } from '../lock';
-import { daysSince } from '../plans';
 import { today, useApp } from '../storage';
 import { useThemed } from '../theme';
+import { agoPhrase } from '../today';
 
 // Préparer sa confession : noter ses péchés au fil des jours, s'aider d'un examen de conscience,
 // puis tout effacer une fois l'absolution reçue. La liste ne quitte jamais le téléphone.
@@ -55,14 +56,9 @@ const STEPS = [
   'Rends grâce, et accomplis ta pénitence.',
 ];
 
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
 function lastConfessionLabel(day: string | null) {
   if (!day) return 'Aucune confession enregistrée dans Manne.';
-  const [y, m, d] = day.split('-').map(Number);
-  const ago = daysSince(day, today());
-  const when = ago === 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `il y a ${ago} jours`;
-  return `Dernière confession : le ${d} ${MONTHS[m - 1]} ${y} (${when}).`;
+  return `Dernière confession : le ${longDate(day)} (${agoPhrase(day, today())}).`;
 }
 
 function Fold({ title, icon, children }: { title: string; icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {

@@ -1,12 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -21,6 +19,7 @@ import { communityKey } from './community';
 import { loadBook } from './data/bible';
 import type { Passage } from './data/content';
 import { INTROS } from './data/intros';
+import { haptic } from './haptics';
 import { bookMeta, chapterPrompt, normalize } from './reading';
 import { type ProgressApi, readingPosition, useApp } from './storage';
 
@@ -40,10 +39,6 @@ export function TopScrim({ extra = 108 }: { extra?: number }) {
     />
   );
 }
-
-const haptic = () => {
-  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-};
 
 /** Vrai si a est strictement après b dans l'ordre de la Bible. */
 const isAfter = (a: Loc, b: Loc) => a.book > b.book || (a.book === b.book && a.chapter > b.chapter);

@@ -84,7 +84,8 @@ export function sessionLabel(s: RosarySession) {
   const set = MYSTERIES[s.set];
   if (s.decade !== null) return `${set.mysteries[s.decade]} · une dizaine`;
   const step = rosarySteps(null, s.fatima)[s.step];
-  if (!step || step.decade === null) return `${set.name} · ${s.step < 6 ? 'introduction' : 'conclusion'}`;
+  if (!step || step.decade === null)
+    return `${set.name} · ${!step || step.kind === 'salve' || step.kind === 'closing' ? 'conclusion' : 'introduction'}`;
   return `${set.name} · dizaine ${step.decade + 1} sur 5`;
 }
 

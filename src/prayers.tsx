@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
 import type { Palette } from './appearance';
@@ -10,7 +10,7 @@ import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
 import { biometricName, lockSupported } from './lock';
 import { sessionLabel } from './rosary';
-import { type CustomPrayer, useApp } from './storage';
+import { type CustomPrayer, useActions, useApp } from './storage';
 import { usePalette, useThemed } from './theme';
 
 const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
@@ -255,13 +255,13 @@ export function PrayersScreen() {
   );
 }
 
-/** Une ligne « — … » est la réponse de l'assemblée. */
-function PrayerText({ text }: { text: string }) {
+/** Le texte d'une prière, par paragraphes. Une ligne « — … » est la réponse de l'assemblée, en doré. */
+export function PrayerText({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
   const { styles } = useThemed(stylesFor);
   return (
     <>
       {text.split('\n\n').map((para, i) => (
-        <Text key={i} style={styles.para}>
+        <Text key={i} style={style ?? styles.para}>
           {para.split('\n').map((line, j, lines) => (
             <Text key={j} style={line.startsWith('—') ? styles.response : undefined}>
               {line}
@@ -327,7 +327,7 @@ function Rosary() {
 
 function CustomActions({ id }: { id: string }) {
   const { C, styles } = useThemed(stylesFor);
-  const { deleteCustomPrayer } = useApp();
+  const { deleteCustomPrayer } = useActions();
   // Supprimer est définitif : on demande une seconde confirmation.
   const [confirm, setConfirm] = useState(false);
   return (

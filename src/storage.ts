@@ -1,9 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { pruneAelfCache } from './aelf';
 import { type AppearanceSettings, DEFAULT_APPEARANCE, normalizeAppearance } from './appearance';
 import { queueLike } from './community';
+import { BOOKS } from './data/bible';
 import { type Passage, type Theme, VERSES } from './data/content';
+import { MYSTERIES } from './data/prayers';
+import { localDate } from './dates';
 import { type PlanState, planById, planChapters, planIndex } from './plans';
 import { normalize, type Position } from './reading';
 import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
@@ -82,8 +86,7 @@ export type CustomPrayer = { id: string; title: string; text: string; updatedAt:
 
 const KEY = 'manne/progress/v1';
 
-const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-export const today = () => localDay(new Date());
+export const today = () => localDate();
 
 const initial = (): Progress => ({
   liked: [],
@@ -207,24 +210,94 @@ export function prepareStored(raw: unknown): Progress {
   stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
   stored.displayName = typeof stored.displayName === 'string' ? stored.displayName : '';
   stored.lastOffice = typeof stored.lastOffice === 'string' ? stored.lastOffice : null;
-  stored.liked = Array.isArray(stored.liked) ? stored.liked : [];
-  stored.chaptersRead = Array.isArray(stored.chaptersRead) ? stored.chaptersRead : [];
-  stored.readToday = Array.isArray(stored.readToday) ? stored.readToday : [];
-  stored.chaptersToday = Array.isArray(stored.chaptersToday) ? stored.chaptersToday : [];
+  stored.liked = strings(stored.liked);
+  stored.chaptersRead = strings(stored.chaptersRead);
+  stored.readToday = strings(stored.readToday);
+  stored.chaptersToday = strings(stored.chaptersToday);
+  stored.pinnedPrayers = Array.isArray(stored.pinnedPrayers) ? strings(stored.pinnedPrayers) : initial().pinnedPrayers;
+  stored.customPrayers = (Array.isArray(stored.customPrayers) ? (stored.customPrayers as unknown[]) : []).filter(
+    (c): c is CustomPrayer =>
+      isRecord(c) &&
+      typeof c.id === 'string' &&
+      typeof c.title === 'string' &&
+      typeof c.text === 'string' &&
+      typeof c.updatedAt === 'number',
+  );
+  stored.confession.items = (Array.isArray(stored.confession.items) ? (stored.confession.items as unknown[]) : []).filter(isNote);
+  stored.adoration.intentions = (Array.isArray(stored.adoration.intentions) ? (stored.adoration.intentions as unknown[]) : []).filter(
+    isNote,
+  );
+  stored.rosary.session = validRosarySession(stored.rosary.session);
+  stored.adoration.session = validAdorationSession(stored.adoration.session);
+  // Un livre ou une position hors de la Bible ferait planter l'accueil et la lecture.
+  stored.currentBook = validBook(stored.currentBook) ? stored.currentBook : FIRST_BOOK;
+  const positions: Progress['positions'] = {};
+  for (const [key, pos] of Object.entries(isRecord(stored.positions) ? stored.positions : {})) {
+    const book = Number(key);
+    if (validBook(book) && isRecord(pos) && validPlace(book, pos.chapter, pos.verse)) {
+      positions[book] = { chapter: pos.chapter as number, verse: pos.verse as number };
+    }
+  }
+  stored.positions = positions;
   stored.saved = (Array.isArray(stored.saved) ? (stored.saved as (Passage | string)[]) : [])
     .map((s) => (typeof s === 'string' ? VERSES.find((v) => v.id === s) : s))
     .filter((s): s is Passage => !!s && typeof s === 'object' && typeof s.id === 'string');
-  stored.plans = stored.plans && typeof stored.plans === 'object' ? stored.plans : {};
+  stored.plans = isRecord(stored.plans) ? stored.plans : {};
   for (const [id, state] of Object.entries(stored.plans as Record<string, PlanState & { done?: string[] }>)) {
     const plan = planById(id);
-    if (!plan) delete stored.plans[id];
+    if (!plan || !isRecord(state) || typeof state.start !== 'string') delete stored.plans[id];
     else if (state.pos === undefined) {
       const done = new Set(state.done ?? []);
       const pos = planChapters(plan).findIndex((c) => !done.has(c.key));
       stored.plans[id] = { start: state.start, pos: pos === -1 ? planChapters(plan).length : pos, verse: 1 };
+    } else if (!Number.isInteger(state.pos) || state.pos < 0 || !Number.isInteger(state.verse) || state.verse < 1) {
+      stored.plans[id] = { start: state.start, pos: Math.max(0, Math.floor(Number(state.pos)) || 0), verse: 1 };
     }
   }
   return stored;
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+
+const isNote = (v: unknown): v is { id: string; text: string; at: number } =>
+  isRecord(v) && typeof v.id === 'string' && typeof v.text === 'string' && typeof v.at === 'number';
+
+const validBook = (book: unknown): book is number => Number.isInteger(book) && (book as number) >= 1 && (book as number) <= BOOKS.length;
+
+function validPlace(book: number, chapter: unknown, verse: unknown): boolean {
+  const chapters = BOOKS[book - 1].verses;
+  return (
+    Number.isInteger(chapter) &&
+    Number.isInteger(verse) &&
+    (chapter as number) >= 1 &&
+    (chapter as number) <= chapters.length &&
+    (verse as number) >= 1
+  );
+}
+
+function validRosarySession(s: unknown): RosarySession | null {
+  if (!isRecord(s)) return null;
+  const { set, decade, step } = s;
+  if (!Number.isInteger(set) || (set as number) < 0 || (set as number) >= MYSTERIES.length) return null;
+  if (decade !== null && (!Number.isInteger(decade) || (decade as number) < 0 || (decade as number) > 4)) return null;
+  if (!Number.isInteger(step) || (step as number) < 0) return null;
+  return {
+    set: set as number,
+    decade: decade as number | null,
+    step: step as number,
+    fatima: s.fatima !== false,
+    intention: typeof s.intention === 'string' ? s.intention : '',
+    day: typeof s.day === 'string' ? s.day : today(),
+  };
+}
+
+function validAdorationSession(s: unknown): AdorationSession | null {
+  if (!isRecord(s)) return null;
+  if (s.mode !== 'contemplative' && s.mode !== 'guided') return null;
+  if (typeof s.minutes !== 'number' || s.minutes <= 0 || !Number.isInteger(s.step) || (s.step as number) < 0) return null;
+  return { mode: s.mode, minutes: s.minutes, step: s.step as number, day: typeof s.day === 'string' ? s.day : today() };
 }
 
 export function useProgress() {
@@ -243,9 +316,40 @@ export function useProgress() {
       .finally(() => setLoaded(true));
   }, []);
 
+  // Dernier état écrit sur le disque, pour ne pas réécrire le même.
+  const written = useRef<string | null>(null);
+  const persist = useCallback(() => {
+    const json = JSON.stringify(ref.current);
+    if (json === written.current) return;
+    written.current = json;
+    // Si le stockage est plein, on sacrifie le cache des textes liturgiques et on réessaie une fois.
+    AsyncStorage.setItem(KEY, json)
+      .catch(() => pruneAelfCache().then(() => AsyncStorage.setItem(KEY, json)))
+      .catch((e) => {
+        written.current = null;
+        console.warn('Progression non enregistrée', e);
+      });
+  }, []);
+
+  // Lire en faisant défiler change la progression à chaque verset : on n'écrit qu'une fois le calme revenu,
+  // et tout de suite quand l'app passe en arrière-plan (elle peut y être tuée sans prévenir).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: chaque nouvelle progression relance le délai ; persist lit la dernière via ref.
   useEffect(() => {
-    if (loaded) AsyncStorage.setItem(KEY, JSON.stringify(progress)).catch(() => {});
-  }, [progress, loaded]);
+    if (!loaded) return;
+    const timer = setTimeout(persist, 500);
+    return () => clearTimeout(timer);
+  }, [progress, loaded, persist]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') persist();
+    });
+    return () => {
+      sub.remove();
+      persist();
+    };
+  }, [loaded, persist]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -549,9 +653,8 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return {
-    progress,
-    loaded,
+  // Toutes les actions sont stables (useCallback sans dépendance) : un seul objet, créé une fois, suffit.
+  const [actions] = useState(() => ({
     markRead,
     markChapterRead,
     advanceReading,
@@ -587,22 +690,38 @@ export function useProgress() {
     toggleLike,
     toggleSave,
     getScores,
-    readingSession,
     restartReading,
-  };
+  }));
+  const state = useMemo(() => ({ progress, loaded, readingSession }), [progress, loaded, readingSession]);
+  return { state, actions };
 }
 
-export type ProgressApi = ReturnType<typeof useProgress>;
+export type ProgressState = ReturnType<typeof useProgress>['state'];
+export type ProgressActions = ReturnType<typeof useProgress>['actions'];
+export type ProgressApi = ProgressState & ProgressActions;
 
-const ProgressContext = createContext<ProgressApi | null>(null);
+const StateContext = createContext<ProgressState | null>(null);
+const ActionsContext = createContext<ProgressActions | null>(null);
 
-/** Une seule progression partagée par tous les écrans. */
+/**
+ * Une seule progression partagée par tous les écrans. L'état et les actions passent par deux contexts :
+ * un composant qui ne fait qu'agir (useActions) ne se redessine pas à chaque verset lu.
+ */
 export function ProgressProvider({ children }: { children: ReactNode }) {
-  return createElement(ProgressContext.Provider, { value: useProgress() }, children);
+  const { state, actions } = useProgress();
+  return createElement(ActionsContext.Provider, { value: actions }, createElement(StateContext.Provider, { value: state }, children));
+}
+
+export function useActions(): ProgressActions {
+  const actions = useContext(ActionsContext);
+  if (!actions) throw new Error('useActions doit être utilisé dans <ProgressProvider>');
+  return actions;
 }
 
 export function useApp(): ProgressApi {
-  const api = useContext(ProgressContext);
+  const state = useContext(StateContext);
+  const actions = useActions();
+  const api = useMemo(() => (state ? { ...state, ...actions } : null), [state, actions]);
   if (!api) throw new Error('useApp doit être utilisé dans <ProgressProvider>');
   return api;
 }

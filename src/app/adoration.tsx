@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -24,43 +23,20 @@ import { useMass } from '../aelf';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { prayerById } from '../data/prayers';
+import { haptic } from '../haptics';
 import { LiturgyText } from '../liturgy';
-import { daysSince } from '../plans';
-import { type AdorationMode, type AdorationSession, today, useApp } from '../storage';
+import { PrayerText } from '../prayers';
+import { type AdorationMode, type AdorationSession, today, useActions, useApp } from '../storage';
 import { useThemed } from '../theme';
+import { lastTimeLabel } from '../today';
 
 // Adorer devant le Saint-Sacrement, guidé : on choisit un parcours contemplatif ou guidé et une durée,
 // Manne propose les temps un à un (présence, adoration, Parole, silence, merci, pardon, intentions).
 // On peut quitter et reprendre là où on s'était arrêté.
 
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
-const haptic = (kind: 'step' | 'end') => {
-  if (Platform.OS === 'web') return;
-  if (kind === 'end') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-};
-
-function lastLabel(day: string | null, count: number) {
-  if (!day) return 'Aucune adoration vécue avec Manne pour l’instant.';
-  const [y, m, d] = day.split('-').map(Number);
-  const ago = daysSince(day, today());
-  const when = ago === 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `le ${d} ${MONTHS[m - 1]} ${y}`;
-  return `Dernière fois : ${when} · ${count} au total.`;
-}
-
 function PrayerLines({ id }: { id: string }) {
   const { styles } = useThemed(stylesFor);
-  const text = prayerById(id)?.text ?? '';
-  return (
-    <>
-      {text.split('\n\n').map((para, i) => (
-        <Text key={i} style={styles.prayer}>
-          {para}
-        </Text>
-      ))}
-    </>
-  );
+  return <PrayerText text={prayerById(id)?.text ?? ''} style={styles.prayer} />;
 }
 
 /** Les intentions qu'on confie à chaque adoration : on les ajoute ici, on les retire quand on veut. */
@@ -159,7 +135,7 @@ function Countdown({ minutes, size }: { minutes: number; size: number }) {
   useEffect(() => {
     if (left === 0 && !ended.current) {
       ended.current = true;
-      haptic('end');
+      haptic('success');
     }
   }, [left]);
 
@@ -345,7 +321,7 @@ function StepBody({ step, mode, size }: { step: AdorationStep; mode: AdorationMo
 
 function Praying({ session, onDone, onExit }: { session: AdorationSession; onDone: () => void; onExit: () => void }) {
   const { C, styles } = useThemed(stylesFor);
-  const { setAdorationSession } = useApp();
+  const { setAdorationSession } = useActions();
   const steps = useMemo(() => adorationSteps(session.mode, session.minutes), [session.mode, session.minutes]);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -367,11 +343,11 @@ function Praying({ session, onDone, onExit }: { session: AdorationSession; onDon
     const next = index + delta;
     if (next < 0) return;
     if (next >= steps.length) {
-      haptic('end');
+      haptic('success');
       onDone();
       return;
     }
-    haptic('step');
+    haptic();
     setAdorationSession({ ...session, step: next });
   };
 
@@ -465,7 +441,7 @@ function Setup({ onStart }: { onStart: (s: AdorationSession) => void }) {
           Tu es devant le Saint-Sacrement : tu n’as rien à réussir. Manne te propose un chemin, tu le suis à ton rythme, et tu peux
           t’arrêter à tout moment.
         </Text>
-        <Text style={styles.last}>{lastLabel(last, count)}</Text>
+        <Text style={styles.last}>{lastTimeLabel(last, count, today(), 'Aucune adoration vécue avec Manne pour l’instant.')}</Text>
 
         {session && (
           <Pressable onPress={() => onStart(session)} style={({ pressed }) => [styles.resume, pressed && { opacity: 0.85 }]}>
@@ -499,7 +475,7 @@ function Setup({ onStart }: { onStart: (s: AdorationSession) => void }) {
           {DURATIONS.map((d) => (
             <Pressable key={d} onPress={() => setMinutes(d)} style={[styles.segmentItem, minutes === d && styles.segmentActive]}>
               <Text style={[styles.segmentText, minutes === d && { color: C.onGold }]}>{d}</Text>
-              <Text style={[styles.segmentHint, minutes === d && { color: 'rgba(13,14,18,0.6)' }]}>min</Text>
+              <Text style={[styles.segmentHint, minutes === d && { color: C.onGold, opacity: 0.65 }]}>min</Text>
             </Pressable>
           ))}
         </View>
