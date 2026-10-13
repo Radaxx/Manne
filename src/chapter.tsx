@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -23,7 +23,20 @@ import { INTROS } from './data/intros';
 import { bookMeta, chapterPrompt, normalize } from './reading';
 import { type ProgressApi, readingPosition } from './storage';
 
-type Loc = { book: number; chapter: number };
+export type Loc = { book: number; chapter: number };
+
+/** Voile sombre sous le bandeau du haut, pour que le texte qui défile dessous ne le gêne pas. */
+export function TopScrim({ extra = 108 }: { extra?: number }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={['rgba(6,7,10,0.98)', 'rgba(6,7,10,0.97)', 'rgba(6,7,10,0)']}
+      locations={[0, 0.78, 1]}
+      style={[styles.scrim, { height: insets.top + extra }]}
+    />
+  );
+}
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -101,8 +114,11 @@ export function ChapterReader({ api, height }: { api: ProgressApi; height: numbe
     const { book, chapter } = normalize(readingPosition(api.progress));
     return { book, chapter };
   });
+  const insets = useSafeAreaInsets();
   const bookmark = readingPosition(api.progress);
   const prev = prevLoc(loc);
+  const progressRef = useRef(api.progress);
+  progressRef.current = api.progress;
 
   const open = (target: Loc) => {
     // Relire ce qui précède ne fait pas reculer le marque-page ; aller plus loin l'avance.
@@ -116,26 +132,45 @@ export function ChapterReader({ api, height }: { api: ProgressApi; height: numbe
       loc={loc}
       api={api}
       height={height}
+      topPad={insets.top + 100}
       onPrev={prev ? () => open(prev) : null}
       onNext={() => open(nextLoc(loc))}
+      onFinish={(whole) => {
+        // Relire un chapitre déjà dépassé ne déplace pas le marque-page.
+        if (isAfter(readingPosition(progressRef.current), loc)) api.markChapterRead(loc.book, loc.chapter);
+        else api.advanceReading(whole, true);
+      }}
     />
   );
 }
 
-function ChapterView({
+/**
+ * Un chapitre entier, avec sa sélection de versets. Commun à la lecture libre et aux plans :
+ * ce qui change (marque-page, fin de plan…) arrive par onFinish et footer.
+ */
+export function ChapterView({
   loc,
   api,
   height,
+  topPad,
   onPrev,
   onNext,
+  onFinish,
+  footer,
 }: {
   loc: Loc;
   api: ProgressApi;
   height: number;
+  /** Place laissée en haut pour le bandeau superposé. */
+  topPad: number;
   onPrev: (() => void) | null;
-  onNext: () => void;
+  /** null : il n'y a rien après ce chapitre (fin d'un plan). */
+  onNext: (() => void) | null;
+  /** Appelé une fois, quand tout le chapitre a été vu. */
+  onFinish: (whole: Passage) => void;
+  /** Affiché en fin de chapitre, avant le bouton « suivant ». */
+  footer?: ReactNode;
 }) {
-  const insets = useSafeAreaInsets();
   const book = bookMeta(loc.book);
   const texts = useMemo(() => loadBook(loc.book)[loc.chapter - 1], [loc.book, loc.chapter]);
   const total = texts.length;
@@ -143,6 +178,8 @@ function ChapterView({
 
   const apiRef = useRef(api);
   apiRef.current = api;
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   // ——— Sélection ———
   const [selected, setSelected] = useState<number[]>([]);
@@ -209,7 +246,7 @@ function ChapterView({
 
   const reference = `${book.name} ${loc.chapter}:${runs.map(rangeLabel).join(', ')}`;
 
-  // ——— Lecture : les versets vus comptent comme lus, la fin du chapitre fait avancer le marque-page ———
+  // ——— Lecture : les versets vus comptent comme lus ; quand le chapitre est vu en entier, onFinish ———
   const scrollY = useRef(0);
   const viewH = useRef(0);
   const wrapY = useRef(0);
@@ -233,10 +270,7 @@ function ChapterView({
     readTo.current = furthest;
     if (furthest === total && !finished.current) {
       finished.current = true;
-      const whole = makePassage(loc, texts, { from: 1, to: total });
-      // Relire un chapitre déjà dépassé ne déplace pas le marque-page.
-      if (isAfter(readingPosition(a.progress), loc)) a.markChapterRead(loc.book, loc.chapter);
-      else a.advanceReading(whole, true);
+      onFinishRef.current(makePassage(loc, texts, { from: 1, to: total }));
     }
   };
 
@@ -272,7 +306,7 @@ function ChapterView({
         }}
         onContentSizeChange={schedule}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 100, paddingBottom: 160, paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingTop: topPad, paddingBottom: 160, paddingHorizontal: 20 }}
       >
         <View style={styles.nav}>
           {onPrev ? (
@@ -283,10 +317,14 @@ function ChapterView({
           ) : (
             <View />
           )}
-          <Pressable onPress={onNext} hitSlop={10} style={styles.navBtn} accessibilityLabel="Chapitre suivant">
-            <Text style={styles.navText}>Suivant</Text>
-            <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.75)" />
-          </Pressable>
+          {onNext ? (
+            <Pressable onPress={onNext} hitSlop={10} style={styles.navBtn} accessibilityLabel="Chapitre suivant">
+              <Text style={styles.navText}>Suivant</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.75)" />
+            </Pressable>
+          ) : (
+            <View />
+          )}
         </View>
 
         <Text style={styles.kicker}>{book.n >= 40 ? 'NOUVEAU TESTAMENT' : 'ANCIEN TESTAMENT'}</Text>
@@ -334,10 +372,13 @@ function ChapterView({
             {api.progress.chaptersToday.length > 1 ? 's' : ''} aujourd’hui.
             {last ? ` Tu as lu tout le livre de ${book.name} !` : ' Prends un instant avant de continuer.'}
           </Text>
-          <Pressable onPress={onNext} style={styles.nextBtn} accessibilityRole="button">
-            <Text style={styles.nextText}>{last ? 'Livre suivant' : 'Chapitre suivant'}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#1a1306" />
-          </Pressable>
+          {footer}
+          {onNext && (
+            <Pressable onPress={onNext} style={styles.nextBtn} accessibilityRole="button">
+              <Text style={styles.nextText}>{last ? 'Livre suivant' : 'Chapitre suivant'}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#1a1306" />
+            </Pressable>
+          )}
         </View>
       </ScrollView>
 
@@ -392,6 +433,7 @@ function BarButton({
 }
 
 const styles = StyleSheet.create({
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0 },
   nav: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   navText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600' },
