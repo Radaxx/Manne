@@ -25,6 +25,9 @@ const PROMPTS = [
   'Si tu devais résumer ce chapitre en une phrase, que dirais-tu ?',
 ];
 
+/** La question de méditation qui clôt un chapitre (toujours la même pour un chapitre donné). */
+export const chapterPrompt = (book: number, chapter: number) => PROMPTS[(book * 7 + chapter) % PROMPTS.length];
+
 export const TOTAL_CHAPTERS = BOOKS.reduce((n, b) => n + b.verses.length, 0);
 
 export const bookMeta = (n: number) => BOOKS[n - 1];
@@ -100,7 +103,7 @@ export class ReadingGenerator {
       },
     });
     if (chapterEnd) {
-      out.push({ key: `r${++this.n}`, kind: 'chapterEnd', book: meta, chapter, prompt: PROMPTS[(book * 7 + chapter) % PROMPTS.length] });
+      out.push({ key: `r${++this.n}`, kind: 'chapterEnd', book: meta, chapter, prompt: chapterPrompt(book, chapter) });
     }
     this.pos = normalize({ book, chapter, verse: to + 1 });
     return out;

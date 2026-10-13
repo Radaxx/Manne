@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactElement, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BookIntroCard, ChapterEndCard, FactCard, PassageCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
+import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
+import { ChapterReader } from './chapter';
 import type { Passage, Theme } from './data/content';
-import { INTROS } from './data/intros';
 import { type Card, FeedGenerator } from './feed';
-import { cardsUntil, isResumeCard, normalize, type ReadingCard, ReadingGenerator } from './reading';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
-import { DAILY_GOAL, type ProgressApi, readingPosition, useApp } from './storage';
+import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -76,62 +76,6 @@ export function Pager<T extends { key: string }>(props: {
   );
 }
 
-/** Lecture suivie : chaque glissement fait avancer dans le texte, et le marque-page suit. */
-function ReadingPager({ api, height }: { api: ProgressApi; height: number }) {
-  // Générateur et premières cartes créés ensemble : sûr même si React rejoue l'initialiseur.
-  // On commence au début du chapitre précédent pour pouvoir remonter, et on s'ouvre au marque-page.
-  const [{ generator, initial, initialIndex }] = useState(() => {
-    const pos = normalize(readingPosition(api.progress));
-    const g = new ReadingGenerator({ book: pos.book, chapter: Math.max(1, pos.chapter - 1), verse: 1 });
-    const { cards, index } = cardsUntil(g, (c) => isResumeCard(c, pos));
-    return { generator: g, initial: cards, initialIndex: index };
-  });
-  const [cards, setCards] = useState<ReadingCard[]>(initial);
-  // Relire ce qui précède le marque-page ne le fait pas reculer.
-  const furthest = useRef(initialIndex - 1);
-
-  return (
-    <Pager
-      data={cards}
-      height={height}
-      initialIndex={initialIndex}
-      extraData={api.progress}
-      onEndReached={() => {
-        // Générer hors du updater : React peut l'appeler deux fois en dev.
-        const more = generator.next(8);
-        setCards((c) => [...c, ...more]);
-      }}
-      onViewed={(card, index) => {
-        // Relire ce qui précède (en remontant) ne compte pas comme une nouvelle lecture.
-        const forward = index > furthest.current;
-        if (forward) furthest.current = index;
-        if (card.kind === 'chapterEnd' && forward) api.markChapterRead(card.book.n, card.chapter);
-        if (card.kind !== 'passage') return;
-        api.markRead(card.passage);
-        if (forward) api.advanceReading(card.passage, card.chapterEnd);
-      }}
-      renderItem={(card) => {
-        switch (card.kind) {
-          case 'intro':
-            return <BookIntroCard book={card.book} intro={INTROS[card.book.n]} height={height} />;
-          case 'passage':
-            return <PassageCard passage={card.passage} book={card.book} height={height} {...actionsFor(card.passage, api)} />;
-          case 'chapterEnd':
-            return (
-              <ChapterEndCard
-                book={card.book}
-                chapter={card.chapter}
-                prompt={card.prompt}
-                chaptersToday={api.progress.chaptersToday.length}
-                height={height}
-              />
-            );
-        }
-      }}
-    />
-  );
-}
-
 /** Découvrir : versets choisis, anecdotes, quiz, personnages — selon tes goûts. */
 function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
   const [{ generator, initial }] = useState(() => {
@@ -184,10 +128,13 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
 function FeedScreen({
   title,
   left,
+  scrim,
   children,
 }: {
   title: string;
   left?: ReactNode;
+  /** Voile sombre sous le bandeau du haut, pour un contenu qui défile dessous. */
+  scrim?: boolean;
   children: (height: number, openContext: (p: Passage) => void) => ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -215,6 +162,15 @@ function FeedScreen({
   return (
     <View style={styles.root} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
       {height > 0 && api.loaded && children(height, setChapter)}
+
+      {scrim && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(6,7,10,0.98)', 'rgba(6,7,10,0.97)', 'rgba(6,7,10,0)']}
+          locations={[0, 0.78, 1]}
+          style={[styles.scrim, { height: insets.top + 108 }]}
+        />
+      )}
 
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
@@ -279,13 +235,14 @@ export function ReadingScreen() {
     <>
       <FeedScreen
         title="Lecture"
+        scrim
         left={
           <Pressable onPress={() => setShowBooks(true)} hitSlop={10} accessibilityLabel="Choisir un livre" style={styles.booksBtn}>
             <Ionicons name="library-outline" size={21} color="#fff" />
           </Pressable>
         }
       >
-        {(height) => <ReadingPager key={api.readingSession} api={api} height={height} />}
+        {(height) => <ChapterReader key={api.readingSession} api={api} height={height} />}
       </FeedScreen>
       {showBooks && (
         <BooksSheet
@@ -316,6 +273,7 @@ export function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0 },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { width: 84 },
