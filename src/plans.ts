@@ -5,12 +5,48 @@ export type Plan = { id: string; title: string; description: string; days: numbe
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 export const PLANS: Plan[] = [
-  { id: 'evangiles-30', title: 'Les Évangiles en 30 jours', description: 'Matthieu, Marc, Luc et Jean : la vie de Jésus, environ 3 chapitres par jour.', days: 30, books: [40, 41, 42, 43] },
-  { id: 'psaumes-30', title: 'Les Psaumes en 30 jours', description: 'Cinq psaumes par jour pour apprendre à prier avec la Bible.', days: 30, books: [19] },
-  { id: 'proverbes-31', title: 'Un proverbe par jour', description: 'Un chapitre des Proverbes chaque jour du mois : de la sagesse pour le quotidien.', days: 31, books: [20] },
-  { id: 'actes-28', title: 'Les Actes en 28 jours', description: 'La naissance de l’Église, de la Pentecôte jusqu’à Rome, un chapitre par jour.', days: 28, books: [44] },
-  { id: 'nt-90', title: 'Le Nouveau Testament en 90 jours', description: 'Des Évangiles à l’Apocalypse, environ 3 chapitres par jour.', days: 90, books: range(40, 66) },
-  { id: 'bible-365', title: 'Toute la Bible en un an', description: 'De la Genèse à l’Apocalypse, 3 à 4 chapitres par jour.', days: 365, books: range(1, 66) },
+  {
+    id: 'evangiles-30',
+    title: 'Les Évangiles en 30 jours',
+    description: 'Matthieu, Marc, Luc et Jean : la vie de Jésus, environ 3 chapitres par jour.',
+    days: 30,
+    books: [40, 41, 42, 43],
+  },
+  {
+    id: 'psaumes-30',
+    title: 'Les Psaumes en 30 jours',
+    description: 'Cinq psaumes par jour pour apprendre à prier avec la Bible.',
+    days: 30,
+    books: [19],
+  },
+  {
+    id: 'proverbes-31',
+    title: 'Un proverbe par jour',
+    description: 'Un chapitre des Proverbes chaque jour du mois : de la sagesse pour le quotidien.',
+    days: 31,
+    books: [20],
+  },
+  {
+    id: 'actes-28',
+    title: 'Les Actes en 28 jours',
+    description: 'La naissance de l’Église, de la Pentecôte jusqu’à Rome, un chapitre par jour.',
+    days: 28,
+    books: [44],
+  },
+  {
+    id: 'nt-90',
+    title: 'Le Nouveau Testament en 90 jours',
+    description: 'Des Évangiles à l’Apocalypse, environ 3 chapitres par jour.',
+    days: 90,
+    books: range(40, 66),
+  },
+  {
+    id: 'bible-365',
+    title: 'Toute la Bible en un an',
+    description: 'De la Genèse à l’Apocalypse, 3 à 4 chapitres par jour.',
+    days: 365,
+    books: range(1, 66),
+  },
 ];
 
 export type ChapterRef = { book: number; chapter: number; key: string };
@@ -18,13 +54,12 @@ export type ChapterRef = { book: number; chapter: number; key: string };
 const chaptersCache = new Map<string, ChapterRef[]>();
 
 export function planChapters(plan: Plan): ChapterRef[] {
-  if (!chaptersCache.has(plan.id)) {
-    chaptersCache.set(
-      plan.id,
-      plan.books.flatMap((book) => BOOKS[book - 1].verses.map((_, i) => ({ book, chapter: i + 1, key: `${book}:${i + 1}` }))),
-    );
+  let chapters = chaptersCache.get(plan.id);
+  if (!chapters) {
+    chapters = plan.books.flatMap((book) => BOOKS[book - 1].verses.map((_, i) => ({ book, chapter: i + 1, key: `${book}:${i + 1}` })));
+    chaptersCache.set(plan.id, chapters);
   }
-  return chaptersCache.get(plan.id)!;
+  return chapters;
 }
 
 export function daysSince(start: string, today: string) {
@@ -57,8 +92,12 @@ const indexCache = new Map<string, Map<string, number>>();
 
 /** Position d'un chapitre dans le plan, ou -1 s'il n'en fait pas partie. */
 export function planIndex(plan: Plan, book: number, chapter: number): number {
-  if (!indexCache.has(plan.id)) indexCache.set(plan.id, new Map(planChapters(plan).map((c, i) => [c.key, i])));
-  return indexCache.get(plan.id)!.get(`${book}:${chapter}`) ?? -1;
+  let index = indexCache.get(plan.id);
+  if (!index) {
+    index = new Map(planChapters(plan).map((c, i) => [c.key, i]));
+    indexCache.set(plan.id, index);
+  }
+  return index.get(`${book}:${chapter}`) ?? -1;
 }
 
 export type PlanStatus = {

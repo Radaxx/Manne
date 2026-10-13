@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { type ReactElement, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookIntroCard, ChapterEndCard, FactCard, PassageCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import type { Passage, Theme } from './data/content';
 import { INTROS } from './data/intros';
-import { FeedGenerator, type Card } from './feed';
-import { cardsUntil, isResumeCard, normalize, ReadingGenerator, type ReadingCard } from './reading';
+import { type Card, FeedGenerator } from './feed';
+import { cardsUntil, isResumeCard, normalize, type ReadingCard, ReadingGenerator } from './reading';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
-import { DAILY_GOAL, readingPosition, useApp, type ProgressApi } from './storage';
+import { DAILY_GOAL, type ProgressApi, readingPosition, useApp } from './storage';
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -117,7 +117,15 @@ function ReadingPager({ api, height }: { api: ProgressApi; height: number }) {
           case 'passage':
             return <PassageCard passage={card.passage} book={card.book} height={height} {...actionsFor(card.passage, api)} />;
           case 'chapterEnd':
-            return <ChapterEndCard book={card.book} chapter={card.chapter} prompt={card.prompt} chaptersToday={api.progress.chaptersToday.length} height={height} />;
+            return (
+              <ChapterEndCard
+                book={card.book}
+                chapter={card.chapter}
+                prompt={card.prompt}
+                chaptersToday={api.progress.chaptersToday.length}
+                height={height}
+              />
+            );
         }
       }}
     />
@@ -148,7 +156,14 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
       renderItem={(card) => {
         switch (card.kind) {
           case 'verse':
-            return <VerseCard verse={card.verse} height={height} onRead={() => onContext(card.verse)} {...actionsFor(card.verse, api, card.verse.theme)} />;
+            return (
+              <VerseCard
+                verse={card.verse}
+                height={height}
+                onRead={() => onContext(card.verse)}
+                {...actionsFor(card.verse, api, card.verse.theme)}
+              />
+            );
           case 'fact':
             return <FactCard fact={card.fact} height={height} />;
           case 'quiz':
@@ -166,7 +181,15 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
 }
 
 /** Écran plein de cartes avec, par-dessus, l'objectif du jour, la série et les favoris. */
-function FeedScreen({ title, left, children }: { title: string; left?: ReactNode; children: (height: number, openContext: (p: Passage) => void) => ReactNode }) {
+function FeedScreen({
+  title,
+  left,
+  children,
+}: {
+  title: string;
+  left?: ReactNode;
+  children: (height: number, openContext: (p: Passage) => void) => ReactNode;
+}) {
   const insets = useSafeAreaInsets();
   const api = useApp();
   const { progress } = api;
@@ -211,13 +234,22 @@ function FeedScreen({ title, left, children }: { title: string; left?: ReactNode
           <View style={[styles.goalFill, { width: `${Math.min(1, readCount / DAILY_GOAL) * 100}%` }]} />
         </View>
         <Text style={styles.goalText}>
-          {readCount >= DAILY_GOAL ? `Objectif atteint · ${readCount} versets aujourd’hui` : `${readCount}/${DAILY_GOAL} versets aujourd’hui`}
+          {readCount >= DAILY_GOAL
+            ? `Objectif atteint · ${readCount} versets aujourd’hui`
+            : `${readCount}/${DAILY_GOAL} versets aujourd’hui`}
         </Text>
       </View>
 
       <Animated.View
         pointerEvents="none"
-        style={[styles.toast, { top: insets.top + 96, opacity: celebrate, transform: [{ translateY: celebrate.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}
+        style={[
+          styles.toast,
+          {
+            top: insets.top + 96,
+            opacity: celebrate,
+            transform: [{ translateY: celebrate.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+          },
+        ]}
       >
         <Text style={styles.toastTitle}>Ta manne du jour est récoltée ✨</Text>
         <Text style={styles.toastBody}>{DAILY_GOAL} versets lus. Tu peux continuer… ou garder une parole en tête pour la journée.</Text>
@@ -275,7 +307,11 @@ export function ReadingScreen() {
 
 export function DiscoverScreen() {
   const api = useApp();
-  return <FeedScreen title="Découvrir">{(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}</FeedScreen>;
+  return (
+    <FeedScreen title="Découvrir">
+      {(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}
+    </FeedScreen>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -286,12 +322,29 @@ const styles = StyleSheet.create({
   booksBtn: { alignSelf: 'flex-start' },
   title: { color: '#fff', fontSize: 17, fontWeight: '700' },
   topRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 12 },
-  streak: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
   streakText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   goalTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 10, overflow: 'hidden' },
   goalFill: { height: '100%', backgroundColor: '#ffd166' },
   goalText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 6, fontWeight: '600' },
-  toast: { position: 'absolute', left: 20, right: 20, backgroundColor: 'rgba(20,20,20,0.92)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,209,102,0.4)' },
+  toast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(20,20,20,0.92)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.4)',
+  },
   toastTitle: { color: '#ffd166', fontWeight: '800', fontSize: 16 },
   toastBody: { color: '#eee', fontSize: 14, marginTop: 4, lineHeight: 20 },
 });

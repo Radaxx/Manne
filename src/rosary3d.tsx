@@ -1,6 +1,6 @@
-import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
+import { type ExpoWebGLRenderingContext, GLView } from 'expo-gl';
 import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, AppState, StyleSheet, View, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, AppState, type GestureResponderEvent, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 import type { RosaryStep } from './rosary';
 import { createRosaryScene, type RosaryScene } from './rosary-scene';
 

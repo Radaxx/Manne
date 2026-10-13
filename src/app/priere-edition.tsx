@@ -20,8 +20,7 @@ export default function PrayerEditor() {
     if (existing) {
       if (router.canGoBack()) router.back();
       else router.replace(`/priere/${savedId}`);
-    }
-    else {
+    } else {
       // Une prière qu'on vient d'écrire, on veut la retrouver vite : on l'épingle d'emblée.
       togglePin(savedId);
       router.replace(`/priere/${savedId}`);
@@ -42,7 +41,15 @@ export default function PrayerEditor() {
       />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Titre</Text>
-        <TextInput value={title} onChangeText={setTitle} placeholder="Ex. : Prière pour ma famille" placeholderTextColor={C.faint} style={styles.title} maxLength={80} autoFocus={!existing} />
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Ex. : Prière pour ma famille"
+          placeholderTextColor={C.faint}
+          style={styles.title}
+          maxLength={80}
+          autoFocus={!existing}
+        />
         <Text style={styles.label}>Prière</Text>
         <TextInput
           value={text}
@@ -63,8 +70,27 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { padding: 20, paddingBottom: 60 },
   label: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginBottom: 8, marginTop: 8 },
-  title: { color: C.text, fontFamily: SERIF, fontSize: 24, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
-  text: { color: C.text, fontFamily: SERIF, fontSize: 19, lineHeight: 29, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 260 },
+  title: {
+    color: C.text,
+    fontFamily: SERIF,
+    fontSize: 24,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  text: {
+    color: C.text,
+    fontFamily: SERIF,
+    fontSize: 19,
+    lineHeight: 29,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 260,
+  },
   hint: { color: C.faint, fontSize: 13, marginTop: 10, lineHeight: 19 },
   save: { color: C.gold, fontSize: 16, fontWeight: '700' },
 });

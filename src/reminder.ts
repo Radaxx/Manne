@@ -27,7 +27,12 @@ export const notificationsSupported = Platform.OS !== 'web';
 const CHANNEL = 'rappel-quotidien';
 const DAYS_AHEAD = 30; // iOS limite à 64 notifications programmées
 
-const TITLES = ['Ta manne du jour t’attend', 'Une parole pour aujourd’hui', 'Quelques versets avant de scroller ailleurs ?', 'Prends un instant avec Dieu'];
+const TITLES = [
+  'Ta manne du jour t’attend',
+  'Une parole pour aujourd’hui',
+  'Quelques versets avant de scroller ailleurs ?',
+  'Prends un instant avec Dieu',
+];
 
 // Versets assez courts pour tenir dans une notification.
 const SHORT_VERSES = VERSES.filter((v) => v.text.length <= 110);

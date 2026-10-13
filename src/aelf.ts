@@ -61,7 +61,8 @@ export const LITURGICAL_COLORS: Record<string, string> = {
   noir: '#222',
 };
 
-export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const CACHE = 'manne/aelf/';
 
@@ -97,14 +98,30 @@ function useAelf<T>(endpoint: string, date: string): State<T> {
 
 export const useMass = (date = localDate()) => useAelf<{ informations: LiturgicalInfo; messes: Mass[] }>('messes', date);
 
-export const useOffice = (id: OfficeId, date = localDate()) => useAelf<{ informations: LiturgicalInfo } & Record<string, Record<string, unknown>>>(id, date);
+export const useOffice = (id: OfficeId, date = localDate()) =>
+  useAelf<{ informations: LiturgicalInfo } & Record<string, Record<string, unknown>>>(id, date);
 
 // ——— Du HTML de l'AELF vers des segments affichables ———
 
 export type Segment = { text: string; bold?: boolean; italic?: boolean; verse?: boolean };
 export type Paragraph = Segment[];
 
-const ENTITIES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: '’', laquo: '«', raquo: '»', rsquo: '’', lsquo: '‘', hellip: '…', ndash: '–', mdash: '—', oelig: 'œ' };
+const ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: '’',
+  laquo: '«',
+  raquo: '»',
+  rsquo: '’',
+  lsquo: '‘',
+  hellip: '…',
+  ndash: '–',
+  mdash: '—',
+  oelig: 'œ',
+};
 
 // Lettres accentuées (&eacute; → é…), sans dépendre de String.normalize.
 const ACCENTED: Record<string, string> = {};
@@ -115,7 +132,9 @@ for (const [suffix, letters, out] of [
   ['uml', 'aeiouyAEIOUY', 'äëïöüÿÄËÏÖÜŸ'],
   ['cedil', 'cC', 'çÇ'],
 ]) {
-  [...letters].forEach((l, i) => (ACCENTED[l + suffix] = [...out][i]));
+  [...letters].forEach((l, i) => {
+    ACCENTED[l + suffix] = [...out][i];
+  });
 }
 
 const decode = (s: string) =>
@@ -155,7 +174,11 @@ export function parseHtml(html: string | null | undefined): Paragraph[] {
   for (const token of html.replace(/\r?\n/g, ' ').match(/<[^>]+>|[^<]+/g) ?? []) {
     if (token[0] !== '<') {
       // L'AELF indente avec des espaces insécables : on ne garde qu'un espace (une insécable seule, comme avant « : », est conservée).
-      push(decode(token).replace(/[ \t\u00a0]{2,}/g, ' ').replace(/[ \t]+/g, ' '));
+      push(
+        decode(token)
+          .replace(/[ \t\u00a0]{2,}/g, ' ')
+          .replace(/[ \t]+/g, ' '),
+      );
       continue;
     }
     const tag = token.toLowerCase();

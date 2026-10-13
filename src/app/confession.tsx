@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SERIF } from '../cards';
 import { C } from '../liturgy';
@@ -99,9 +99,9 @@ export default function ConfessionScreen() {
   }, []);
 
   // Demande l'empreinte dès l'ouverture.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ne se relance qu'à l'arrivée de la disponibilité, pas quand le verrou est (dés)activé.
   useEffect(() => {
     if (availability && availability !== 'none' && progress.confessionLock) tryUnlock();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availability]);
 
   // Se reverrouille dès que l'app passe en arrière-plan (« inactive » arrive aussi pendant Face ID : on l'ignore).
@@ -129,7 +129,9 @@ export default function ConfessionScreen() {
           <Ionicons name="lock-closed" size={34} color={C.gold} />
         </View>
         <Text style={styles.lockedTitle}>Espace protégé</Text>
-        <Text style={styles.lockedText}>Ta préparation à la confession est protégée par {availability === 'biometric' ? biometricName : 'le code de ton téléphone'}.</Text>
+        <Text style={styles.lockedText}>
+          Ta préparation à la confession est protégée par {availability === 'biometric' ? biometricName : 'le code de ton téléphone'}.
+        </Text>
         <Pressable onPress={tryUnlock} style={[styles.btn, { marginTop: 24 }]}>
           <Ionicons name={Platform.OS === 'ios' ? 'scan-outline' : 'finger-print'} size={20} color={C.bg} />
           <Text style={styles.btnText}>Déverrouiller</Text>
@@ -149,7 +151,8 @@ export default function ConfessionScreen() {
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.intro}>
-          Note tes péchés au fil des jours, pour ne rien oublier au moment de te confesser. Après l’absolution, efface tout : Dieu a pardonné.
+          Note tes péchés au fil des jours, pour ne rien oublier au moment de te confesser. Après l’absolution, efface tout : Dieu a
+          pardonné.
         </Text>
         <Text style={styles.last}>{lastConfessionLabel(lastConfession)}</Text>
 
@@ -184,13 +187,19 @@ export default function ConfessionScreen() {
               multiline
               blurOnSubmit
             />
-            <Pressable onPress={add} disabled={!draft.trim()} style={[styles.addBtn, !draft.trim() && { opacity: 0.4 }]} accessibilityLabel="Ajouter">
+            <Pressable
+              onPress={add}
+              disabled={!draft.trim()}
+              style={[styles.addBtn, !draft.trim() && { opacity: 0.4 }]}
+              accessibilityLabel="Ajouter"
+            >
               <Ionicons name="add" size={22} color={C.bg} />
             </Pressable>
           </View>
         </View>
         <Text style={styles.privacy}>
-          <Ionicons name="lock-closed" size={12} color={C.faint} /> Cette liste reste uniquement sur ce téléphone{locked ? `, protégée par ${biometricName}` : ''}.
+          <Ionicons name="lock-closed" size={12} color={C.faint} /> Cette liste reste uniquement sur ce téléphone
+          {locked ? `, protégée par ${biometricName}` : ''}.
         </Text>
 
         {items.length > 0 &&
@@ -255,7 +264,13 @@ export default function ConfessionScreen() {
                   : 'Demandé à chaque ouverture de cet espace. Le code du téléphone reste possible en secours.'}
               </Text>
             </View>
-            <Switch value={progress.confessionLock && availability !== 'none'} onValueChange={toggleLock} disabled={availability === 'none'} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+            <Switch
+              value={progress.confessionLock && availability !== 'none'}
+              onValueChange={toggleLock}
+              disabled={availability === 'none'}
+              trackColor={{ true: C.gold, false: '#3a3d47' }}
+              thumbColor="#fff"
+            />
           </View>
         )}
       </ScrollView>
@@ -271,17 +286,50 @@ const styles = StyleSheet.create({
   peace: { backgroundColor: 'rgba(92,196,138,0.12)', borderRadius: 14, padding: 14, marginTop: 16, gap: 4 },
   peaceTitle: { color: '#7fd6a4', fontFamily: SERIF, fontSize: 19 },
   peaceText: { color: C.text, fontSize: 14, lineHeight: 20 },
-  section: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginTop: 22, marginBottom: 8 },
+  section: {
+    color: C.muted,
+    fontSize: 12,
+    letterSpacing: 1.8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginTop: 22,
+    marginBottom: 8,
+  },
   card: { backgroundColor: C.card, borderRadius: 16, padding: 14, gap: 10 },
   empty: { color: C.faint, fontSize: 14 },
-  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+  },
   itemNum: { color: C.gold, fontWeight: '700', fontSize: 15, width: 22 },
   itemText: { color: C.text, fontSize: 16, lineHeight: 22, flex: 1 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  input: { flex: 1, color: C.text, fontSize: 16, backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },
+  input: {
+    flex: 1,
+    color: C.text,
+    fontSize: 16,
+    backgroundColor: C.bg,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    maxHeight: 120,
+  },
   addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   privacy: { color: C.faint, fontSize: 12, marginTop: 8 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 999 },
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: C.gold,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
   btnText: { color: C.bg, fontWeight: '800', fontSize: 15 },
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
   btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
@@ -299,7 +347,15 @@ const styles = StyleSheet.create({
   link: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   linkText: { color: C.gold, fontSize: 15, fontWeight: '600' },
   lockedWrap: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  lockIcon: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  lockIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
   lockedTitle: { color: C.text, fontFamily: SERIF, fontSize: 26 },
   lockedText: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 10 },

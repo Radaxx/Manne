@@ -1,6 +1,6 @@
-import { BOOKS, loadBook, type BookMeta } from './data/bible';
+import { BOOKS, type BookMeta, loadBook } from './data/bible';
 import type { Passage } from './data/content';
-import { planChapters, planIndex, type Plan } from './plans';
+import { type Plan, planChapters, planIndex } from './plans';
 
 export type Position = { book: number; chapter: number; verse: number };
 

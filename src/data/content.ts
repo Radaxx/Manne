@@ -80,15 +80,60 @@ export type Quiz = { question: string; options: string[]; answer: number; explan
 
 export const QUIZZES: Quiz[] = [
   { question: 'Qui a construit l’arche ?', options: ['Abraham', 'Noé', 'Moïse'], answer: 1, explanation: 'Genèse 6 à 9.' },
-  { question: 'Combien de livres compte le Nouveau Testament ?', options: ['24', '27', '31'], answer: 1, explanation: 'De Matthieu à l’Apocalypse : 27 livres.' },
-  { question: 'Dans quelle ville Jésus est-il né ?', options: ['Nazareth', 'Jérusalem', 'Bethléem'], answer: 2, explanation: 'Matthieu 2:1 et Luc 2:4-7.' },
-  { question: 'Qui fut englouti par un grand poisson ?', options: ['Jonas', 'Élie', 'Daniel'], answer: 0, explanation: 'Jonas 2:1 (Louis Segond) — trois jours et trois nuits.' },
-  { question: 'Qui a vaincu Goliath ?', options: ['Saül', 'Samson', 'David'], answer: 2, explanation: '1 Samuel 17, avec une fronde et une pierre.' },
-  { question: 'Combien d’apôtres Jésus a-t-il choisis ?', options: ['7', '12', '70'], answer: 1, explanation: 'Marc 3:14 — il en établit douze.' },
-  { question: 'Quel est le premier miracle de Jésus dans l’Évangile de Jean ?', options: ['La multiplication des pains', 'L’eau changée en vin', 'La guérison d’un aveugle'], answer: 1, explanation: 'Aux noces de Cana, Jean 2:1-11.' },
-  { question: 'Qui a renié Jésus trois fois ?', options: ['Judas', 'Thomas', 'Pierre'], answer: 2, explanation: 'Luc 22:54-62, avant que le coq ne chante.' },
-  { question: 'Dans quel livre Moïse reçoit-il les Dix Commandements au Sinaï ?', options: ['Genèse', 'Exode', 'Lévitique'], answer: 1, explanation: 'Exode 20.' },
-  { question: 'Quel est le premier livre du Nouveau Testament ?', options: ['Matthieu', 'Marc', 'Actes'], answer: 0, explanation: 'L’Évangile selon Matthieu ouvre le Nouveau Testament.' },
+  {
+    question: 'Combien de livres compte le Nouveau Testament ?',
+    options: ['24', '27', '31'],
+    answer: 1,
+    explanation: 'De Matthieu à l’Apocalypse : 27 livres.',
+  },
+  {
+    question: 'Dans quelle ville Jésus est-il né ?',
+    options: ['Nazareth', 'Jérusalem', 'Bethléem'],
+    answer: 2,
+    explanation: 'Matthieu 2:1 et Luc 2:4-7.',
+  },
+  {
+    question: 'Qui fut englouti par un grand poisson ?',
+    options: ['Jonas', 'Élie', 'Daniel'],
+    answer: 0,
+    explanation: 'Jonas 2:1 (Louis Segond) — trois jours et trois nuits.',
+  },
+  {
+    question: 'Qui a vaincu Goliath ?',
+    options: ['Saül', 'Samson', 'David'],
+    answer: 2,
+    explanation: '1 Samuel 17, avec une fronde et une pierre.',
+  },
+  {
+    question: 'Combien d’apôtres Jésus a-t-il choisis ?',
+    options: ['7', '12', '70'],
+    answer: 1,
+    explanation: 'Marc 3:14 — il en établit douze.',
+  },
+  {
+    question: 'Quel est le premier miracle de Jésus dans l’Évangile de Jean ?',
+    options: ['La multiplication des pains', 'L’eau changée en vin', 'La guérison d’un aveugle'],
+    answer: 1,
+    explanation: 'Aux noces de Cana, Jean 2:1-11.',
+  },
+  {
+    question: 'Qui a renié Jésus trois fois ?',
+    options: ['Judas', 'Thomas', 'Pierre'],
+    answer: 2,
+    explanation: 'Luc 22:54-62, avant que le coq ne chante.',
+  },
+  {
+    question: 'Dans quel livre Moïse reçoit-il les Dix Commandements au Sinaï ?',
+    options: ['Genèse', 'Exode', 'Lévitique'],
+    answer: 1,
+    explanation: 'Exode 20.',
+  },
+  {
+    question: 'Quel est le premier livre du Nouveau Testament ?',
+    options: ['Matthieu', 'Marc', 'Actes'],
+    answer: 0,
+    explanation: 'L’Évangile selon Matthieu ouvre le Nouveau Testament.',
+  },
 ];
 
 export type Person = { clues: string[]; name: string; reference: string };
@@ -100,7 +145,11 @@ export const PERSONS: Person[] = [
     reference: 'Ruth 1 à 4',
   },
   {
-    clues: ['J’étais chef des collecteurs d’impôts à Jéricho.', 'J’étais petit de taille.', 'Je suis monté sur un sycomore pour voir Jésus.'],
+    clues: [
+      'J’étais chef des collecteurs d’impôts à Jéricho.',
+      'J’étais petit de taille.',
+      'Je suis monté sur un sycomore pour voir Jésus.',
+    ],
     name: 'Zachée',
     reference: 'Luc 19:1-10',
   },
@@ -115,7 +164,11 @@ export const PERSONS: Person[] = [
     reference: 'Jean 3:1-21',
   },
   {
-    clues: ['Je me tenais près de la croix.', 'Je suis allée au tombeau le premier jour de la semaine.', 'J’ai d’abord pris Jésus ressuscité pour le jardinier.'],
+    clues: [
+      'Je me tenais près de la croix.',
+      'Je suis allée au tombeau le premier jour de la semaine.',
+      'J’ai d’abord pris Jésus ressuscité pour le jardinier.',
+    ],
     name: 'Marie de Magdala',
     reference: 'Jean 20:1-18',
   },

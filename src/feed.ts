@@ -1,4 +1,16 @@
-import { FACTS, PERSONS, QUIZZES, REFLECTIONS, THEMES, VERSES, type Fact, type Person, type Quiz, type Theme, type Verse } from './data/content';
+import {
+  FACTS,
+  type Fact,
+  PERSONS,
+  type Person,
+  QUIZZES,
+  type Quiz,
+  REFLECTIONS,
+  THEMES,
+  type Theme,
+  VERSES,
+  type Verse,
+} from './data/content';
 
 export type Card =
   | { key: string; kind: 'verse'; verse: Verse }

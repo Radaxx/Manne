@@ -45,7 +45,12 @@ export type Prayer = {
 
 export const PRAYERS: Prayer[] = [
   // ——— Essentielles ———
-  { id: 'signe-de-croix', title: 'Signe de croix', category: 'Essentielles', text: 'Au nom du Père, et du Fils, et du Saint-Esprit. Amen.' },
+  {
+    id: 'signe-de-croix',
+    title: 'Signe de croix',
+    category: 'Essentielles',
+    text: 'Au nom du Père, et du Fils, et du Saint-Esprit. Amen.',
+  },
   {
     id: 'notre-pere',
     title: 'Notre Père',
@@ -260,7 +265,13 @@ export const PRAYERS: Prayer[] = [
     category: 'Pardon et vertus',
     text: 'Mon Dieu, je vous aime de tout mon cœur et plus que tout,\nparce que vous êtes infiniment bon et infiniment aimable,\net j’aime mon prochain comme moi-même pour l’amour de vous.',
   },
-  { id: 'miserere', title: 'Miserere (Psaume 51)', category: 'Pardon et vertus', scripture: [19, 51, 3, 21], note: 'Le grand psaume de la pénitence, attribué à David.' },
+  {
+    id: 'miserere',
+    title: 'Miserere (Psaume 51)',
+    category: 'Pardon et vertus',
+    scripture: [19, 51, 3, 21],
+    note: 'Le grand psaume de la pénitence, attribué à David.',
+  },
 
   // ——— Confiance et paix ———
   {
@@ -286,8 +297,19 @@ export const PRAYERS: Prayer[] = [
   },
   { id: 'psaume-23', title: 'Le Seigneur est mon berger (Psaume 23)', category: 'Confiance et paix', scripture: [19, 23, 1, 6] },
   { id: 'psaume-27', title: 'Le Seigneur est ma lumière (Psaume 27)', category: 'Confiance et paix', scripture: [19, 27, 1, 14] },
-  { id: 'psaume-121', title: 'Je lève les yeux vers les montagnes (Psaume 121)', category: 'Confiance et paix', scripture: [19, 121, 1, 8] },
-  { id: 'psaume-91', title: 'Sous l’abri du Très-Haut (Psaume 91)', category: 'Confiance et paix', scripture: [19, 91, 1, 16], note: 'Le psaume de la protection, prié à Complies le dimanche.' },
+  {
+    id: 'psaume-121',
+    title: 'Je lève les yeux vers les montagnes (Psaume 121)',
+    category: 'Confiance et paix',
+    scripture: [19, 121, 1, 8],
+  },
+  {
+    id: 'psaume-91',
+    title: 'Sous l’abri du Très-Haut (Psaume 91)',
+    category: 'Confiance et paix',
+    scripture: [19, 91, 1, 16],
+    note: 'Le psaume de la protection, prié à Complies le dimanche.',
+  },
 
   // ——— Pour les défunts ———
   {
@@ -297,7 +319,13 @@ export const PRAYERS: Prayer[] = [
     text: 'Donne-leur, Seigneur, le repos éternel,\net que brille sur eux la lumière de ta face.\nQu’ils reposent en paix.\n\nAmen.',
     note: 'Requiem aeternam, l’ancienne prière de l’Église pour les morts. On peut dire « donne-lui » pour une personne.',
   },
-  { id: 'de-profundis', title: 'Du fond de l’abîme (Psaume 130)', category: 'Pour les défunts', scripture: [19, 130, 1, 8], note: 'De profundis, traditionnellement prié pour les défunts.' },
+  {
+    id: 'de-profundis',
+    title: 'Du fond de l’abîme (Psaume 130)',
+    category: 'Pour les défunts',
+    scripture: [19, 130, 1, 8],
+    note: 'De profundis, traditionnellement prié pour les défunts.',
+  },
 
   // ——— Repas ———
   {
@@ -316,14 +344,44 @@ export const PRAYERS: Prayer[] = [
 
   // ——— Dans la Bible ———
   { id: 'notre-pere-bible', title: 'Le Notre Père dans l’Évangile', category: 'Dans la Bible', scripture: [40, 6, 9, 13] },
-  { id: 'magnificat', title: 'Magnificat', category: 'Dans la Bible', scripture: [42, 1, 46, 55], note: 'Le cantique de Marie, prié chaque soir aux Vêpres.' },
-  { id: 'benedictus', title: 'Benedictus', category: 'Dans la Bible', scripture: [42, 1, 68, 79], note: 'Le cantique de Zacharie, prié chaque matin aux Laudes.' },
-  { id: 'nunc-dimittis', title: 'Cantique de Syméon', category: 'Dans la Bible', scripture: [42, 2, 29, 32], note: 'Nunc dimittis, prié chaque soir aux Complies.' },
+  {
+    id: 'magnificat',
+    title: 'Magnificat',
+    category: 'Dans la Bible',
+    scripture: [42, 1, 46, 55],
+    note: 'Le cantique de Marie, prié chaque soir aux Vêpres.',
+  },
+  {
+    id: 'benedictus',
+    title: 'Benedictus',
+    category: 'Dans la Bible',
+    scripture: [42, 1, 68, 79],
+    note: 'Le cantique de Zacharie, prié chaque matin aux Laudes.',
+  },
+  {
+    id: 'nunc-dimittis',
+    title: 'Cantique de Syméon',
+    category: 'Dans la Bible',
+    scripture: [42, 2, 29, 32],
+    note: 'Nunc dimittis, prié chaque soir aux Complies.',
+  },
   { id: 'beatitudes', title: 'Les Béatitudes', category: 'Dans la Bible', scripture: [40, 5, 3, 12] },
   { id: 'benediction-aaron', title: 'La bénédiction d’Aaron', category: 'Dans la Bible', scripture: [4, 6, 24, 26] },
-  { id: 'psaume-63', title: 'Mon âme a soif de toi (Psaume 63)', category: 'Dans la Bible', scripture: [19, 63, 2, 9], note: 'Prié le dimanche matin aux Laudes.' },
+  {
+    id: 'psaume-63',
+    title: 'Mon âme a soif de toi (Psaume 63)',
+    category: 'Dans la Bible',
+    scripture: [19, 63, 2, 9],
+    note: 'Prié le dimanche matin aux Laudes.',
+  },
   { id: 'psaume-139', title: 'Tu me sondes et tu me connais (Psaume 139)', category: 'Dans la Bible', scripture: [19, 139, 1, 24] },
-  { id: 'reste-avec-nous', title: 'Reste avec nous', category: 'Dans la Bible', scripture: [42, 24, 29, 29], note: 'Les disciples d’Emmaüs à Jésus ressuscité : une prière pour le soir.' },
+  {
+    id: 'reste-avec-nous',
+    title: 'Reste avec nous',
+    category: 'Dans la Bible',
+    scripture: [42, 24, 29, 29],
+    note: 'Les disciples d’Emmaüs à Jésus ressuscité : une prière pour le soir.',
+  },
   { id: 'hymne-amour', title: 'L’hymne à l’amour', category: 'Dans la Bible', scripture: [46, 13, 4, 7] },
 ];
 
@@ -349,33 +407,81 @@ export const MYSTERIES: MysterySet[] = [
     name: 'Mystères joyeux',
     adjective: 'joyeux',
     days: [1, 6],
-    mysteries: ['L’Annonciation', 'La Visitation', 'La Nativité', 'La Présentation de Jésus au Temple', 'Le Recouvrement de Jésus au Temple'],
+    mysteries: [
+      'L’Annonciation',
+      'La Visitation',
+      'La Nativité',
+      'La Présentation de Jésus au Temple',
+      'Le Recouvrement de Jésus au Temple',
+    ],
     fruits: ['L’humilité', 'La charité envers le prochain', 'L’esprit de pauvreté', 'L’obéissance', 'La recherche de Dieu en toute chose'],
-    verses: [[42, 1, 38, 38], [42, 1, 41, 42], [42, 2, 7, 7], [42, 2, 29, 30], [42, 2, 49, 49]],
+    verses: [
+      [42, 1, 38, 38],
+      [42, 1, 41, 42],
+      [42, 2, 7, 7],
+      [42, 2, 29, 30],
+      [42, 2, 49, 49],
+    ],
   },
   {
     name: 'Mystères lumineux',
     adjective: 'lumineux',
     days: [4],
     mysteries: ['Le Baptême de Jésus', 'Les Noces de Cana', 'L’Annonce du Royaume', 'La Transfiguration', 'L’Institution de l’Eucharistie'],
-    fruits: ['La fidélité à notre baptême', 'La confiance en Marie', 'La conversion du cœur', 'L’écoute de la Parole', 'L’amour de l’Eucharistie'],
-    verses: [[40, 3, 16, 17], [43, 2, 5, 5], [41, 1, 15, 15], [42, 9, 35, 35], [42, 22, 19, 19]],
+    fruits: [
+      'La fidélité à notre baptême',
+      'La confiance en Marie',
+      'La conversion du cœur',
+      'L’écoute de la Parole',
+      'L’amour de l’Eucharistie',
+    ],
+    verses: [
+      [40, 3, 16, 17],
+      [43, 2, 5, 5],
+      [41, 1, 15, 15],
+      [42, 9, 35, 35],
+      [42, 22, 19, 19],
+    ],
   },
   {
     name: 'Mystères douloureux',
     adjective: 'douloureux',
     days: [2, 5],
     mysteries: ['L’Agonie de Jésus', 'La Flagellation', 'Le Couronnement d’épines', 'Le Portement de la croix', 'La Crucifixion'],
-    fruits: ['L’abandon à la volonté de Dieu', 'La pureté', 'Le courage face aux humiliations', 'La patience dans les épreuves', 'Le don de soi'],
-    verses: [[42, 22, 42, 42], [43, 19, 1, 1], [40, 27, 29, 29], [43, 19, 17, 17], [42, 23, 46, 46]],
+    fruits: [
+      'L’abandon à la volonté de Dieu',
+      'La pureté',
+      'Le courage face aux humiliations',
+      'La patience dans les épreuves',
+      'Le don de soi',
+    ],
+    verses: [
+      [42, 22, 42, 42],
+      [43, 19, 1, 1],
+      [40, 27, 29, 29],
+      [43, 19, 17, 17],
+      [42, 23, 46, 46],
+    ],
   },
   {
     name: 'Mystères glorieux',
     adjective: 'glorieux',
     days: [0, 3],
     mysteries: ['La Résurrection', 'L’Ascension', 'La Pentecôte', 'L’Assomption de Marie', 'Le Couronnement de Marie'],
-    fruits: ['La foi', 'L’espérance', 'L’amour de Dieu et les dons de l’Esprit', 'La grâce d’une sainte mort', 'La persévérance et la confiance en Marie'],
-    verses: [[40, 28, 6, 6], [44, 1, 9, 9], [44, 2, 4, 4], [42, 1, 48, 49], [66, 12, 1, 1]],
+    fruits: [
+      'La foi',
+      'L’espérance',
+      'L’amour de Dieu et les dons de l’Esprit',
+      'La grâce d’une sainte mort',
+      'La persévérance et la confiance en Marie',
+    ],
+    verses: [
+      [40, 28, 6, 6],
+      [44, 1, 9, 9],
+      [44, 2, 4, 4],
+      [42, 1, 48, 49],
+      [66, 12, 1, 1],
+    ],
   },
 ];
 

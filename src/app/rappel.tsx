@@ -2,7 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { C } from '../liturgy';
-import { formatTime, notificationsSupported, reminderContent, reminderPermissionGranted, REMINDER_TIMES, requestReminderPermission } from '../reminder';
+import {
+  formatTime,
+  notificationsSupported,
+  REMINDER_TIMES,
+  reminderContent,
+  reminderPermissionGranted,
+  requestReminderPermission,
+} from '../reminder';
 import { useApp } from '../storage';
 
 export default function ReminderScreen() {
@@ -45,7 +52,9 @@ export default function ReminderScreen() {
 
           {granted === false && (
             <View style={styles.warningBox}>
-              <Text style={styles.warning}>Les notifications sont désactivées pour Manne. Autorise-les dans les réglages du téléphone.</Text>
+              <Text style={styles.warning}>
+                Les notifications sont désactivées pour Manne. Autorise-les dans les réglages du téléphone.
+              </Text>
               <Pressable onPress={() => Linking.openSettings()} style={styles.settingsBtn}>
                 <Text style={styles.settingsText}>Ouvrir les réglages</Text>
               </Pressable>
@@ -88,12 +97,27 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { padding: 20, paddingBottom: 60 },
   intro: { color: C.muted, fontSize: 15, lineHeight: 22, marginBottom: 18 },
-  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.card,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   label: { color: C.text, fontSize: 17, fontWeight: '700' },
   section: { color: C.text, fontSize: 15, fontWeight: '700', marginTop: 26, marginBottom: 10 },
   disabled: { opacity: 0.4 },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  time: { backgroundColor: C.card, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
+  time: {
+    backgroundColor: C.card,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
   timeActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
   timeText: { color: C.text, fontSize: 15, fontWeight: '600' },
   timeTextActive: { color: C.gold },
@@ -104,6 +128,13 @@ const styles = StyleSheet.create({
   previewBody: { color: C.text, fontSize: 14, lineHeight: 20 },
   warningBox: { backgroundColor: 'rgba(224,122,107,0.1)', borderRadius: 12, padding: 12, marginTop: 12, gap: 10 },
   warning: { color: C.red, fontSize: 14, lineHeight: 20 },
-  settingsBtn: { alignSelf: 'flex-start', borderWidth: 1, borderColor: C.red, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  settingsBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: C.red,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
   settingsText: { color: C.red, fontWeight: '700', fontSize: 13 },
 });

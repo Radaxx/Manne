@@ -3,14 +3,14 @@ import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { sessionLabel as adorationLabel } from './adoration';
 import { SERIF } from './cards';
 import { BOOKS, loadBook } from './data/bible';
-import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, ROSARY_STEPS, type Prayer, type PrayerCategory } from './data/prayers';
+import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
 import { C } from './liturgy';
 import { biometricName, lockSupported } from './lock';
-import { sessionLabel as adorationLabel } from './adoration';
 import { sessionLabel } from './rosary';
-import { useApp, type CustomPrayer } from './storage';
+import { type CustomPrayer, useApp } from './storage';
 
 const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
 
@@ -68,7 +68,9 @@ export function PrayersScreen() {
   const mine = all.filter((p) => p.custom);
   const results = useMemo(() => {
     const q = fold(query.trim());
-    return all.filter((p) => (!category || p.category === category) && (!q || fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q)));
+    return all.filter(
+      (p) => (!category || p.category === category) && (!q || fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q)),
+    );
   }, [all, query, category]);
   const searching = query.trim().length > 0 || category !== null;
 
@@ -79,7 +81,14 @@ export function PrayersScreen() {
 
         <View style={styles.search}>
           <Ionicons name="search" size={18} color={C.muted} />
-          <TextInput value={query} onChangeText={setQuery} placeholder="Chercher une prière" placeholderTextColor={C.faint} style={styles.searchInput} autoCorrect={false} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Chercher une prière"
+            placeholderTextColor={C.faint}
+            style={styles.searchInput}
+            autoCorrect={false}
+          />
           {query ? (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
               <Ionicons name="close-circle" size={18} color={C.muted} />
@@ -89,7 +98,11 @@ export function PrayersScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {PRAYER_CATEGORIES.map((c) => (
-            <Pressable key={c} onPress={() => setCategory(category === c ? null : c)} style={[styles.chip, category === c && styles.chipActive]}>
+            <Pressable
+              key={c}
+              onPress={() => setCategory(category === c ? null : c)}
+              style={[styles.chip, category === c && styles.chipActive]}
+            >
               <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
             </Pressable>
           ))}
@@ -99,42 +112,56 @@ export function PrayersScreen() {
           <>
             <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.confession, pressed && styles.pressed]}>
               <View style={styles.confessionIcon}>
-                <Ionicons name={progress.confessionLock && lockSupported ? 'lock-closed-outline' : 'key-outline'} size={20} color={C.gold} />
+                <Ionicons
+                  name={progress.confessionLock && lockSupported ? 'lock-closed-outline' : 'key-outline'}
+                  size={20}
+                  color={C.gold}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>Préparer ma confession</Text>
                 <Text style={styles.rowPreview}>
                   {progress.confessionLock && lockSupported
-                    ? 'Protégé par ' + biometricName
+                    ? `Protégé par ${biometricName}`
                     : progress.confession.items.length > 0
-                    ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
-                    : 'Examen de conscience et liste personnelle'}
+                      ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
+                      : 'Examen de conscience et liste personnelle'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
             </Pressable>
 
-            <Pressable onPress={() => router.push('/chapelet')} style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}>
+            <Pressable
+              onPress={() => router.push('/chapelet')}
+              style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}
+            >
               <View style={styles.confessionIcon}>
                 <Ionicons name="rose-outline" size={20} color={C.gold} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{progress.rosary.session ? 'Reprendre mon chapelet' : 'Prier le chapelet'}</Text>
                 <Text style={styles.rowPreview}>
-                  {progress.rosary.session ? sessionLabel(progress.rosary.session) : `Guidé grain après grain · ${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name.toLowerCase()}`}
+                  {progress.rosary.session
+                    ? sessionLabel(progress.rosary.session)
+                    : `Guidé grain après grain · ${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name.toLowerCase()}`}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
             </Pressable>
 
-            <Pressable onPress={() => router.push('/adoration')} style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}>
+            <Pressable
+              onPress={() => router.push('/adoration')}
+              style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}
+            >
               <View style={styles.confessionIcon}>
                 <Ionicons name="sunny-outline" size={20} color={C.gold} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{progress.adoration.session ? 'Reprendre mon adoration' : 'Adorer le Saint-Sacrement'}</Text>
                 <Text style={styles.rowPreview}>
-                  {progress.adoration.session ? adorationLabel(progress.adoration.session) : 'Contemplatif ou guidé, au rythme que tu choisis'}
+                  {progress.adoration.session
+                    ? adorationLabel(progress.adoration.session)
+                    : 'Contemplatif ou guidé, au rythme que tu choisis'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
@@ -314,16 +341,47 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { padding: 20, paddingBottom: 40 },
   h1: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 42, marginTop: 4, marginBottom: 14 },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   searchInput: { flex: 1, color: C.text, fontSize: 16, padding: 0 },
   chips: { gap: 8, paddingVertical: 12 },
-  chip: { backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
+  chip: {
+    backgroundColor: C.card,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
   chipActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
   chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
   chipTextActive: { color: C.gold },
-  section: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginTop: 18, marginBottom: 8 },
+  section: {
+    color: C.muted,
+    fontSize: 12,
+    letterSpacing: 1.8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginTop: 18,
+    marginBottom: 8,
+  },
   group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+  },
   pressed: { backgroundColor: C.cardHi },
   rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
   rowPreview: { color: C.faint, fontSize: 13, marginTop: 2 },
@@ -335,20 +393,82 @@ const styles = StyleSheet.create({
   para: { color: C.text, fontFamily: SERIF, fontSize: 20, lineHeight: 32, marginBottom: 18 },
   response: { color: C.gold },
   verseNum: { color: C.gold, fontSize: 12, fontWeight: '700', fontFamily: undefined },
-  note: { color: C.muted, fontStyle: 'italic', fontSize: 14, lineHeight: 21, marginTop: 10, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  note: {
+    color: C.muted,
+    fontStyle: 'italic',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 10,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+  },
   subhead: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 8, marginBottom: 8 },
   step: { color: C.text, fontSize: 16, lineHeight: 24, marginBottom: 6 },
   mysteries: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'transparent' },
   mysteriesToday: { borderColor: 'rgba(255,209,102,0.5)' },
   mysteriesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  todayBadge: { color: C.bg, backgroundColor: C.gold, fontSize: 12, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
+  todayBadge: {
+    color: C.bg,
+    backgroundColor: C.gold,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
   mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
-  confession: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 14, marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,209,102,0.2)' },
-  confessionIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center' },
-  guided: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingVertical: 13, borderRadius: 999, marginBottom: 18 },
+  confession: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.2)',
+  },
+  confessionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guided: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: C.gold,
+    paddingVertical: 13,
+    borderRadius: 999,
+    marginBottom: 18,
+  },
   guidedText: { color: C.bg, fontWeight: '800', fontSize: 16 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: C.line },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.card,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
   actionDanger: { borderColor: C.red },
   actionText: { color: C.text, fontSize: 14, fontWeight: '600' },
 });

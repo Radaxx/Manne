@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import { SERIF } from './cards';
 import { BOOKS } from './data/bible';
 import { C } from './liturgy';
+import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
-import { formatRange, planById, planStatus, type PlanStatus } from './plans';
 import { TOTAL_CHAPTERS } from './reading';
 import { DAILY_GOAL, today, useApp } from './storage';
 
@@ -138,7 +138,11 @@ export function HomeScreen() {
           <Text style={styles.greeting}>{hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour'}</Text>
           <View style={styles.headerRight}>
             <Pressable onPress={() => router.push('/rappel')} hitSlop={10} accessibilityLabel="Rappel quotidien" style={styles.bell}>
-              <Ionicons name={progress.reminder.enabled ? 'notifications' : 'notifications-outline'} size={19} color={progress.reminder.enabled ? C.gold : C.muted} />
+              <Ionicons
+                name={progress.reminder.enabled ? 'notifications' : 'notifications-outline'}
+                size={19}
+                color={progress.reminder.enabled ? C.gold : C.muted}
+              />
             </Pressable>
             <View style={styles.streak}>
               <Ionicons name="flame" size={16} color="#ffb703" />
@@ -167,13 +171,19 @@ export function HomeScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.officeName}>{office.name}</Text>
-            <Text style={styles.muted}>{office.hint} · environ {office.minutes} min</Text>
+            <Text style={styles.muted}>
+              {office.hint} · environ {office.minutes} min
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={C.muted} />
         </Card>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {OFFICES.filter((o) => o.id !== office.id).map((o) => (
-            <Pressable key={o.id} onPress={() => router.push(`/office/${o.id}`)} style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
+            <Pressable
+              key={o.id}
+              onPress={() => router.push(`/office/${o.id}`)}
+              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            >
               <Ionicons name={o.icon as keyof typeof Ionicons.glyphMap} size={15} color={C.muted} />
               <Text style={styles.chipText}>{o.id === 'lectures' ? 'Lectures' : o.name}</Text>
             </Pressable>
@@ -189,7 +199,11 @@ export function HomeScreen() {
         ) : (
           <View style={styles.prayerGrid}>
             {pinnedPrayers.map((p) => (
-              <Pressable key={p.id} onPress={() => router.push(`/priere/${p.id}`)} style={({ pressed }) => [styles.prayerChip, pressed && styles.pressed]}>
+              <Pressable
+                key={p.id}
+                onPress={() => router.push(`/priere/${p.id}`)}
+                style={({ pressed }) => [styles.prayerChip, pressed && styles.pressed]}
+              >
                 <Ionicons name="rose-outline" size={15} color={C.gold} />
                 <Text style={styles.prayerChipText} numberOfLines={1}>
                   {p.title}
@@ -219,11 +233,15 @@ export function HomeScreen() {
         </Card>
 
         {/* Plans de lecture */}
-        <SectionTitle action={{ label: plans.length ? 'Gérer' : 'Choisir', onPress: () => router.push('/plans') }}>Mes plans de lecture</SectionTitle>
+        <SectionTitle action={{ label: plans.length ? 'Gérer' : 'Choisir', onPress: () => router.push('/plans') }}>
+          Mes plans de lecture
+        </SectionTitle>
         {plans.length === 0 ? (
           <Card onPress={() => router.push('/plans')}>
             <Text style={styles.cardTitle}>Commence un plan</Text>
-            <Text style={styles.muted}>Les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Un peu chaque jour, à ton rythme.</Text>
+            <Text style={styles.muted}>
+              Les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Un peu chaque jour, à ton rythme.
+            </Text>
             <Text style={styles.link}>Voir les plans</Text>
           </Card>
         ) : (
@@ -236,7 +254,7 @@ export function HomeScreen() {
           <View style={styles.rowBetween}>
             <Text style={styles.cardTitle}>
               {book.name} {pos.chapter}
-              <Text style={styles.muted}>  · verset {pos.verse}</Text>
+              <Text style={styles.muted}> · verset {pos.verse}</Text>
             </Text>
             <Ionicons name="chevron-forward" size={20} color={C.muted} />
           </View>
@@ -277,7 +295,15 @@ const styles = StyleSheet.create({
   date: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  streak: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
   streakText: { color: C.text, fontWeight: '700', fontSize: 15 },
   liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
@@ -287,14 +313,45 @@ const styles = StyleSheet.create({
   sectionAction: { color: C.gold, fontSize: 14, fontWeight: '600' },
   card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8, marginBottom: 10 },
   pressed: { opacity: 0.7 },
-  officeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.cardHi, borderWidth: 1, borderColor: 'rgba(255,209,102,0.25)' },
-  officeIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center' },
+  officeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: C.cardHi,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.25)',
+  },
+  officeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   officeName: { color: C.text, fontSize: 20, fontWeight: '700', marginBottom: 2 },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.card,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
   chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
   prayerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  prayerChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, maxWidth: '100%' },
+  prayerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.card,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    maxWidth: '100%',
+  },
   prayerChipText: { color: C.text, fontSize: 15, fontWeight: '600', flexShrink: 1 },
   kicker: { color: C.red, fontSize: 12, letterSpacing: 1.5, fontWeight: '800', textTransform: 'uppercase' },
   gospelTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 19, lineHeight: 27 },
@@ -307,7 +364,15 @@ const styles = StyleSheet.create({
   strong: { color: C.text, fontWeight: '700' },
   ok: { color: '#5cc48a', fontSize: 14, fontWeight: '700' },
   planToday: { color: C.muted, fontSize: 15, flexShrink: 1 },
-  readBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.gold, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999 },
+  readBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.gold,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   readBtnText: { color: C.bg, fontWeight: '800', fontSize: 14 },
   track: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
   fill: { height: '100%' },

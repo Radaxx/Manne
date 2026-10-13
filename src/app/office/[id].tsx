@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LITURGICAL_COLORS, OFFICES, plainText, useOffice, type OfficeId } from '../../aelf';
+import { LITURGICAL_COLORS, OFFICES, type OfficeId, plainText, useOffice } from '../../aelf';
 import { SERIF } from '../../cards';
 import { C, OfficeBody } from '../../liturgy';
 

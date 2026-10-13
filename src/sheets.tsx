@@ -38,7 +38,11 @@ export function ChapterSheet({ passage, onClose }: { passage: Passage; onClose: 
             <Text
               key={n}
               style={[styles.chapterVerse, highlighted && styles.highlight]}
-              onLayout={n === passage.from ? (e) => scroll.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 120), animated: true }) : undefined}
+              onLayout={
+                n === passage.from
+                  ? (e) => scroll.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 120), animated: true })
+                  : undefined
+              }
             >
               <Text style={styles.num}>{n} </Text>
               {text}
@@ -50,7 +54,17 @@ export function ChapterSheet({ passage, onClose }: { passage: Passage; onClose: 
   );
 }
 
-export function SavedSheet({ saved, onRemove, onOpen, onClose }: { saved: Passage[]; onRemove: (p: Passage) => void; onOpen: (p: Passage) => void; onClose: () => void }) {
+export function SavedSheet({
+  saved,
+  onRemove,
+  onOpen,
+  onClose,
+}: {
+  saved: Passage[];
+  onRemove: (p: Passage) => void;
+  onOpen: (p: Passage) => void;
+  onClose: () => void;
+}) {
   return (
     <Sheet title="Mes versets" onClose={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
@@ -125,7 +139,12 @@ export function BooksSheet({
               const isRead = read.has(`${selected}:${n}`);
               const isCurrent = pos?.chapter === n;
               return (
-                <Pressable key={n} onPress={() => onPick(selected, n)} style={[styles.cell, isRead && styles.cellRead, isCurrent && styles.cellCurrent]} accessibilityLabel={`Chapitre ${n}`}>
+                <Pressable
+                  key={n}
+                  onPress={() => onPick(selected, n)}
+                  style={[styles.cell, isRead && styles.cellRead, isCurrent && styles.cellCurrent]}
+                  accessibilityLabel={`Chapitre ${n}`}
+                >
                   <Text style={[styles.cellText, isRead && styles.cellTextRead]}>{n}</Text>
                 </Pressable>
               );
@@ -145,11 +164,15 @@ export function BooksSheet({
         const total = b.verses.length;
         const active = b.n === current;
         return (
-          <Pressable key={b.n} style={[styles.bookRow, active && styles.bookRowActive]} onPress={() => (total === 1 ? onPick(b.n, 1) : setSelected(b.n))}>
+          <Pressable
+            key={b.n}
+            style={[styles.bookRow, active && styles.bookRowActive]}
+            onPress={() => (total === 1 ? onPick(b.n, 1) : setSelected(b.n))}
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.bookName}>
                 {b.name}
-                {b.n === 41 && count === 0 ? <Text style={styles.badge}>  conseillé pour commencer</Text> : null}
+                {b.n === 41 && count === 0 ? <Text style={styles.badge}> conseillé pour commencer</Text> : null}
               </Text>
               <View style={styles.track}>
                 <View style={[styles.fill, { width: `${(count / total) * 100}%` }]} />
@@ -183,7 +206,15 @@ export function BooksSheet({
 
 const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: '#faf7f0' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#ddd',
+  },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#222' },
   chapter: { padding: 22, paddingBottom: 80 },
   chapterVerse: { fontFamily: SERIF, fontSize: 18, lineHeight: 29, color: '#2b2b2b', marginBottom: 6, padding: 4, borderRadius: 6 },
@@ -195,8 +226,25 @@ const styles = StyleSheet.create({
   itemText: { fontFamily: SERIF, fontSize: 16, lineHeight: 23, color: '#222' },
   itemRef: { marginTop: 8, fontSize: 12, letterSpacing: 1.5, color: '#888', fontWeight: '600', textTransform: 'uppercase' },
   overall: { fontSize: 15, fontWeight: '700', color: '#222' },
-  section: { fontSize: 12, letterSpacing: 2, fontWeight: '800', color: '#a08a4a', textTransform: 'uppercase', marginTop: 18, marginBottom: 8 },
-  bookRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, marginBottom: 6 },
+  section: {
+    fontSize: 12,
+    letterSpacing: 2,
+    fontWeight: '800',
+    color: '#a08a4a',
+    textTransform: 'uppercase',
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  bookRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
   bookRowActive: { borderWidth: 2, borderColor: '#e0b84a' },
   bookName: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 6 },
   badge: { fontSize: 12, fontWeight: '600', color: '#2a9d6a' },
@@ -205,10 +253,29 @@ const styles = StyleSheet.create({
   fill: { height: '100%', backgroundColor: '#e0b84a' },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   backText: { color: '#a08a4a', fontSize: 15, fontWeight: '600' },
-  resume: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: '#2b2b2b', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, marginTop: 6 },
+  resume: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#2b2b2b',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginTop: 6,
+  },
   resumeText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cell: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
+  cell: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
   cellRead: { backgroundColor: '#f3dc9a' },
   cellCurrent: { borderColor: '#2b2b2b' },
   cellText: { fontSize: 17, fontWeight: '600', color: '#222', fontVariant: ['tabular-nums'] },

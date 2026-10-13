@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BookMeta } from './data/bible';
-import { THEME_GRADIENTS, type Fact, type Person, type Quiz, type Verse } from './data/content';
+import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
 import type { ReadingPassage } from './reading';
 
 export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
@@ -27,7 +27,19 @@ function Kicker({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: 
   );
 }
 
-function RailButton({ icon, label, active, color, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; active?: boolean; color?: string; onPress: () => void }) {
+function RailButton({
+  icon,
+  label,
+  active,
+  color,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active?: boolean;
+  color?: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable onPress={onPress} hitSlop={8} style={styles.railBtn} accessibilityRole="button" accessibilityLabel={label}>
       <Ionicons name={icon} size={30} color={active && color ? color : '#fff'} />
@@ -65,7 +77,13 @@ function DoubleTapArea({ onLike, children }: { onLike: (force?: boolean) => void
   return (
     <Pressable style={[styles.center, styles.withRail]} onPress={handlePress}>
       {children}
-      <Animated.View pointerEvents="none" style={[styles.bigHeart, { opacity: heart, transform: [{ scale: heart.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.bigHeart,
+          { opacity: heart, transform: [{ scale: heart.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] },
+        ]}
+      >
         <Ionicons name="heart" size={110} color="#ff4d6d" />
       </Animated.View>
     </Pressable>
@@ -124,7 +142,8 @@ export function BookIntroCard({ book, intro, height }: { book: BookMeta; intro: 
         <Kicker icon="library-outline" label={book.n >= 40 ? 'NOUVEAU TESTAMENT' : 'ANCIEN TESTAMENT'} />
         <Text style={styles.bookTitle}>{book.name}</Text>
         <Text style={styles.bookMeta}>
-          {book.verses.length} chapitre{book.verses.length > 1 ? 's' : ''} · environ {Math.max(1, Math.round(book.verses.reduce((a, b) => a + b, 0) / 25))} min de lecture
+          {book.verses.length} chapitre{book.verses.length > 1 ? 's' : ''} · environ{' '}
+          {Math.max(1, Math.round(book.verses.reduce((a, b) => a + b, 0) / 25))} min de lecture
         </Text>
         <Text style={styles.body}>{intro}</Text>
         <View style={styles.swipeHint}>
@@ -171,7 +190,19 @@ export function PassageCard({ passage, book, height, ...actions }: Actions & { p
   );
 }
 
-export function ChapterEndCard({ book, chapter, prompt, chaptersToday, height }: { book: BookMeta; chapter: number; prompt: string; chaptersToday: number; height: number }) {
+export function ChapterEndCard({
+  book,
+  chapter,
+  prompt,
+  chaptersToday,
+  height,
+}: {
+  book: BookMeta;
+  chapter: number;
+  prompt: string;
+  chaptersToday: number;
+  height: number;
+}) {
   const last = chapter === book.verses.length;
   return (
     <Shell colors={['#050507', '#0e1016', '#171a24']} height={height}>
@@ -213,7 +244,12 @@ export function QuizCard({ quiz, height }: { quiz: Quiz; height: number }) {
           {quiz.options.map((opt, i) => {
             const state = picked === null ? 'idle' : i === quiz.answer ? 'right' : i === picked ? 'wrong' : 'dim';
             return (
-              <Pressable key={opt} disabled={picked !== null} onPress={() => setPicked(i)} style={[styles.option, styles[`option_${state}`]]}>
+              <Pressable
+                key={opt}
+                disabled={picked !== null}
+                onPress={() => setPicked(i)}
+                style={[styles.option, styles[`option_${state}`]]}
+              >
                 <Text style={styles.optionText}>{opt}</Text>
                 {state === 'right' && <Ionicons name="checkmark-circle" size={22} color="#fff" />}
                 {state === 'wrong' && <Ionicons name="close-circle" size={22} color="#fff" />}
@@ -275,7 +311,9 @@ export function PlanGoalCard({ planTitle, height }: { planTitle: string; height:
       <View style={styles.center}>
         <Kicker icon="checkmark-done-outline" label="PLAN DE LECTURE" />
         <Text style={styles.title}>Lecture du jour terminée ✓</Text>
-        <Text style={styles.body}>Tu as lu la portion prévue aujourd’hui pour « {planTitle} ». Tu peux t’arrêter là, ou continuer pour prendre de l’avance.</Text>
+        <Text style={styles.body}>
+          Tu as lu la portion prévue aujourd’hui pour « {planTitle} ». Tu peux t’arrêter là, ou continuer pour prendre de l’avance.
+        </Text>
         <View style={styles.swipeHint}>
           <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
           <Text style={styles.footerHint}>Glisse pour continuer</Text>
@@ -316,7 +354,9 @@ export function PauseCard({ count, minutes, height }: { count: number; minutes: 
         Animated.timing(scale, { toValue: 0.6, duration: 4000, easing, useNativeDriver: true }),
       );
     }
-    const id = scale.addListener(({ value }) => setPhase((p) => (p === 'Amen.' ? p : value > 0.95 ? 'Expire…' : value < 0.65 ? 'Inspire…' : p)));
+    const id = scale.addListener(({ value }) =>
+      setPhase((p) => (p === 'Amen.' ? p : value > 0.95 ? 'Expire…' : value < 0.65 ? 'Inspire…' : p)),
+    );
     Animated.sequence(steps).start(({ finished }) => finished && setPhase('Amen.'));
     return () => {
       scale.removeListener(id);
@@ -331,7 +371,9 @@ export function PauseCard({ count, minutes, height }: { count: number; minutes: 
         <Text style={styles.title}>
           {count} cartes{minutes > 0 ? ` en ${minutes} min` : ''}.
         </Text>
-        <Text style={styles.body}>« Arrêtez, et sachez que je suis Dieu. » — Psaumes 46:11{'\n\n'}Et si tu respirais 30 secondes avant de continuer ?</Text>
+        <Text style={styles.body}>
+          « Arrêtez, et sachez que je suis Dieu. » — Psaumes 46:11{'\n\n'}Et si tu respirais 30 secondes avant de continuer ?
+        </Text>
         <Pressable onPress={() => setBreathing(true)} disabled={breathing} style={styles.breathWrap}>
           <Animated.View style={[styles.breathCircle, { transform: [{ scale }] }]} />
           <Text style={styles.breathText}>{breathing ? phase : 'Respirer'}</Text>
@@ -348,7 +390,14 @@ const styles = StyleSheet.create({
   withRail: { paddingRight: 80 },
   verseText: { color: '#fff', fontFamily: SERIF, fontSize: 30, lineHeight: 42, textAlign: 'left' },
   verseTextLong: { fontSize: 22, lineHeight: 32 },
-  reference: { color: 'rgba(255,255,255,0.75)', fontSize: 13, letterSpacing: 2.5, marginTop: 24, textTransform: 'uppercase', fontWeight: '600' },
+  reference: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    letterSpacing: 2.5,
+    marginTop: 24,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
   bigHeart: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, alignItems: 'center' },
   footer: { position: 'absolute', left: 24, right: 90, bottom: 36 },
   tag: { color: '#fff', fontSize: 16, fontWeight: '700' },
@@ -361,7 +410,16 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 28, lineHeight: 36, fontWeight: '700', marginBottom: 16 },
   body: { color: 'rgba(255,255,255,0.88)', fontSize: 18, lineHeight: 28 },
   options: { gap: 12, marginTop: 8 },
-  option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  option: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   option_idle: { backgroundColor: 'rgba(255,255,255,0.08)' },
   option_right: { backgroundColor: '#2a9d6a', borderColor: '#2a9d6a' },
   option_wrong: { backgroundColor: '#c8445a', borderColor: '#c8445a' },
@@ -371,15 +429,37 @@ const styles = StyleSheet.create({
   clue: { color: '#fff', fontFamily: SERIF, fontSize: 21, lineHeight: 30, marginBottom: 12 },
   reveal: { marginTop: 18 },
   revealName: { color: '#ffd166', fontSize: 34, fontWeight: '800' },
-  pill: { alignSelf: 'flex-start', marginTop: 18, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  pill: {
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
   pillText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   breathWrap: { alignSelf: 'center', width: 180, height: 180, alignItems: 'center', justifyContent: 'center', marginVertical: 28 },
-  breathCircle: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(140,170,255,0.18)', borderWidth: 1, borderColor: 'rgba(160,190,255,0.5)' },
+  breathCircle: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(140,170,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(160,190,255,0.5)',
+  },
   breathText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   bookTitle: { color: '#fff', fontFamily: SERIF, fontSize: 44, lineHeight: 52, marginBottom: 6 },
   bookMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', marginBottom: 22 },
   swipeHint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 36 },
-  passageRef: { color: 'rgba(255,255,255,0.7)', fontSize: 12, letterSpacing: 2.5, fontWeight: '700', textTransform: 'uppercase', marginBottom: 18 },
+  passageRef: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    letterSpacing: 2.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 18,
+  },
   passageText: { color: '#fff', fontFamily: SERIF },
   passageL: { fontSize: 24, lineHeight: 36 },
   passageM: { fontSize: 21, lineHeight: 31 },

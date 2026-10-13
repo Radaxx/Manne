@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { VERSES, type Passage, type Theme } from './data/content';
-import { planById, planChapters, planIndex, type PlanState } from './plans';
-import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
+import { createContext, createElement, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { type Passage, type Theme, VERSES } from './data/content';
+import { type PlanState, planById, planChapters, planIndex } from './plans';
 import { normalize, type Position } from './reading';
+import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
 
 /** Objectif quotidien, en versets lus (un chapitre en compte souvent 20 à 40). */
 export const DAILY_GOAL = 30;
@@ -110,6 +110,16 @@ function touch(p: Progress): Pick<Progress, 'streak' | 'lastActiveDay'> {
   return { streak: p.lastActiveDay === d ? p.streak : p.lastActiveDay === yesterday() ? p.streak + 1 : 1, lastActiveDay: d };
 }
 
+/** Compte un chapitre comme lu (statistiques et progression par livre). */
+function withChapterRead(p: Progress, book: number, chapter: number): Progress {
+  const key = `${book}:${chapter}`;
+  return {
+    ...p,
+    chaptersRead: p.chaptersRead.includes(key) ? p.chaptersRead : [...p.chaptersRead, key],
+    chaptersToday: p.chaptersToday.includes(key) ? p.chaptersToday : [...p.chaptersToday, key],
+  };
+}
+
 export function useProgress() {
   const [progress, setProgress] = useState<Progress>(initial);
   const [loaded, setLoaded] = useState(false);
@@ -161,16 +171,6 @@ export function useProgress() {
     });
   }, []);
 
-  /** Compte un chapitre comme lu (statistiques et progression par livre). */
-  const withChapterRead = (p: Progress, book: number, chapter: number): Progress => {
-    const key = `${book}:${chapter}`;
-    return {
-      ...p,
-      chaptersRead: p.chaptersRead.includes(key) ? p.chaptersRead : [...p.chaptersRead, key],
-      chaptersToday: p.chaptersToday.includes(key) ? p.chaptersToday : [...p.chaptersToday, key],
-    };
-  };
-
   const markChapterRead = useCallback((book: number, chapter: number) => {
     setProgress((p) => withChapterRead(p, book, chapter));
   }, []);
@@ -179,7 +179,11 @@ export function useProgress() {
   const advanceReading = useCallback((passage: Passage, chapterEnd: boolean) => {
     setProgress((p) => {
       const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 });
-      const moved = { ...p, currentBook: next.book, positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } } };
+      const moved = {
+        ...p,
+        currentBook: next.book,
+        positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } },
+      };
       return chapterEnd ? withChapterRead(moved, passage.book, passage.chapter) : moved;
     });
   }, []);
@@ -197,7 +201,8 @@ export function useProgress() {
       if (idx === -1) return p;
       const pos = chapterEnd ? idx + 1 : idx;
       const verse = chapterEnd ? 1 : passage.to + 1;
-      if (pos < state.pos || (pos === state.pos && verse <= state.verse)) return chapterEnd ? withChapterRead(p, passage.book, passage.chapter) : p;
+      if (pos < state.pos || (pos === state.pos && verse <= state.verse))
+        return chapterEnd ? withChapterRead(p, passage.book, passage.chapter) : p;
       const updated = { ...p, plans: { ...p.plans, [id]: { ...state, pos, verse } } };
       return chapterEnd ? withChapterRead(updated, passage.book, passage.chapter) : updated;
     });
@@ -233,7 +238,10 @@ export function useProgress() {
   }, []);
 
   const togglePin = useCallback((id: string) => {
-    setProgress((p) => ({ ...p, pinnedPrayers: p.pinnedPrayers.includes(id) ? p.pinnedPrayers.filter((x) => x !== id) : [...p.pinnedPrayers, id] }));
+    setProgress((p) => ({
+      ...p,
+      pinnedPrayers: p.pinnedPrayers.includes(id) ? p.pinnedPrayers.filter((x) => x !== id) : [...p.pinnedPrayers, id],
+    }));
   }, []);
 
   /** Crée ou met à jour une prière personnelle ; renvoie son identifiant. */
@@ -242,13 +250,19 @@ export function useProgress() {
     const entry: CustomPrayer = { id, title: prayer.title, text: prayer.text, updatedAt: Date.now() };
     setProgress((p) => ({
       ...p,
-      customPrayers: p.customPrayers.some((c) => c.id === id) ? p.customPrayers.map((c) => (c.id === id ? entry : c)) : [entry, ...p.customPrayers],
+      customPrayers: p.customPrayers.some((c) => c.id === id)
+        ? p.customPrayers.map((c) => (c.id === id ? entry : c))
+        : [entry, ...p.customPrayers],
     }));
     return id;
   }, []);
 
   const deleteCustomPrayer = useCallback((id: string) => {
-    setProgress((p) => ({ ...p, customPrayers: p.customPrayers.filter((c) => c.id !== id), pinnedPrayers: p.pinnedPrayers.filter((x) => x !== id) }));
+    setProgress((p) => ({
+      ...p,
+      customPrayers: p.customPrayers.filter((c) => c.id !== id),
+      pinnedPrayers: p.pinnedPrayers.filter((x) => x !== id),
+    }));
   }, []);
 
   const addConfessionItem = useCallback((text: string) => {
@@ -326,7 +340,10 @@ export function useProgress() {
       const has = p.saved.some((s) => s.id === passage.id);
       // On ne garde que les champs du passage (pas les données d'affichage).
       const { id, book, bookName, chapter, from, to, reference, text } = passage;
-      return { ...p, saved: has ? p.saved.filter((s) => s.id !== id) : [{ id, book, bookName, chapter, from, to, reference, text }, ...p.saved] };
+      return {
+        ...p,
+        saved: has ? p.saved.filter((s) => s.id !== id) : [{ id, book, bookName, chapter, from, to, reference, text }, ...p.saved],
+      };
     });
   }, []);
 
@@ -336,7 +353,40 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, setPlanPosition, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, setAdorationSession, completeAdoration, setAdorationPrefs, addAdorationIntention, removeAdorationIntention, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return {
+    progress,
+    loaded,
+    markRead,
+    markChapterRead,
+    advanceReading,
+    advancePlan,
+    setPlanPosition,
+    selectBook,
+    goTo,
+    startPlan,
+    stopPlan,
+    setReminder,
+    togglePin,
+    saveCustomPrayer,
+    deleteCustomPrayer,
+    addConfessionItem,
+    removeConfessionItem,
+    completeConfession,
+    setConfessionLock,
+    setRosarySession,
+    completeRosary,
+    setRosaryPrefs,
+    setAdorationSession,
+    completeAdoration,
+    setAdorationPrefs,
+    addAdorationIntention,
+    removeAdorationIntention,
+    toggleLike,
+    toggleSave,
+    getScores,
+    readingSession,
+    restartReading,
+  };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;

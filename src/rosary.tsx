@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES } from './data/prayers';
@@ -70,8 +70,8 @@ export const mysteryOrdinal = (set: number, d: number) => `${d === 0 ? '1ᵉʳ' 
 /** Le verset d'Écriture associé au mystère, dans la Louis Segond embarquée. */
 export function mysteryVerse(set: number, d: number) {
   const [b, c, f, t] = MYSTERIES[set].verses[d];
-  const text = loadBook(b)[c - 1]
-    .slice(f - 1, t)
+  const text = loadBook(b)
+    [c - 1].slice(f - 1, t)
     .join(' ')
     .replace(/\s+([,.])/g, '$1')
     .trim()
@@ -154,20 +154,66 @@ function Halo({ size }: { size: number }) {
  * Le chapelet dessiné : les grains déjà priés sont dorés, le grain courant pulse.
  * Toucher le chapelet fait avancer d'un grain ; children s'affiche au centre de l'anneau.
  */
-export function RosaryBeads({ steps, index, diameter, onPress, children }: { steps: RosaryStep[]; index: number; diameter: number; onPress?: () => void; children?: ReactNode }) {
+export function RosaryBeads({
+  steps,
+  index,
+  diameter,
+  onPress,
+  children,
+}: {
+  steps: RosaryStep[];
+  index: number;
+  diameter: number;
+  onPress?: () => void;
+  children?: ReactNode;
+}) {
   const r = diameter / 2;
   const { pos, height } = useMemo(() => layout(r), [r]);
   const lit = litBead(steps, index);
   const onBead = steps[index]?.bead !== null && steps[index]?.bead !== undefined;
   // Grains priés : ceux des étapes passées (une dizaine seule ne dore que ses propres grains).
-  const done = useMemo(() => new Set(steps.slice(0, index).map((s) => s.bead).filter((b): b is number => b !== null)), [steps, index]);
+  const done = useMemo(
+    () =>
+      new Set(
+        steps
+          .slice(0, index)
+          .map((s) => s.bead)
+          .filter((b): b is number => b !== null),
+      ),
+    [steps, index],
+  );
   const used = useMemo(() => new Set(steps.map((s) => s.bead)), [steps]);
   const pad = 14;
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Grain suivant" style={{ width: diameter + pad * 2, height: height + pad * 2, alignSelf: 'center' }}>
-      <View style={{ position: 'absolute', left: pad, top: pad, width: diameter, height: diameter, borderRadius: r, borderWidth: 1, borderColor: C.line }} />
-      <View style={{ position: 'absolute', left: pad + r - 0.5, top: pad + diameter, width: 1, height: height - diameter - 10, backgroundColor: C.line }} />
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Grain suivant"
+      style={{ width: diameter + pad * 2, height: height + pad * 2, alignSelf: 'center' }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: pad,
+          top: pad,
+          width: diameter,
+          height: diameter,
+          borderRadius: r,
+          borderWidth: 1,
+          borderColor: C.line,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: pad + r - 0.5,
+          top: pad + diameter,
+          width: 1,
+          height: height - diameter - 10,
+          backgroundColor: C.line,
+        }}
+      />
       {pos.map((p, b) => {
         if (!p) return null;
         const isLit = b === lit;
@@ -177,15 +223,43 @@ export function RosaryBeads({ steps, index, diameter, onPress, children }: { ste
         if (b === CROSS) {
           const s = p.d;
           return (
-            <View key={b} pointerEvents="none" style={{ position: 'absolute', left: pad + p.x - s / 2, top: pad + p.y - s / 2, width: s, height: s }}>
+            <View
+              key={b}
+              pointerEvents="none"
+              style={{ position: 'absolute', left: pad + p.x - s / 2, top: pad + p.y - s / 2, width: s, height: s }}
+            >
               {isLit && onBead && <Halo size={s} />}
-              <View style={{ position: 'absolute', left: s / 2 - s * 0.09, top: 0, width: s * 0.18, height: s, borderRadius: 2, backgroundColor: color }} />
-              <View style={{ position: 'absolute', left: s * 0.15, top: s * 0.26, width: s * 0.7, height: s * 0.18, borderRadius: 2, backgroundColor: color }} />
+              <View
+                style={{
+                  position: 'absolute',
+                  left: s / 2 - s * 0.09,
+                  top: 0,
+                  width: s * 0.18,
+                  height: s,
+                  borderRadius: 2,
+                  backgroundColor: color,
+                }}
+              />
+              <View
+                style={{
+                  position: 'absolute',
+                  left: s * 0.15,
+                  top: s * 0.26,
+                  width: s * 0.7,
+                  height: s * 0.18,
+                  borderRadius: 2,
+                  backgroundColor: color,
+                }}
+              />
             </View>
           );
         }
         return (
-          <View key={b} pointerEvents="none" style={{ position: 'absolute', left: pad + p.x - p.d / 2, top: pad + p.y - p.d / 2, width: p.d, height: p.d }}>
+          <View
+            key={b}
+            pointerEvents="none"
+            style={{ position: 'absolute', left: pad + p.x - p.d / 2, top: pad + p.y - p.d / 2, width: p.d, height: p.d }}
+          >
             {isLit && onBead && <Halo size={p.d} />}
             <View
               style={{
@@ -200,7 +274,18 @@ export function RosaryBeads({ steps, index, diameter, onPress, children }: { ste
           </View>
         );
       })}
-      <View pointerEvents="none" style={{ position: 'absolute', left: pad, top: pad, width: diameter, height: diameter, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: pad,
+          top: pad,
+          width: diameter,
+          height: diameter,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {children}
       </View>
     </Pressable>

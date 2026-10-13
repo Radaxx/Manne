@@ -71,7 +71,7 @@ function olive(seed: number) {
       const w = v * 16 + warp * 3.2 + warp2 * 0.7;
       const band = Math.abs(Math.sin(w * Math.PI));
       const dark = smooth(0.26, 0, band) * (0.3 + 0.7 * fbm(u * 6, v * 10, seed + 3, 6));
-      const fine = Math.pow(1 - Math.abs(Math.sin(w * Math.PI * 2.7 + warp2 * 2)), 12) * 0.28;
+      const fine = (1 - Math.abs(Math.sin(w * Math.PI * 2.7 + warp2 * 2))) ** 12 * 0.28;
       const tone = fbm(u * 3, v * 2.4, seed + 11, 3);
       const heart = smooth(0.45, 0.75, fbm(u * 4, v * 3.2, seed + 21, 4));
       const broad = 0.5 + 0.5 * Math.sin(w * Math.PI * 0.5);

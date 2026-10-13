@@ -66,7 +66,9 @@ function layout() {
     return pts[i - 1].clone().lerp(pts[i], t).multiplyScalar(scale);
   };
   const centers: THREE.Vector3[] = [];
-  loopOrder.slice(0, -1).forEach((b, i) => (centers[b] = onLoop(marks[i])));
+  loopOrder.slice(0, -1).forEach((b, i) => {
+    centers[b] = onLoop(marks[i]);
+  });
   // Le pendentif, de la médaille (ovale, plus longue dans ce sens) vers la croix.
   let along = 0,
     prev = MEDAL;
@@ -78,7 +80,9 @@ function layout() {
     centers[b] = p;
     prev = b;
   }
-  centers.forEach((c, b) => (c.y = b === MEDAL ? 0.03 : b === 0 ? 0.05 : radius(b)));
+  centers.forEach((c, b) => {
+    c.y = b === MEDAL ? 0.03 : b === 0 ? 0.05 : radius(b);
+  });
   return centers;
 }
 
@@ -86,7 +90,10 @@ function layout() {
  * Crée la scène dans le contexte d'un GLView. Lève une erreur si le téléphone n'offre pas WebGL 2 ;
  * onError est appelé si le rendu échoue plus tard (la boucle s'arrête alors d'elle-même).
  */
-export function createRosaryScene(gl: ExpoWebGLRenderingContext, { reducedMotion, onError }: { reducedMotion: boolean; onError?: (e: unknown) => void }): RosaryScene {
+export function createRosaryScene(
+  gl: ExpoWebGLRenderingContext,
+  { reducedMotion, onError }: { reducedMotion: boolean; onError?: (e: unknown) => void },
+): RosaryScene {
   const g = globalThis as { WebGLRenderingContext?: unknown; WebGL2RenderingContext?: new () => unknown };
   if (!g.WebGL2RenderingContext || !(gl instanceof g.WebGL2RenderingContext)) throw new Error('WebGL 2 indisponible sur ce téléphone');
 
@@ -356,7 +363,9 @@ export function createRosaryScene(gl: ExpoWebGLRenderingContext, { reducedMotion
       }
     }
     const chain = new THREE.InstancedMesh(new THREE.TorusGeometry(LINK_R, LINK_TUBE, 6, 14), brass, links.length);
-    links.forEach((m, i) => chain.setMatrixAt(i, m));
+    links.forEach((m, i) => {
+      chain.setMatrixAt(i, m);
+    });
     scene.add(chain);
   }
 
@@ -386,7 +395,9 @@ export function createRosaryScene(gl: ExpoWebGLRenderingContext, { reducedMotion
       new THREE.MeshBasicMaterial({ map: tex.shadow, color: 0x000000, transparent: true, opacity: 0.75, depthWrite: false }),
       blobs.length,
     );
-    blobs.forEach((m, i) => shadows.setMatrixAt(i, m));
+    blobs.forEach((m, i) => {
+      shadows.setMatrixAt(i, m);
+    });
     scene.add(shadows);
   }
 

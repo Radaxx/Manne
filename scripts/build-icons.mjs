@@ -1,8 +1,9 @@
 // Génère le logo de Manne — « la Parole lumière » : un livre ouvert doré d'où rayonne la lumière
 // (« En elle était la vie, et la vie était la lumière des hommes », Jean 1:4) — et toutes ses déclinaisons.
 // Usage : node scripts/build-icons.mjs
-import { Resvg } from '@resvg/resvg-js';
+
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { Resvg } from '@resvg/resvg-js';
 
 const BG = ['#1a1c25', '#0d0e12'];
 const GOLD = ['#ffe29a', '#f2b544', '#d48f22'];
@@ -45,10 +46,14 @@ function logo({ background = false, scale = 1, mono = false } = {}) {
     <g transform="translate(512 700) scale(0.9) translate(-512 -640)">
       <path d="M496 544 C428 494 328 484 228 512 L228 734 C328 708 428 716 496 766 Z" fill="${fill}"/>
       <path d="M528 544 C596 494 696 484 796 512 L796 734 C696 708 596 716 528 766 Z" fill="${fill}"/>
-      ${mono ? '' : `<g fill="none" stroke="#a86a14" stroke-width="9" stroke-linecap="round" opacity="0.45">
+      ${
+        mono
+          ? ''
+          : `<g fill="none" stroke="#a86a14" stroke-width="9" stroke-linecap="round" opacity="0.45">
         <path d="M282 574 C352 556 424 562 468 588"/><path d="M282 622 C352 604 424 610 468 636"/><path d="M282 670 C352 652 424 658 468 684"/>
         <path d="M742 574 C672 556 600 562 556 588"/><path d="M742 622 C672 604 600 610 556 636"/><path d="M742 670 C672 652 600 658 556 684"/>
-      </g>`}
+      </g>`
+      }
     </g>
   </g>
 </svg>`;
@@ -66,7 +71,10 @@ writeFileSync(new URL('../assets/logo/manne.svg', import.meta.url), logo({ backg
 render(logo({ background: true }), 'icon.png'); // iOS (coins arrondis par le système)
 render(logo({ scale: 0.78 }), 'android-icon-foreground.png'); // reste dans la zone sûre des masques ronds
 render(logo({ scale: 0.78, mono: true }), 'android-icon-monochrome.png');
-render(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${BG[0]}"/><stop offset="1" stop-color="${BG[1]}"/></linearGradient></defs><rect width="1024" height="1024" fill="url(#bg)"/></svg>`, 'android-icon-background.png');
+render(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${BG[0]}"/><stop offset="1" stop-color="${BG[1]}"/></linearGradient></defs><rect width="1024" height="1024" fill="url(#bg)"/></svg>`,
+  'android-icon-background.png',
+);
 render(logo(), 'splash-icon.png'); // motif seul, sur le fond du splash
 render(logo({ background: true }), 'favicon.png', 48);
 render(logo({ scale: 1.55, mono: true }), 'notification-icon.png', 96); // barre de notifications Android : blanc sur transparent

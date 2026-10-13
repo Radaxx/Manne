@@ -6,7 +6,10 @@ import { C } from '../liturgy';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
 
-const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: C.bg, card: C.bg, primary: C.gold, text: C.text, border: C.line } };
+const theme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: C.bg, card: C.bg, primary: C.gold, text: C.text, border: C.line },
+};
 
 /** Chaque ouverture de l'app reporte le rappel quotidien à demain. */
 function ReminderSync() {
@@ -29,7 +32,14 @@ export default function RootLayout() {
       <ProgressProvider>
         <StatusBar style="light" />
         <ReminderSync />
-        <Stack screenOptions={{ headerTintColor: C.text, headerStyle: { backgroundColor: C.bg }, headerShadowVisible: false, headerBackTitle: 'Retour' }}>
+        <Stack
+          screenOptions={{
+            headerTintColor: C.text,
+            headerStyle: { backgroundColor: C.bg },
+            headerShadowVisible: false,
+            headerBackTitle: 'Retour',
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="office/[id]" options={{ title: '' }} />
           <Stack.Screen name="priere/[id]" options={{ title: '' }} />

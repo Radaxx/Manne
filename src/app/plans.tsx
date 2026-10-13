@@ -11,7 +11,9 @@ export default function PlansScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
-      <Text style={styles.intro}>Un peu chaque jour, à ton rythme. Les chapitres lus dans l’onglet Lecture avancent automatiquement tes plans.</Text>
+      <Text style={styles.intro}>
+        Un peu chaque jour, à ton rythme. Les chapitres lus dans l’onglet Lecture avancent automatiquement tes plans.
+      </Text>
       {PLANS.map((plan) => {
         const state = progress.plans[plan.id];
         const chapters = planChapters(plan).length;

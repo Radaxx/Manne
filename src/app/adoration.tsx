@@ -19,13 +19,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type AdorationStep, adorationSteps, DURATIONS, MODES, sessionLabel, wordOfTheDay } from '../adoration';
 import { useMass } from '../aelf';
-import { adorationSteps, DURATIONS, MODES, sessionLabel, wordOfTheDay, type AdorationStep } from '../adoration';
 import { SERIF } from '../cards';
 import { prayerById } from '../data/prayers';
 import { C, LiturgyText } from '../liturgy';
 import { daysSince } from '../plans';
-import { today, useApp, type AdorationMode, type AdorationSession } from '../storage';
+import { type AdorationMode, type AdorationSession, today, useApp } from '../storage';
 
 // Adorer devant le Saint-Sacrement, guidé : on choisit un parcours contemplatif ou guidé et une durée,
 // Manne propose les temps un à un (présence, adoration, Parole, silence, merci, pardon, intentions).
@@ -96,7 +96,12 @@ function Intentions({ empty }: { empty?: string }) {
           blurOnSubmit
           maxLength={200}
         />
-        <Pressable onPress={add} disabled={!draft.trim()} style={[styles.addBtn, !draft.trim() && { opacity: 0.4 }]} accessibilityLabel="Ajouter cette intention">
+        <Pressable
+          onPress={add}
+          disabled={!draft.trim()}
+          style={[styles.addBtn, !draft.trim() && { opacity: 0.4 }]}
+          accessibilityLabel="Ajouter cette intention"
+        >
           <Ionicons name="add" size={22} color={C.bg} />
         </Pressable>
       </View>
@@ -119,7 +124,9 @@ function Countdown({ minutes, size }: { minutes: number; size: number }) {
   }, []);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setStill).catch(() => {});
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setStill)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -178,7 +185,9 @@ function Gospel() {
   const fallback = wordOfTheDay(today());
   return (
     <>
-      <Text style={styles.body}>Lis lentement, comme une lettre qui t’est adressée. Arrête-toi dès qu’un mot te touche : une seule phrase suffit.</Text>
+      <Text style={styles.body}>
+        Lis lentement, comme une lettre qui t’est adressée. Arrête-toi dès qu’un mot te touche : une seule phrase suffit.
+      </Text>
       {reading ? (
         <View style={styles.gospel}>
           <Text style={styles.gospelRef}>Évangile · {reading.ref}</Text>
@@ -215,7 +224,8 @@ function StepBody({ step, mode, size }: { step: AdorationStep; mode: AdorationMo
           <Text style={styles.body}>Installe-toi, pose ce que tu portes. Fais lentement le signe de croix.</Text>
           <PrayerLines id="signe-de-croix" />
           <Text style={styles.body}>
-            Jésus est là, réellement présent dans l’hostie. Tu n’as rien à réussir : tu es venu pour être avec lui, et pour te laisser regarder.
+            Jésus est là, réellement présent dans l’hostie. Tu n’as rien à réussir : tu es venu pour être avec lui, et pour te laisser
+            regarder.
           </Text>
           <Text style={styles.note}>Un paysan disait au saint curé d’Ars, devant le tabernacle : « Je l’avise, et il m’avise. »</Text>
         </>
@@ -243,16 +253,20 @@ function StepBody({ step, mode, size }: { step: AdorationStep; mode: AdorationMo
       const tone = step.tone ?? 'open';
       return (
         <>
-          <Text style={styles.title}>{tone === 'word' ? 'Laisse la Parole descendre' : tone === 'rest' ? 'Demeure auprès de lui' : 'Reste là'}</Text>
+          <Text style={styles.title}>
+            {tone === 'word' ? 'Laisse la Parole descendre' : tone === 'rest' ? 'Demeure auprès de lui' : 'Reste là'}
+          </Text>
           <Countdown minutes={step.minutes} size={size} />
           <Text style={styles.body}>
             {tone === 'word'
               ? 'Reviens à la phrase qui t’a touché, et reste avec elle sans chercher à la comprendre.'
               : tone === 'rest'
-              ? 'Si tu n’as plus rien à dire, reste simplement. Être là est déjà une prière.'
-              : 'Tu n’as rien à dire, rien à faire. Il est là, tu es là. C’est tout.'}
+                ? 'Si tu n’as plus rien à dire, reste simplement. Être là est déjà une prière.'
+                : 'Tu n’as rien à dire, rien à faire. Il est là, tu es là. C’est tout.'}
           </Text>
-          <Text style={styles.note}>Quand les pensées s’agitent, ramène doucement ton attention vers lui avec ces mots : « Seigneur Jésus, prends pitié de moi. »</Text>
+          <Text style={styles.note}>
+            Quand les pensées s’agitent, ramène doucement ton attention vers lui avec ces mots : « Seigneur Jésus, prends pitié de moi. »
+          </Text>
         </>
       );
     }
@@ -272,7 +286,9 @@ function StepBody({ step, mode, size }: { step: AdorationStep; mode: AdorationMo
       return (
         <>
           <Text style={styles.title}>Dis-lui merci</Text>
-          <Text style={styles.body}>Qu’as-tu reçu depuis ta dernière visite ? Une personne, un moment, une grâce, une épreuve traversée…</Text>
+          <Text style={styles.body}>
+            Qu’as-tu reçu depuis ta dernière visite ? Une personne, un moment, une grâce, une épreuve traversée…
+          </Text>
           <Text style={styles.body}>Trouve trois choses, même toutes petites, et remercie-le pour chacune avec tes propres mots.</Text>
         </>
       );
@@ -281,7 +297,8 @@ function StepBody({ step, mode, size }: { step: AdorationStep; mode: AdorationMo
         <>
           <Text style={styles.title}>Demande pardon</Text>
           <Text style={styles.body}>
-            Laisse-le regarder ta vie telle qu’elle est. Qu’est-ce qui pèse ? Une parole, un geste, un oubli. Il ne te juge pas : il te regarde avec miséricorde.
+            Laisse-le regarder ta vie telle qu’elle est. Qu’est-ce qui pèse ? Une parole, un geste, un oubli. Il ne te juge pas : il te
+            regarde avec miséricorde.
           </Text>
           <PrayerLines id="acte-de-contrition" />
           <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.link, pressed && { opacity: 0.8 }]}>
@@ -353,7 +370,7 @@ function Praying({ session, onDone, onExit }: { session: AdorationSession; onDon
         }}
       />
       <View style={styles.stepper}>
-        {steps.map((s, i) => (
+        {steps.map((_s, i) => (
           <View key={i} style={[styles.seg, i <= index && styles.segOn]} />
         ))}
       </View>
@@ -367,7 +384,12 @@ function Praying({ session, onDone, onExit }: { session: AdorationSession; onDon
       </ScrollView>
 
       <View style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Pressable onPress={() => go(-1)} disabled={index === 0} style={[styles.backBtn, index === 0 && { opacity: 0.3 }]} accessibilityLabel="Revenir au temps précédent">
+        <Pressable
+          onPress={() => go(-1)}
+          disabled={index === 0}
+          style={[styles.backBtn, index === 0 && { opacity: 0.3 }]}
+          accessibilityLabel="Revenir au temps précédent"
+        >
           <Ionicons name="arrow-undo" size={20} color={C.text} />
         </Pressable>
         <Pressable onPress={() => go(1)} style={({ pressed }) => [styles.btn, styles.mainBtn, pressed && { opacity: 0.85 }]}>
@@ -389,8 +411,13 @@ function Finished({ onAgain }: { onAgain: () => void }) {
       </View>
       <Text style={styles.doneTitle}>Adoration terminée</Text>
       <Text style={styles.doneText}>Merci d’être resté auprès de lui. Que sa paix t’accompagne.</Text>
-      <Text style={styles.doneCount}>{count === 1 ? 'C’est ta première adoration avec Manne.' : `${count} adorations vécues avec Manne.`}</Text>
-      <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/prieres'))} style={[styles.btn, { marginTop: 28, alignSelf: 'stretch' }]}>
+      <Text style={styles.doneCount}>
+        {count === 1 ? 'C’est ta première adoration avec Manne.' : `${count} adorations vécues avec Manne.`}
+      </Text>
+      <Pressable
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/prieres'))}
+        style={[styles.btn, { marginTop: 28, alignSelf: 'stretch' }]}
+      >
         <Text style={styles.btnText}>Revenir aux prières</Text>
       </Pressable>
       <Pressable onPress={onAgain} style={[styles.btn, styles.btnGhost, { marginTop: 10, alignSelf: 'stretch' }]}>
@@ -416,7 +443,8 @@ function Setup({ onStart }: { onStart: (s: AdorationSession) => void }) {
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.intro}>
-          Tu es devant le Saint-Sacrement : tu n’as rien à réussir. Manne te propose un chemin, tu le suis à ton rythme, et tu peux t’arrêter à tout moment.
+          Tu es devant le Saint-Sacrement : tu n’as rien à réussir. Manne te propose un chemin, tu le suis à ton rythme, et tu peux
+          t’arrêter à tout moment.
         </Text>
         <Text style={styles.last}>{lastLabel(last, count)}</Text>
 
@@ -530,9 +558,27 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: 60 },
   intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
   last: { color: C.text, fontSize: 14, fontWeight: '600', marginTop: 10 },
-  section: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginTop: 22, marginBottom: 8 },
+  section: {
+    color: C.muted,
+    fontSize: 12,
+    letterSpacing: 1.8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginTop: 22,
+    marginBottom: 8,
+  },
   group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
-  mode: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: 'transparent' },
+  mode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
   modeOn: { borderColor: 'rgba(255,209,102,0.5)', backgroundColor: 'rgba(255,209,102,0.06)' },
   modeName: { color: C.text, fontSize: 17, fontWeight: '700' },
   modeHint: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
@@ -541,15 +587,42 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: C.gold },
   segmentText: { color: C.text, fontSize: 18, fontWeight: '700' },
   segmentHint: { color: C.faint, fontSize: 12, marginTop: 1 },
-  pathRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  pathRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: C.line,
+  },
   pathNum: { color: C.gold, fontWeight: '800', fontSize: 14, width: 18, textAlign: 'center' },
   pathTitle: { color: C.text, fontFamily: SERIF, fontSize: 16, flex: 1 },
   pathMin: { color: C.faint, fontSize: 13 },
-  resume: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,209,102,0.1)', borderRadius: 16, padding: 14, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,209,102,0.35)' },
+  resume: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.35)',
+  },
   resumeIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   resumeTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
   resumeText: { color: C.muted, fontSize: 13, marginTop: 2 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.gold, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 999 },
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: C.gold,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 999,
+  },
   btnText: { color: C.bg, fontWeight: '800', fontSize: 16 },
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
   btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
@@ -558,7 +631,16 @@ const styles = StyleSheet.create({
   intention: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8 },
   intentionText: { color: C.text, fontSize: 16, lineHeight: 22, flex: 1 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 },
-  input: { flex: 1, color: C.text, fontSize: 16, backgroundColor: C.cardHi, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, minHeight: 46 },
+  input: {
+    flex: 1,
+    color: C.text,
+    fontSize: 16,
+    backgroundColor: C.cardHi,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 46,
+  },
   addBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
   // Pendant l'adoration
   stepper: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12 },
@@ -583,15 +665,40 @@ const styles = StyleSheet.create({
   questions: { backgroundColor: 'rgba(255,209,102,0.07)', borderRadius: 14, padding: 14, marginTop: 14 },
   questionsTitle: { color: C.gold, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 },
   question: { color: C.text, fontFamily: SERIF, fontSize: 17, lineHeight: 26, marginTop: 4 },
-  circle: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,209,102,0.45)', backgroundColor: 'rgba(255,209,102,0.05)' },
+  circle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.45)',
+    backgroundColor: 'rgba(255,209,102,0.05)',
+  },
   time: { color: C.text, fontFamily: SERIF, fontSize: 44, lineHeight: 52 },
   timeHint: { color: C.faint, fontSize: 13, fontWeight: '600', marginTop: 2 },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,209,102,0.35)', marginTop: 4 },
+  link: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,102,0.35)',
+    marginTop: 4,
+  },
   linkText: { color: C.gold, fontWeight: '700', fontSize: 14 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 14 },
   backBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   mainBtn: { flex: 1, paddingVertical: 16 },
-  doneIcon: { width: 86, height: 86, borderRadius: 43, backgroundColor: 'rgba(255,209,102,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  doneIcon: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: 'rgba(255,209,102,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
   doneTitle: { color: C.text, fontFamily: SERIF, fontSize: 30 },
   doneText: { color: C.muted, fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
   doneCount: { color: C.gold, fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 18 },

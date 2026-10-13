@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookIntroCard, ChapterEndCard, PassageCard, PlanEndCard, PlanGoalCard } from './cards';
 import { INTROS } from './data/intros';
 import { actionsFor, Pager } from './feeds';
-import { formatRange, planById, planIndex, planStatus, type Plan } from './plans';
-import { cardsUntil, isResumeCard, PlanReadingGenerator, type PlanReadingCard } from './reading';
+import { formatRange, type Plan, planById, planIndex, planStatus } from './plans';
+import { cardsUntil, isResumeCard, type PlanReadingCard, PlanReadingGenerator } from './reading';
 import { today, useApp } from './storage';
 
 /** Le fil plein écran d'un plan de lecture, avec son propre marque-page. */
@@ -98,7 +98,15 @@ function PlanReader({ plan }: { plan: Plan }) {
               case 'passage':
                 return <PassageCard passage={card.passage} book={card.book} height={height} {...actionsFor(card.passage, api)} />;
               case 'chapterEnd':
-                return <ChapterEndCard book={card.book} chapter={card.chapter} prompt={card.prompt} chaptersToday={api.progress.chaptersToday.length} height={height} />;
+                return (
+                  <ChapterEndCard
+                    book={card.book}
+                    chapter={card.chapter}
+                    prompt={card.prompt}
+                    chaptersToday={api.progress.chaptersToday.length}
+                    height={height}
+                  />
+                );
               case 'planGoal':
                 return <PlanGoalCard planTitle={plan.title} height={height} />;
               case 'planEnd':
@@ -110,7 +118,12 @@ function PlanReader({ plan }: { plan: Plan }) {
 
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
-          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={12} accessibilityLabel="Fermer" style={styles.close}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            hitSlop={12}
+            accessibilityLabel="Fermer"
+            style={styles.close}
+          >
             <Ionicons name="chevron-down" size={24} color="#fff" />
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -121,7 +134,13 @@ function PlanReader({ plan }: { plan: Plan }) {
               Jour {status.day + 1}/{plan.days} · {subtitle}
             </Text>
           </View>
-          <Pressable onPress={markHere} disabled={!here || here.pos < 0} hitSlop={8} style={[styles.mark, (!here || here.pos < 0) && { opacity: 0.4 }]} accessibilityLabel="Placer le marque-page du plan ici">
+          <Pressable
+            onPress={markHere}
+            disabled={!here || here.pos < 0}
+            hitSlop={8}
+            style={[styles.mark, (!here || here.pos < 0) && { opacity: 0.4 }]}
+            accessibilityLabel="Placer le marque-page du plan ici"
+          >
             <Ionicons name="bookmark" size={14} color="#fff" />
             <Text style={styles.markText}>Marquer ici</Text>
           </Pressable>
@@ -164,8 +183,26 @@ const styles = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600', marginTop: 1 },
   track: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 10, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: '#5cc48a' },
-  mark: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999 },
+  mark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   markText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  toast: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(15,16,20,0.92)', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  toast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(15,16,20,0.92)',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
   toastText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 });

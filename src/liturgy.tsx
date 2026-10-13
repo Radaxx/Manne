@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { parseHtml, plainText, type Mass } from './aelf';
+import { type Mass, parseHtml, plainText } from './aelf';
 import { SERIF } from './cards';
 
 export const C = {
@@ -39,7 +39,17 @@ export function LiturgyText({ html, style }: { html: string | null | undefined; 
   );
 }
 
-function Section({ label, reference, title, children }: { label: string; reference?: string | null; title?: string | null; children: ReactNode }) {
+function Section({
+  label,
+  reference,
+  title,
+  children,
+}: {
+  label: string;
+  reference?: string | null;
+  title?: string | null;
+  children: ReactNode;
+}) {
   return (
     <View style={styles.section}>
       <View style={styles.labelRow}>
@@ -90,7 +100,13 @@ export function OfficeBody({ office }: { office: Record<string, unknown> }) {
   const add = (key: string, node: ReactNode) => out.push(<Fragment key={key}>{node}</Fragment>);
 
   const intro = asText(office.introduction);
-  if (intro) add('intro', <Section label="Introduction"><LiturgyText html={intro} /></Section>);
+  if (intro)
+    add(
+      'intro',
+      <Section label="Introduction">
+        <LiturgyText html={intro} />
+      </Section>,
+    );
 
   const invit = asObj(office.psaume_invitatoire);
   if (invit)
@@ -103,7 +119,13 @@ export function OfficeBody({ office }: { office: Record<string, unknown> }) {
     );
 
   const hymne = asObj(office.hymne);
-  if (hymne?.texte) add('hymne', <Section label="Hymne" title={hymne.titre}><LiturgyText html={hymne.texte} style={styles.poem} /></Section>);
+  if (hymne?.texte)
+    add(
+      'hymne',
+      <Section label="Hymne" title={hymne.titre}>
+        <LiturgyText html={hymne.texte} style={styles.poem} />
+      </Section>,
+    );
 
   for (let i = 1; i <= 3; i++) {
     const ps = asObj(office[`psaume_${i}`]);
@@ -120,27 +142,73 @@ export function OfficeBody({ office }: { office: Record<string, unknown> }) {
   }
 
   const verset = asText(office.verset_psaume);
-  if (verset) add('verset', <Section label="Verset"><LiturgyText html={verset} /></Section>);
+  if (verset)
+    add(
+      'verset',
+      <Section label="Verset">
+        <LiturgyText html={verset} />
+      </Section>,
+    );
 
   const lecture = asObj(office.lecture);
   if (lecture?.texte)
-    add('lecture', <Section label="Lecture" reference={lecture.reference} title={lecture.titre}><LiturgyText html={lecture.texte} /></Section>);
+    add(
+      'lecture',
+      <Section label="Lecture" reference={lecture.reference} title={lecture.titre}>
+        <LiturgyText html={lecture.texte} />
+      </Section>,
+    );
   const reponsLecture = asText(office.repons_lecture);
-  if (reponsLecture) add('repons_lecture', <Section label="Répons"><LiturgyText html={reponsLecture} /></Section>);
+  if (reponsLecture)
+    add(
+      'repons_lecture',
+      <Section label="Répons">
+        <LiturgyText html={reponsLecture} />
+      </Section>,
+    );
 
   const patristique = asText(office.texte_patristique);
   if (patristique)
-    add('patristique', <Section label="Lecture patristique" title={asText(office.titre_patristique)}><LiturgyText html={patristique} /></Section>);
+    add(
+      'patristique',
+      <Section label="Lecture patristique" title={asText(office.titre_patristique)}>
+        <LiturgyText html={patristique} />
+      </Section>,
+    );
   const reponsPatr = asText(office.repons_patristique);
-  if (reponsPatr) add('repons_patristique', <Section label="Répons"><LiturgyText html={reponsPatr} /></Section>);
+  if (reponsPatr)
+    add(
+      'repons_patristique',
+      <Section label="Répons">
+        <LiturgyText html={reponsPatr} />
+      </Section>,
+    );
 
   const teDeum = asObj(office.te_deum);
-  if (teDeum?.texte) add('tedeum', <Section label="Te Deum"><LiturgyText html={teDeum.texte} /></Section>);
+  if (teDeum?.texte)
+    add(
+      'tedeum',
+      <Section label="Te Deum">
+        <LiturgyText html={teDeum.texte} />
+      </Section>,
+    );
 
   const pericope = asObj(office.pericope);
-  if (pericope?.texte) add('pericope', <Section label="Parole de Dieu" reference={pericope.reference}><LiturgyText html={pericope.texte} /></Section>);
+  if (pericope?.texte)
+    add(
+      'pericope',
+      <Section label="Parole de Dieu" reference={pericope.reference}>
+        <LiturgyText html={pericope.texte} />
+      </Section>,
+    );
   const repons = asText(office.repons);
-  if (repons) add('repons', <Section label="Répons"><LiturgyText html={repons} /></Section>);
+  if (repons)
+    add(
+      'repons',
+      <Section label="Répons">
+        <LiturgyText html={repons} />
+      </Section>,
+    );
 
   for (const [antKey, key, label] of CANTIQUES) {
     const cantique = asObj(office[key]);
@@ -156,16 +224,46 @@ export function OfficeBody({ office }: { office: Record<string, unknown> }) {
   }
 
   const intercession = asText(office.intercession);
-  if (intercession) add('intercession', <Section label="Intercession"><LiturgyText html={intercession} /></Section>);
-  if (asText(office.notre_pere)) add('pater', <Section label="Notre Père"><LiturgyText html={NOTRE_PERE} style={styles.poem} /></Section>);
+  if (intercession)
+    add(
+      'intercession',
+      <Section label="Intercession">
+        <LiturgyText html={intercession} />
+      </Section>,
+    );
+  if (asText(office.notre_pere))
+    add(
+      'pater',
+      <Section label="Notre Père">
+        <LiturgyText html={NOTRE_PERE} style={styles.poem} />
+      </Section>,
+    );
 
   const oraison = asText(office.oraison);
-  if (oraison) add('oraison', <Section label="Oraison"><LiturgyText html={oraison} /></Section>);
+  if (oraison)
+    add(
+      'oraison',
+      <Section label="Oraison">
+        <LiturgyText html={oraison} />
+      </Section>,
+    );
   const benediction = asText(office.benediction);
-  if (benediction) add('benediction', <Section label="Bénédiction"><LiturgyText html={benediction} /></Section>);
+  if (benediction)
+    add(
+      'benediction',
+      <Section label="Bénédiction">
+        <LiturgyText html={benediction} />
+      </Section>,
+    );
 
   const mariale = asObj(office.hymne_mariale);
-  if (mariale?.texte) add('mariale', <Section label="Antienne à la Vierge Marie" title={mariale.titre}><LiturgyText html={mariale.texte} style={styles.poem} /></Section>);
+  if (mariale?.texte)
+    add(
+      'mariale',
+      <Section label="Antienne à la Vierge Marie" title={mariale.titre}>
+        <LiturgyText html={mariale.texte} style={styles.poem} />
+      </Section>,
+    );
 
   return <>{out}</>;
 }
@@ -180,7 +278,8 @@ const READING_LABELS: Record<string, string> = {
   evangile: 'Évangile',
 };
 
-export const readingLabel = (type: string) => READING_LABELS[type] ?? (type.startsWith('lecture_') ? `Lecture ${type.slice(8)}` : type.charAt(0).toUpperCase() + type.slice(1));
+export const readingLabel = (type: string) =>
+  READING_LABELS[type] ?? (type.startsWith('lecture_') ? `Lecture ${type.slice(8)}` : type.charAt(0).toUpperCase() + type.slice(1));
 
 /** Les lectures d'une messe. */
 export function MassBody({ mass }: { mass: Mass }) {

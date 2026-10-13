@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ColorValue } from 'react-native';
 import { Tabs } from 'expo-router/js-tabs';
+import type { ColorValue } from 'react-native';
 import { C } from '../../liturgy';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const icon =
   (name: IconName, focusedName: IconName) =>
-  ({ color, focused, size }: { color: ColorValue; focused: boolean; size: number }) => <Ionicons name={focused ? focusedName : name} size={size} color={color as string} />;
+  ({ color, focused, size }: { color: ColorValue; focused: boolean; size: number }) => (
+    <Ionicons name={focused ? focusedName : name} size={size} color={color as string} />
+  );
 
 export default function TabLayout() {
   return (
