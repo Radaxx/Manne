@@ -3,26 +3,21 @@
 // sept jours) ; du 17 au 24 décembre, le parcours suit la date et les grandes antiennes « Ô ».
 // Les passages sont lus dans la traduction choisie (livre, chapitre, premier et dernier verset).
 
-export type AdventDay = {
-  title: string;
-  passage: [number, number, number, number];
-  meditation: string;
-  gesture: string;
-  /** Du 17 au 23 décembre : l'antienne « Ô » des Vêpres (traduite du latin). */
-  antiphon?: string;
-};
+import type { JourneyDay, JourneyWeek } from '../journeys';
 
-export type AdventWeek = { theme: string; blurb: string };
-
-export const ADVENT_WEEKS: AdventWeek[] = [
-  { theme: 'Veiller', blurb: 'Se réveiller et rester tourné vers celui qui vient.' },
-  { theme: 'Préparer le chemin', blurb: 'Avec Jean-Baptiste, faire de la place et se convertir.' },
-  { theme: 'Se réjouir', blurb: 'Le Seigneur est proche : la joie de Gaudete.' },
-  { theme: 'Accueillir', blurb: 'Avec Marie, ouvrir la porte à l’Emmanuel.' },
+export const ADVENT_WEEKS: JourneyWeek[] = [
+  { when: '1re semaine', theme: 'Veiller', blurb: 'Se réveiller et rester tourné vers celui qui vient.' },
+  { when: '2e semaine', theme: 'Préparer le chemin', blurb: 'Avec Jean-Baptiste, faire de la place et se convertir.' },
+  { when: '3e semaine', theme: 'Se réjouir', blurb: 'Le Seigneur est proche : la joie de Gaudete.' },
+  {
+    when: 'Du 17 au 24 décembre',
+    theme: 'Accueillir',
+    blurb: 'Avec Marie, ouvrir la porte à l’Emmanuel, au fil des grandes antiennes « Ô ».',
+  },
 ];
 
 /** Les jours depuis le 1er dimanche de l'Avent, jusqu'au 16 décembre au plus tard (20 jours au maximum). */
-export const ADVENT_DAYS: AdventDay[] = [
+export const ADVENT_DAYS: JourneyDay[] = [
   // 1re semaine — Veiller
   {
     title: 'Veillez',
@@ -159,7 +154,7 @@ export const ADVENT_DAYS: AdventDay[] = [
 ];
 
 /** Du 17 au 24 décembre, par date : les grandes antiennes « Ô » des Vêpres, puis la veille de Noël. */
-export const ADVENT_LAST_DAYS: Record<number, AdventDay> = {
+export const ADVENT_LAST_DAYS: Record<number, JourneyDay> = {
   17: {
     title: 'Ô Sagesse',
     passage: [71, 8, 1, 1],

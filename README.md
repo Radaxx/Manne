@@ -7,6 +7,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 - **Prier maintenant** : l’office de la Liturgie des Heures qui correspond à l’heure (Laudes, Tierce, Sexte, None, Vêpres, Complies, et l’Office des lectures).
 - **Année liturgique** : le temps (Avent, Noël, temps ordinaire, Carême, Triduum, temps pascal), la semaine, la couleur, l’année A, B ou C des lectures et les prochaines grandes fêtes. Le calendrier romain pour la France est calculé sur le téléphone (Pâques, fêtes mobiles et déplacées), hors connexion ; les saints du jour viennent de l’AELF en ligne. La ligne du jour liturgique de l’accueil ouvre cet écran.
 - **Parcours de l’Avent** : chaque jour jusqu’à Noël, un passage de la Bible (dans la traduction choisie), une courte méditation et un geste à vivre. Les trois premières semaines ont un thème (veiller, préparer le chemin, se réjouir) ; du 17 au 24 décembre, les grandes antiennes « Ô ». Les jours s’ouvrent un à un ; on peut rattraper ceux qu’on a manqués et marquer chaque jour comme vécu. L’accueil l’annonce trois semaines avant.
+- **Parcours de Carême** : sur le même modèle, du mercredi des Cendres au Samedi saint (46 jours). Les premiers jours (revenir à Dieu par la prière, le jeûne et le partage), cinq semaines tirées des grands évangiles du Carême (au désert, écouter, la source, la lumière, la vie), puis la Semaine sainte. Les gestes rappellent l’abstinence des vendredis et le jeûne des Cendres et du Vendredi saint.
 - **Évangile du jour** et toutes les lectures de la messe.
 - **Suivre la messe** : le déroulé, moment par moment (ouverture, Parole, eucharistie, envoi) : qui parle (prêtre, lecteur, assemblée), ce qu’on répond, quand se lever ou s’asseoir. Les chants fixes en français ou en latin, le Credo de Nicée ou celui des Apôtres, les lectures du jour (AELF), et une introduction pour une première fois.
 - **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an (avec les livres deutérocanoniques)… Chaque plan se lit chapitre entier par chapitre entier (même vue et même sélection de versets que la lecture libre), avec son propre marque-page, indépendant de la lecture libre : il avance quand on finit un chapitre, ne recule jamais en relecture, et « Marquer ici » le place où l’on veut ; on peut prendre de l’avance, et rattraper son retard.
@@ -100,7 +101,7 @@ Pour les j’aime, les échos, les intentions et le compte : copier `.env.exampl
 
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, parcours de l’Avent, plans, confession, chapelet, adoration, intentions confiées, compte, réglages, rappel
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, compte, réglages, rappel
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager
@@ -115,7 +116,7 @@ Pour les j’aime, les échos, les intentions et le compte : copier `.env.exampl
 - `src/bible.ts` : les deux traductions, l’ordre des livres, ce que la Segond emprunte à la Crampon
 - `src/reading.ts` : positions dans la Bible, question de méditation de fin de chapitre
 - `src/liturgical-year.ts` : l’année liturgique calculée (temps, semaines, cycles, grandes fêtes)
-- `src/advent.ts` / `src/data/advent.ts` : le parcours de l’Avent et ses jours
+- `src/journeys.ts` / `src/journey-screen.tsx` : les parcours des temps forts et leur écran ; `src/data/advent.ts`, `src/data/lent.ts` : leurs jours
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes
 - `src/sheets.tsx` : chapitre complet, favoris, liste des livres

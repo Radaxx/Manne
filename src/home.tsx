@@ -3,12 +3,12 @@ import { type Href, router } from 'expo-router';
 import { type ReactNode, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { adventDay, adventPhase, currentAdvent, weekTheme } from './advent';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
 import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
 import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
+import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys';
 import { liturgicalDay } from './liturgical-year';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
@@ -115,19 +115,25 @@ export function HomeScreen() {
 
   const info = mass?.informations;
   const liturgy = liturgicalDay(day);
-  const advent = useMemo(() => {
-    const a = currentAdvent(day);
-    const phase = adventPhase(a, day);
-    const current = phase === 'pendant' ? adventDay(a, day) : null;
+  const journey = useMemo(() => {
+    const j = featuredJourney(day);
+    if (!j) return null;
+    const phase = journeyPhase(j, day);
+    const current = phase === 'pendant' ? journeyDay(j, day) : null;
+    const { short, season, feast, weeks } = JOURNEYS[j.kind];
     return {
+      href: `/${j.kind}` as const,
       phase,
-      start: dayLabel(a.start),
-      wait: daysSince(day, a.start),
-      index: a.dates.indexOf(day),
-      total: a.dates.length,
-      week: current?.week ?? 0,
+      short,
+      season,
+      feast,
+      start: dayLabel(j.start),
+      wait: daysSince(day, j.start),
+      index: j.dates.indexOf(day),
+      total: j.dates.length,
+      theme: current ? weeks[current.week].theme : '',
       title: current?.day.title ?? '',
-      done: (progress.journeys[a.id] ?? []).includes(day),
+      done: (progress.journeys[j.id] ?? []).includes(day),
     };
   }, [day, progress.journeys]);
   const gospel = mass?.messes[0]?.lectures.find((l) => l.type === 'evangile');
@@ -217,22 +223,26 @@ export function HomeScreen() {
           <Ionicons name="chevron-forward" size={14} color={C.muted} />
         </Pressable>
 
-        {/* Le parcours de l'Avent : annoncé trois semaines avant, puis un jour à la fois */}
-        {advent.phase === 'pendant' ? (
-          <Card onPress={() => router.push('/avent')} style={styles.adventCard}>
-            <Text style={styles.adventKicker}>
-              AVENT · JOUR {advent.index + 1} SUR {advent.total} · {weekTheme(advent.week).theme.toUpperCase()}
+        {/* Le parcours de l'Avent ou du Carême : annoncé trois semaines avant, puis un jour à la fois */}
+        {journey?.phase === 'pendant' ? (
+          <Card onPress={() => router.push(journey.href)} style={styles.journeyCard}>
+            <Text style={styles.journeyKicker}>
+              {journey.short.toUpperCase()} · JOUR {journey.index + 1} SUR {journey.total} · {journey.theme.toUpperCase()}
             </Text>
-            <Text style={styles.officeName}>{advent.title}</Text>
-            <Text style={styles.muted}>{advent.done ? 'Jour vécu ✓' : 'Un passage, une méditation, un geste pour aujourd’hui.'}</Text>
+            <Text style={styles.officeName}>{journey.title}</Text>
+            <Text style={styles.muted}>{journey.done ? 'Jour vécu ✓' : 'Un passage, une méditation, un geste pour aujourd’hui.'}</Text>
           </Card>
-        ) : advent.phase === 'avant' && advent.wait <= 21 ? (
-          <Card onPress={() => router.push('/avent')} style={styles.adventCard}>
-            <Text style={styles.adventKicker}>PARCOURS DE L’AVENT</Text>
+        ) : journey?.phase === 'avant' ? (
+          <Card onPress={() => router.push(journey.href)} style={styles.journeyCard}>
+            <Text style={styles.journeyKicker}>PARCOURS · {journey.short.toUpperCase()}</Text>
             <Text style={styles.officeName}>
-              {advent.wait === 1 ? 'Demain, l’Avent commence' : `L’Avent commence dans ${advent.wait} jours`}
+              {journey.wait === 1
+                ? `Demain, ${journey.season.charAt(0).toLowerCase()}${journey.season.slice(1)} commence`
+                : `${journey.season} commence dans ${journey.wait} jours`}
             </Text>
-            <Text style={styles.muted}>Le {advent.start} : chaque jour jusqu’à Noël, un passage, une méditation et un geste.</Text>
+            <Text style={styles.muted}>
+              Le {journey.start} : chaque jour jusqu’à {journey.feast}, un passage, une méditation et un geste.
+            </Text>
           </Card>
         ) : null}
 
@@ -412,8 +422,8 @@ const stylesFor = (C: Palette) =>
     liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
     colorDot: { width: 10, height: 10, borderRadius: 5 },
     liturgyText: { color: C.muted, fontSize: 14, flexShrink: 1 },
-    adventCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
-    adventKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', marginBottom: 4 },
+    journeyCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
+    journeyKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', marginBottom: 4 },
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 30, marginBottom: 10 },
     sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800' },
     sectionAction: { color: C.gold, fontSize: 14, fontWeight: '600' },

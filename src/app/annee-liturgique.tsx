@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { adventDay, adventPhase, currentAdvent } from '../advent';
 import { LITURGICAL_COLORS, plainText, useMass } from '../aelf';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { dayLabel, daysSince, shortDate } from '../dates';
+import { currentJourney, JOURNEY_KINDS, JOURNEYS, journeyDay, journeyPhase } from '../journeys';
 import { liturgicalDay, liturgicalYear, SEASONS, upcomingFeasts } from '../liturgical-year';
 import { today, useApp } from '../storage';
 import { useThemed } from '../theme';
@@ -24,9 +24,6 @@ export default function LiturgicalYearScreen() {
   // L'AELF connaît aussi les saints du jour : sa ligne est plus précise quand on est en ligne.
   const info = useMass(now).data?.informations;
   const color = LITURGICAL_COLORS[info?.couleur ?? day.color] ?? C.muted;
-  const advent = currentAdvent(now);
-  const phase = adventPhase(advent, now);
-  const adventDone = progress.journeys[advent.id]?.length ?? 0;
   const elapsed = daysSince(year.start, now);
 
   return (
@@ -66,20 +63,33 @@ export default function LiturgicalYearScreen() {
       </View>
 
       <Text style={styles.section}>Parcours</Text>
-      <Pressable onPress={() => router.push('/avent')} style={({ pressed }) => [styles.card, styles.row, pressed && styles.pressed]}>
-        <Ionicons name="flame-outline" size={24} color={LITURGICAL_COLORS.violet} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>Parcours de l’Avent {advent.year}</Text>
-          <Text style={styles.muted}>
-            {phase === 'avant'
-              ? `Commence le ${dayLabel(advent.start)}, ${inDays(daysSince(now, advent.start))}.`
-              : phase === 'pendant'
-                ? `Jour ${advent.dates.indexOf(now) + 1} sur ${advent.dates.length} · ${adventDay(advent, now).day.title}`
-                : `${adventDone} jour${adventDone > 1 ? 's' : ''} vécu${adventDone > 1 ? 's' : ''} sur ${advent.dates.length}.`}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={C.faint} />
-      </Pressable>
+      {JOURNEY_KINDS.map((kind) => {
+        const journey = currentJourney(kind, now);
+        const phase = journeyPhase(journey, now);
+        const lived = progress.journeys[journey.id]?.length ?? 0;
+        return (
+          <Pressable
+            key={kind}
+            onPress={() => router.push(`/${kind}`)}
+            style={({ pressed }) => [styles.card, styles.row, pressed && styles.pressed]}
+          >
+            <Ionicons name={kind === 'avent' ? 'flame-outline' : 'leaf-outline'} size={24} color={LITURGICAL_COLORS.violet} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>
+                {JOURNEYS[kind].name} {journey.year}
+              </Text>
+              <Text style={styles.muted}>
+                {phase === 'avant'
+                  ? `Commence le ${dayLabel(journey.start)}, ${inDays(daysSince(now, journey.start))}.`
+                  : phase === 'pendant'
+                    ? `Jour ${journey.dates.indexOf(now) + 1} sur ${journey.dates.length} · ${journeyDay(journey, now).day.title}`
+                    : `${lived} jour${lived > 1 ? 's' : ''} vécu${lived > 1 ? 's' : ''} sur ${journey.dates.length}.`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </Pressable>
+        );
+      })}
 
       <Text style={styles.section}>Prochaines fêtes</Text>
       <View style={styles.card}>
