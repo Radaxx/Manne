@@ -2,19 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import { BOOKS, loadBook } from './data/bible';
 import type { Passage } from './data/content';
 import { TOTAL_CHAPTERS } from './reading';
+import { useThemed } from './theme';
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const { C, styles } = useThemed(stylesFor);
   return (
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} visible>
       <SafeAreaView style={styles.sheet} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{title}</Text>
           <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Fermer">
-            <Ionicons name="close" size={26} color="#222" />
+            <Ionicons name="close" size={26} color={C.text} />
           </Pressable>
         </View>
         {children}
@@ -25,6 +28,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 
 /** Le chapitre complet autour d'un verset : pour lire dans son contexte, pas seulement en extrait. */
 export function ChapterSheet({ passage, onClose }: { passage: Passage; onClose: () => void }) {
+  const { styles } = useThemed(stylesFor);
   const verses = loadBook(passage.book)[passage.chapter - 1];
   const scroll = useRef<ScrollView>(null);
 
@@ -65,6 +69,7 @@ export function SavedSheet({
   onOpen: (p: Passage) => void;
   onClose: () => void;
 }) {
+  const { C, styles } = useThemed(stylesFor);
   return (
     <Sheet title="Mes versets" onClose={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
@@ -78,7 +83,7 @@ export function SavedSheet({
               <Text style={styles.itemRef}>{p.reference}</Text>
             </View>
             <Pressable onPress={() => onRemove(p)} hitSlop={10} accessibilityLabel="Retirer">
-              <Ionicons name="bookmark" size={22} color="#d9a400" />
+              <Ionicons name="bookmark" size={22} color={C.gold} />
             </Pressable>
           </Pressable>
         ))}
@@ -102,6 +107,7 @@ export function BooksSheet({
   onPick: (book: number, chapter?: number) => void;
   onClose: () => void;
 }) {
+  const { C, styles } = useThemed(stylesFor);
   const [selected, setSelected] = useState<number | null>(null);
   const read = useMemo(() => new Set(chaptersRead), [chaptersRead]);
   const readByBook = useMemo(() => {
@@ -120,12 +126,12 @@ export function BooksSheet({
       <Sheet title={b.name} onClose={onClose}>
         <ScrollView contentContainerStyle={styles.list}>
           <Pressable onPress={() => setSelected(null)} hitSlop={8} style={styles.backRow}>
-            <Ionicons name="chevron-back" size={18} color="#a08a4a" />
+            <Ionicons name="chevron-back" size={18} color={C.gold} />
             <Text style={styles.backText}>Tous les livres</Text>
           </Pressable>
           {pos && (pos.chapter > 1 || pos.verse > 1) && (
             <Pressable onPress={() => onPick(selected)} style={styles.resume}>
-              <Ionicons name="bookmark" size={16} color="#fff" />
+              <Ionicons name="bookmark" size={16} color={C.onGold} />
               <Text style={styles.resumeText}>
                 Reprendre : chapitre {pos.chapter}
                 {pos.verse > 1 ? `, verset ${pos.verse}` : ''}
@@ -181,7 +187,7 @@ export function BooksSheet({
             <Text style={styles.bookCount}>
               {count}/{total}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#bbb" />
+            <Ionicons name="chevron-forward" size={16} color={C.faint} />
           </Pressable>
         );
       })}
@@ -204,81 +210,82 @@ export function BooksSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: '#faf7f0' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222' },
-  chapter: { padding: 22, paddingBottom: 80 },
-  chapterVerse: { fontFamily: SERIF, fontSize: 18, lineHeight: 29, color: '#2b2b2b', marginBottom: 6, padding: 4, borderRadius: 6 },
-  highlight: { backgroundColor: '#fde9a8' },
-  num: { fontSize: 12, color: '#a08a4a', fontWeight: '700' },
-  muted: { color: '#777', fontSize: 15, textAlign: 'center', marginTop: 40, paddingHorizontal: 20 },
-  list: { padding: 16, gap: 12, paddingBottom: 60 },
-  item: { flexDirection: 'row', gap: 12, backgroundColor: '#fff', padding: 16, borderRadius: 14, alignItems: 'flex-start' },
-  itemText: { fontFamily: SERIF, fontSize: 16, lineHeight: 23, color: '#222' },
-  itemRef: { marginTop: 8, fontSize: 12, letterSpacing: 1.5, color: '#888', fontWeight: '600', textTransform: 'uppercase' },
-  overall: { fontSize: 15, fontWeight: '700', color: '#222' },
-  section: {
-    fontSize: 12,
-    letterSpacing: 2,
-    fontWeight: '800',
-    color: '#a08a4a',
-    textTransform: 'uppercase',
-    marginTop: 18,
-    marginBottom: 8,
-  },
-  bookRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 6,
-  },
-  bookRowActive: { borderWidth: 2, borderColor: '#e0b84a' },
-  bookName: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 6 },
-  badge: { fontSize: 12, fontWeight: '600', color: '#2a9d6a' },
-  bookCount: { fontSize: 13, color: '#888', fontVariant: ['tabular-nums'] },
-  track: { height: 4, borderRadius: 2, backgroundColor: '#eee6d3', overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: '#e0b84a' },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  backText: { color: '#a08a4a', fontSize: 15, fontWeight: '600' },
-  resume: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: '#2b2b2b',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    marginTop: 6,
-  },
-  resumeText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cell: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  cellRead: { backgroundColor: '#f3dc9a' },
-  cellCurrent: { borderColor: '#2b2b2b' },
-  cellText: { fontSize: 17, fontWeight: '600', color: '#222', fontVariant: ['tabular-nums'] },
-  cellTextRead: { color: '#6b5310' },
-  legend: { color: '#999', fontSize: 12, marginTop: 6 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    sheet: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+    chapter: { padding: 22, paddingBottom: 80 },
+    chapterVerse: { fontFamily: SERIF, fontSize: 18, lineHeight: 29, color: C.text, marginBottom: 6, padding: 4, borderRadius: 6 },
+    highlight: { backgroundColor: C.highlight },
+    num: { fontSize: 12, color: C.gold, fontWeight: '700' },
+    muted: { color: C.muted, fontSize: 15, textAlign: 'center', marginTop: 40, paddingHorizontal: 20 },
+    list: { padding: 16, gap: 12, paddingBottom: 60 },
+    item: { flexDirection: 'row', gap: 12, backgroundColor: C.card, padding: 16, borderRadius: 14, alignItems: 'flex-start' },
+    itemText: { fontFamily: SERIF, fontSize: 16, lineHeight: 23, color: C.text },
+    itemRef: { marginTop: 8, fontSize: 12, letterSpacing: 1.5, color: C.muted, fontWeight: '600', textTransform: 'uppercase' },
+    overall: { fontSize: 15, fontWeight: '700', color: C.text },
+    section: {
+      fontSize: 12,
+      letterSpacing: 2,
+      fontWeight: '800',
+      color: C.gold,
+      textTransform: 'uppercase',
+      marginTop: 18,
+      marginBottom: 8,
+    },
+    bookRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: C.card,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      marginBottom: 6,
+    },
+    bookRowActive: { borderWidth: 2, borderColor: C.gold },
+    bookName: { fontSize: 16, fontWeight: '600', color: C.text, marginBottom: 6 },
+    badge: { fontSize: 12, fontWeight: '600', color: '#2a9d6a' },
+    bookCount: { fontSize: 13, color: C.muted, fontVariant: ['tabular-nums'] },
+    track: { height: 4, borderRadius: 2, backgroundColor: C.track, overflow: 'hidden' },
+    fill: { height: '100%', backgroundColor: C.gold },
+    backRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    backText: { color: C.gold, fontSize: 15, fontWeight: '600' },
+    resume: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      alignSelf: 'flex-start',
+      backgroundColor: C.gold,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+      marginTop: 6,
+    },
+    resumeText: { color: C.onGold, fontSize: 15, fontWeight: '700' },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    cell: {
+      width: 52,
+      height: 52,
+      borderRadius: 12,
+      backgroundColor: C.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    cellRead: { backgroundColor: C.highlight },
+    cellCurrent: { borderColor: C.text },
+    cellText: { fontSize: 17, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'] },
+    cellTextRead: { color: C.gold },
+    legend: { color: C.faint, fontSize: 12, marginTop: 6 },
+  });

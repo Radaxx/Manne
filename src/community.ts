@@ -113,6 +113,9 @@ function readStat(row: unknown): { target: string; stat: Stat } | null {
   return { target: record.target, stat: { likes, echoes, liked: record.liked } };
 }
 
+/** Utilisateur auquel appartiennent les compteurs en mémoire (leur « liked » est personnel). */
+let statsUser: string | null = null;
+
 async function refreshTargets(targets: string[]): Promise<boolean> {
   const client = supabase;
   if (!client || targets.length === 0) return false;
@@ -120,6 +123,10 @@ async function refreshTargets(targets: string[]): Promise<boolean> {
   if (!userId) return false;
   const { data, error } = await client.rpc('community_stats', { targets });
   if (error || !Array.isArray(data)) return false;
+  if (statsUser !== userId) {
+    statsUser = userId;
+    stats = {};
+  }
   let changed = false;
   for (const row of data) {
     const parsed = readStat(row);
@@ -139,7 +146,7 @@ export function refreshTarget(target: string) {
 }
 
 let queue: LikeOp[] | null = null;
-let flushing = false;
+let flushing: Promise<void> | null = null;
 let flushAgain = false;
 
 async function readQueue(): Promise<LikeOp[]> {
@@ -159,6 +166,14 @@ async function persistQueue() {
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 }
 
+/**
+ * Refus définitif de la base (donnée invalide, contrainte, droits) : rejouer l'opération échouerait
+ * toujours et bloquerait les suivantes. Le réseau ou un serveur indisponible, eux, valent un nouvel essai.
+ */
+function rejected(error: { code?: string } | null): boolean {
+  return !!error?.code && /^(22|23|42)/.test(error.code);
+}
+
 async function drainLikes(): Promise<boolean> {
   const client = supabase;
   const q = await readQueue();
@@ -171,30 +186,54 @@ async function drainLikes(): Promise<boolean> {
       ? await client.from('likes').insert({ user_id: userId, target: op.target })
       : await client.from('likes').delete().eq('user_id', userId).eq('target', op.target);
     const duplicate = error?.code === '23505';
-    if (error && !duplicate) return false;
+    const dropped = !duplicate && rejected(error);
+    if (error && !duplicate && !dropped) return false;
     if (queue[0]?.target === op.target && queue[0]?.liked === op.liked) queue.shift();
     await persistQueue();
+    if (dropped) {
+      // Le compteur affiché revient à ce que dit le serveur.
+      overrides = Object.fromEntries(Object.entries(overrides).filter(([key]) => key !== op.target));
+      emit();
+    }
     void refreshTarget(op.target);
   }
   return true;
 }
 
-/** Rejoue les j'aime qui n'ont pas atteint le serveur. */
-export async function flushLikes() {
+/** Rejoue les j'aime qui n'ont pas atteint le serveur. Résout quand la file a été parcourue. */
+export function flushLikes(): Promise<void> {
   if (flushing) {
     flushAgain = true;
-    return;
+    return flushing;
   }
-  flushing = true;
-  try {
-    let ok = true;
-    do {
-      flushAgain = false;
-      ok = await drainLikes();
-    } while (ok && flushAgain);
-  } finally {
-    flushing = false;
-  }
+  flushing = (async () => {
+    try {
+      let ok = true;
+      do {
+        flushAgain = false;
+        ok = await drainLikes();
+      } while (ok && flushAgain);
+    } finally {
+      flushing = null;
+    }
+  })();
+  return flushing;
+}
+
+/**
+ * Après une déconnexion : les j'aime en attente et les compteurs appartenaient au compte quitté.
+ * Sans cela, la file partirait sous la nouvelle session anonyme.
+ */
+export async function resetCommunity() {
+  queue = [];
+  stats = {};
+  statsUser = null;
+  overrides = {};
+  echo = null;
+  queuedTargets.clear();
+  failedTargets.clear();
+  emit();
+  await AsyncStorage.removeItem(QUEUE_KEY);
 }
 
 /** Mémorise le j'aime et l'envoie. En cas d'échec, il repart au prochain lancement. */

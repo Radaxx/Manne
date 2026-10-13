@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+import { localDate } from './dates';
 
 // Textes liturgiques du jour (messe et Liturgie des Heures) fournis par l'AELF : https://www.aelf.org
 // Ils sont © AELF ; on les récupère à la demande et on les garde en cache pour la journée.
@@ -61,12 +62,25 @@ export const LITURGICAL_COLORS: Record<string, string> = {
   noir: '#222',
 };
 
-export const localDate = (d = new Date()) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
 const CACHE = 'manne/aelf/';
 
+/**
+ * Retire les textes des jours antérieurs à `before` (tous si absent). Sur Android, AsyncStorage est
+ * plafonné à 6 Mo : un cache qui ne fait que grandir finirait par bloquer l'enregistrement de la progression.
+ */
+export async function pruneAelfCache(before?: string) {
+  const keys = await AsyncStorage.getAllKeys();
+  const stale = keys.filter((key) => key.startsWith(CACHE) && (!before || key.slice(key.lastIndexOf('/') + 1) < before));
+  if (stale.length) await AsyncStorage.multiRemove(stale);
+}
+
+let prunedBefore: string | null = null;
+
 async function fetchAelf<T>(endpoint: string, date: string): Promise<T> {
+  if (prunedBefore !== date) {
+    prunedBefore = date;
+    pruneAelfCache(date).catch(() => {});
+  }
   const key = `${CACHE}${endpoint}/${date}`;
   try {
     const cached = await AsyncStorage.getItem(key);

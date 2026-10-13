@@ -7,14 +7,12 @@ import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from '.
 import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import { BOOKS } from './data/bible';
+import { MONTHS, WEEKDAYS } from './dates';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
 import { today, useApp } from './storage';
 import { useThemed } from './theme';
 import { todayLine, unseenSteps } from './today';
-
-const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -163,7 +161,7 @@ export function HomeScreen() {
           </View>
         </View>
         <Text style={styles.date}>
-          {capitalize(DAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
+          {capitalize(WEEKDAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
         </Text>
         <Pressable onPress={() => router.push('/compte')} style={({ pressed }) => [styles.todayLine, pressed && styles.pressed]}>
           <Text style={styles.todayText}>{todayLine(progress)}</Text>
@@ -311,7 +309,7 @@ export function HomeScreen() {
             </Text>
             <Ionicons name="chevron-forward" size={20} color={C.muted} />
           </View>
-          <Bar value={bookDone} color="rgba(236,232,223,0.6)" />
+          <Bar value={bookDone} color={C.muted} />
           <Text style={styles.small}>{Math.round(bookDone * 100)} % du livre</Text>
         </Card>
 

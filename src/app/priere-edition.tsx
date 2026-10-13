@@ -62,7 +62,10 @@ export default function PrayerEditor() {
           multiline
           textAlignVertical="top"
         />
-        <Text style={styles.hint}>Une ligne vide sépare deux paragraphes. Ta prière reste sur ton téléphone.</Text>
+        <Text style={styles.hint}>
+          Une ligne vide sépare deux paragraphes. Ta prière est enregistrée avec ton chemin et te suit sur tes autres appareils si tu relies
+          un compte.
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

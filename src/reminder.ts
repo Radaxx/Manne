@@ -74,8 +74,22 @@ export async function reminderPermissionGranted(): Promise<boolean> {
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
-/** Reprogramme les rappels. Aujourd'hui est inclus tant que la journée est incomplète et l'heure à venir. */
-export async function scheduleReminders(settings: ReminderSettings, todayDone = false) {
+let pending: Promise<void> = Promise.resolve();
+let generation = 0;
+
+/**
+ * Reprogramme les rappels. Aujourd'hui est inclus tant que la journée est incomplète et l'heure à venir.
+ * Les appels passent l'un après l'autre et seul le dernier demandé compte : deux programmations mêlées
+ * laisseraient des rappels en double.
+ */
+export function scheduleReminders(settings: ReminderSettings, todayDone = false): Promise<void> {
+  const gen = ++generation;
+  const stale = () => gen !== generation;
+  pending = pending.catch(() => {}).then(() => (stale() ? undefined : reschedule(settings, todayDone, stale)));
+  return pending;
+}
+
+async function reschedule(settings: ReminderSettings, todayDone: boolean, stale: () => boolean) {
   if (!notificationsSupported) return;
   await configure();
   await Notifications.cancelAllScheduledNotificationsAsync();
@@ -84,6 +98,8 @@ export async function scheduleReminders(settings: ReminderSettings, todayDone = 
   const todayAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute);
   const first = !todayDone && todayAt.getTime() > now.getTime() ? 0 : 1;
   for (let d = first; d <= DAYS_AHEAD; d++) {
+    // Une demande plus récente attend : elle repartira de zéro, inutile de finir celle-ci.
+    if (stale()) return;
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, settings.hour, settings.minute);
     await Notifications.scheduleNotificationAsync({
       content: reminderContent(date),

@@ -37,8 +37,11 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@resvg/resvg-js": "^2.6.2",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "@types/three": "^0.186.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.6",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -50,7 +53,14 @@
     "web": "expo start --web",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "fix": "biome check --write ."
+    "fix": "biome check --write .",
+    "test": "jest"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "./jest.setup.js"
+    ]
+  }
 }

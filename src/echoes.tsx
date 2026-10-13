@@ -15,12 +15,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import { closeEchoes, deleteEcho, type Echo, flushLikes, listEchoes, postEcho, reportEcho, retryFailed, useCommunity } from './community';
+import { useThemed } from './theme';
 
 const when = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
 function EchoSheet({ target, reference, onClose }: { target: string; reference: string; onClose: () => void }) {
+  const { C, styles } = useThemed(stylesFor);
   const [echoes, setEchoes] = useState<Echo[] | null>(null);
   const [offline, setOffline] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -100,12 +103,12 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
             <Text style={styles.headerRef}>{reference}</Text>
           </View>
           <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Fermer">
-            <Ionicons name="close" size={26} color="#222" />
+            <Ionicons name="close" size={26} color={C.text} />
           </Pressable>
         </View>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-            {echoes === null ? <ActivityIndicator color="#a08a4a" style={{ marginTop: 40 }} /> : null}
+            {echoes === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 40 }} /> : null}
             {offline ? <Text style={styles.muted}>{offline}</Text> : null}
             {echoes && echoes.length === 0 && !offline ? (
               <Text style={styles.muted}>Aucun écho pour l’instant. Une phrase, pas un débat.</Text>
@@ -141,7 +144,7 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
                 value={draft}
                 onChangeText={setDraft}
                 placeholder="Une méditation, en quelques mots"
-                placeholderTextColor="#999"
+                placeholderTextColor={C.faint}
                 style={styles.input}
                 multiline
                 maxLength={240}
@@ -180,50 +183,51 @@ export function EchoHost() {
   return <EchoSheet target={echo.target} reference={echo.reference} onClose={closeEchoes} />;
 }
 
-const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: '#faf7f0' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
-    gap: 12,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222' },
-  headerRef: { fontSize: 13, color: '#888', marginTop: 2 },
-  list: { padding: 16, gap: 12, paddingBottom: 24 },
-  muted: { color: '#777', fontSize: 15, textAlign: 'center', marginTop: 28, paddingHorizontal: 12, lineHeight: 22 },
-  item: { backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 10 },
-  body: { fontFamily: SERIF, fontSize: 17, lineHeight: 25, color: '#222' },
-  hidden: { fontSize: 15, lineHeight: 22, color: '#888', fontStyle: 'italic' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  when: { color: '#999', fontSize: 12, fontWeight: '600' },
-  action: { color: '#a08a4a', fontSize: 13, fontWeight: '700' },
-  notice: { color: '#9a4a3a', fontSize: 14, textAlign: 'center', marginTop: 8 },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#222',
-  },
-  send: { backgroundColor: '#2b2b2b', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
-  sendText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    sheet: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+      gap: 12,
+    },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+    headerRef: { fontSize: 13, color: C.muted, marginTop: 2 },
+    list: { padding: 16, gap: 12, paddingBottom: 24 },
+    muted: { color: C.muted, fontSize: 15, textAlign: 'center', marginTop: 28, paddingHorizontal: 12, lineHeight: 22 },
+    item: { backgroundColor: C.card, borderRadius: 14, padding: 16, gap: 10 },
+    body: { fontFamily: SERIF, fontSize: 17, lineHeight: 25, color: C.text },
+    hidden: { fontSize: 15, lineHeight: 22, color: C.muted, fontStyle: 'italic' },
+    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+    when: { color: C.faint, fontSize: 12, fontWeight: '600' },
+    action: { color: C.gold, fontSize: 13, fontWeight: '700' },
+    notice: { color: C.red, fontSize: 14, textAlign: 'center', marginTop: 8 },
+    composer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 8,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    input: {
+      flex: 1,
+      minHeight: 44,
+      maxHeight: 120,
+      backgroundColor: C.cardHi,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: C.text,
+    },
+    send: { backgroundColor: C.gold, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
+    sendText: { color: C.onGold, fontWeight: '700', fontSize: 15 },
+  });

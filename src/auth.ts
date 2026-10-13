@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { flushLikes, resetCommunity } from './community';
 import { currentUserId, ensureSession, supabase } from './supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -318,7 +319,10 @@ async function depositNonce(): Promise<string | null> {
 async function signOut(reset: () => void) {
   const client = supabase;
   if (!client) return;
+  // Les j'aime en attente partent encore sous le compte ; ceux qui ne passent pas sont abandonnés.
+  await flushLikes().catch(() => {});
   await client.auth.signOut({ scope: 'local' });
+  await resetCommunity().catch(() => {});
   reset();
   // Laisse l'état effacé arriver jusqu'à la synchro avant que la nouvelle session ne la déclenche.
   await new Promise((resolve) => setTimeout(resolve, 0));

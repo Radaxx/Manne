@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -19,35 +18,21 @@ import type { Palette } from '../appearance';
 import { rosaryMaterial } from '../appearance';
 import { SERIF } from '../cards';
 import { MYSTERIES, prayerById } from '../data/prayers';
-import { daysSince } from '../plans';
+import { haptic } from '../haptics';
+import { PrayerText } from '../prayers';
 import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, type RosaryStep, rosarySteps, sessionLabel } from '../rosary';
 import { Rosary3D } from '../rosary3d';
 import { type RosarySession, today, useApp } from '../storage';
 import { useThemed } from '../theme';
+import { lastTimeLabel } from '../today';
 
 // Prier le chapelet, guidé grain après grain : on choisit ses mystères, on touche le chapelet
 // (ou le bouton) à chaque prière, et Manne compte à notre place. On peut quitter et reprendre.
-
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
 const CLOSING =
   'Priez pour nous, sainte Mère de Dieu,\n— afin que nous soyons rendus dignes des promesses du Christ.\n\nAu nom du Père, et du Fils, et du Saint-Esprit. Amen.';
 
 const todaySet = () => MYSTERIES.findIndex((s) => s.days.includes(new Date().getDay()));
-
-const haptic = (kind: 'bead' | 'decade' | 'end') => {
-  if (Platform.OS === 'web') return;
-  if (kind === 'end') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  else Haptics.impactAsync(kind === 'decade' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-};
-
-function lastRosaryLabel(day: string | null, count: number) {
-  if (!day) return 'Aucun chapelet prié avec Manne pour l’instant.';
-  const [y, m, d] = day.split('-').map(Number);
-  const ago = daysSince(day, today());
-  const when = ago === 0 ? 'aujourd’hui' : ago === 1 ? 'hier' : `le ${d} ${MONTHS[m - 1]} ${y}`;
-  return `Dernière fois : ${when} · ${count} au total.`;
-}
 
 function Kicker({ step, set }: { step: RosaryStep; set: number }) {
   const { styles } = useThemed(stylesFor);
@@ -56,25 +41,6 @@ function Kicker({ step, set }: { step: RosaryStep; set: number }) {
   else if (step.decade !== null) text = `Dizaine ${step.decade + 1} · ${MYSTERIES[set].mysteries[step.decade]}`;
   else if (step.kind === 'salve' || step.kind === 'closing') text = 'Conclusion';
   return <Text style={styles.kicker}>{text}</Text>;
-}
-
-/** Une ligne « — … » est la réponse, en doré. */
-function PrayerLines({ text }: { text: string }) {
-  const { C, styles } = useThemed(stylesFor);
-  return (
-    <>
-      {text.split('\n\n').map((para, i) => (
-        <Text key={i} style={styles.prayer}>
-          {para.split('\n').map((line, j, lines) => (
-            <Text key={j} style={line.startsWith('—') ? { color: C.gold } : undefined}>
-              {line}
-              {j < lines.length - 1 ? '\n' : ''}
-            </Text>
-          ))}
-        </Text>
-      ))}
-    </>
-  );
 }
 
 function StepBody({ step, session, texts }: { step: RosaryStep; session: RosarySession; texts: boolean }) {
@@ -113,7 +79,7 @@ function StepBody({ step, session, texts }: { step: RosaryStep; session: RosaryS
           <Text style={styles.intentionText}>{session.intention}</Text>
         </View>
       ) : null}
-      {texts || isFirst || step.kind === 'closing' || step.kind === 'fatima' ? <PrayerLines text={text} /> : null}
+      {texts || isFirst || step.kind === 'closing' || step.kind === 'fatima' ? <PrayerText text={text} style={styles.prayer} /> : null}
     </>
   );
 }
@@ -141,11 +107,11 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
     const next = index + delta;
     if (next < 0) return;
     if (next >= steps.length) {
-      haptic('end');
+      haptic('success');
       onDone();
       return;
     }
-    haptic(steps[next].kind === 'mystery' ? 'decade' : 'bead');
+    haptic(steps[next].kind === 'mystery' ? 'medium' : 'light');
     setRosarySession({ ...session, step: next });
   };
 
@@ -311,7 +277,7 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
           Laisse-toi guider grain après grain. Touche le chapelet ou le bouton à chaque prière : Manne compte pour toi, et tu peux faire une
           pause à tout moment.
         </Text>
-        <Text style={styles.last}>{lastRosaryLabel(last, count)}</Text>
+        <Text style={styles.last}>{lastTimeLabel(last, count, today(), 'Aucun chapelet prié avec Manne pour l’instant.')}</Text>
 
         {session && (
           <Pressable onPress={() => onStart(session)} style={({ pressed }) => [styles.resume, pressed && { opacity: 0.85 }]}>
@@ -347,7 +313,7 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
               style={[styles.segmentItem, single === one && styles.segmentActive]}
             >
               <Text style={[styles.segmentText, single === one && { color: C.onGold }]}>{one ? 'Une dizaine' : 'Chapelet entier'}</Text>
-              <Text style={[styles.segmentHint, single === one && { color: 'rgba(13,14,18,0.6)' }]}>
+              <Text style={[styles.segmentHint, single === one && { color: C.onGold, opacity: 0.65 }]}>
                 {one ? '≈ 4 min' : '5 dizaines · ≈ 20 min'}
               </Text>
             </Pressable>
@@ -579,7 +545,7 @@ const stylesFor = (C: Palette) =>
       flexShrink: 1,
       marginHorizontal: 16,
       borderRadius: 20,
-      backgroundColor: 'rgba(23,25,31,0.92)',
+      backgroundColor: C.overlay,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.line,
     },
@@ -590,7 +556,7 @@ const stylesFor = (C: Palette) =>
       alignItems: 'center',
       alignSelf: 'center',
       gap: 6,
-      backgroundColor: 'rgba(13,14,18,0.72)',
+      backgroundColor: C.overlay,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 7,

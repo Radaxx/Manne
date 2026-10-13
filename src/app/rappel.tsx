@@ -40,7 +40,8 @@ export default function ReminderScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
-        Une notification par jour pour t’inviter à lire, avec un verset. Elle n’arrive que si tu n’as pas encore ouvert Manne ce jour-là.
+        Une notification par jour pour t’inviter à lire, avec un verset. Elle n’arrive pas si ta journée est déjà faite : l’Évangile, la
+        lecture et une prière.
       </Text>
 
       {!notificationsSupported ? (
@@ -124,7 +125,7 @@ const stylesFor = (C: Palette) =>
     timeActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
     timeText: { color: C.text, fontSize: 15, fontWeight: '600' },
     timeTextActive: { color: C.gold },
-    preview: { backgroundColor: '#24262e', borderRadius: 18, padding: 14, gap: 4 },
+    preview: { backgroundColor: C.cardHi, borderRadius: 18, padding: 14, gap: 4 },
     previewHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
     previewApp: { color: C.muted, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
     previewTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
