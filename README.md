@@ -27,7 +27,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 ## Deux fils
 
-- **Lecture** : la Bible en lecture suivie, quelques versets par écran. On choisit un livre puis un chapitre, et on peut remonter pour relire. Chaque glissement fait avancer le marque-page ; on reprend toujours là où on s’était arrêté. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
+- **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit un livre puis un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc. (Les plans de lecture gardent leur fil de cartes.)
 - **Découvrir** : des versets choisis par thème (qui s’adaptent à ce que tu aimes), des anecdotes, des quiz et des personnages bibliques.
 
 Et pour ne pas reproduire le « doomscrolling » : un objectif quotidien de 30 versets, une série de jours, et une carte Pause toutes les 15 cartes dans Découvrir.
@@ -56,7 +56,8 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 
 - `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration
 - `src/home.tsx` : l’écran d’accueil
-- `src/feeds.tsx` : les fils de cartes plein écran
+- `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
+- `src/chapter.tsx` : la lecture d’un chapitre entier, sélection de versets, J’aime / Garder / Partager
 - `src/aelf.ts` / `src/liturgy.tsx` : textes liturgiques AELF et leur affichage
 - `src/plans.ts` : plans de lecture
 - `src/prayers.tsx` / `src/data/prayers.ts` : l’onglet Prières et son recueil
