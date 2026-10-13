@@ -22,6 +22,8 @@ Un recueil de 53 prières (essentielles, Marie, saints, saint François d’Assi
 
 Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une nappe de lin, qu’on égrène en le tirant vers soi (glisser vers le bas) ou d’une simple touche. La caméra suit le grain qu’on prie, qui s’éclaire d’une lumière dorée. Un réglage permet de revenir au chapelet dessiné à plat ; c’est aussi ce qui s’affiche si le téléphone ne peut pas faire la 3D.
 
+**Adorer le Saint-Sacrement** : une adoration guidée, de 15 à 60 minutes, répartie en temps successifs. Le parcours **contemplatif** laisse surtout place au silence, avec un verset du jour ; le parcours **guidé** accompagne pas à pas : se mettre en présence, adorer, écouter l’Évangile du jour (AELF), remercier, demander pardon, confier ses intentions, puis rendre grâce. Les silences ont une minuterie douce avec une vibration à la fin ; les autres temps vont à son rythme. L’écran reste allumé, on peut faire une pause et reprendre. Les intentions à confier sont gardées d’une adoration à l’autre.
+
 ## Deux fils
 
 - **Lecture** : la Bible en lecture suivie, quelques versets par écran. On choisit un livre puis un chapitre, et on peut remonter pour relire. Chaque glissement fait avancer le marque-page ; on reprend toujours là où on s’était arrêté. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
@@ -51,7 +53,7 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : les fils de cartes plein écran
 - `src/aelf.ts` / `src/liturgy.tsx` : textes liturgiques AELF et leur affichage
@@ -59,6 +61,7 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 - `src/prayers.tsx` / `src/data/prayers.ts` : l’onglet Prières et son recueil
 - `src/rosary.tsx` : le déroulé du chapelet guidé et le chapelet dessiné à plat
 - `src/rosary3d.tsx` / `src/rosary-scene.ts` / `src/rosary-textures.ts` : le chapelet en 3D (Three.js sur expo-gl) et ses textures calculées
+- `src/adoration.ts` : les temps de l’adoration guidée et leur durée
 - `src/reading.ts` : découpage du texte en passages pour la lecture suivie
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes
