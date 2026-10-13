@@ -254,6 +254,18 @@ export function HomeScreen() {
           <Ionicons name="chevron-forward" size={20} color={C.muted} />
         </Card>
 
+        <SectionTitle>Messe du jour</SectionTitle>
+        <Card onPress={() => router.push('/suivre-messe')} style={styles.officeCard}>
+          <View style={styles.officeIcon}>
+            <Ionicons name="walk-outline" size={26} color={C.gold} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.officeName}>Suivre la messe</Text>
+            <Text style={styles.muted}>Le déroulé, pour une première fois ou pour ne pas se perdre.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={C.muted} />
+        </Card>
+
         {/* Parole du jour : l'Évangile de la messe */}
         <SectionTitle action={{ label: 'Toutes les lectures', onPress: () => router.push('/messe') }}>Évangile du jour</SectionTitle>
         <Card onPress={() => router.push('/messe')}>
@@ -262,7 +274,7 @@ export function HomeScreen() {
               <Text style={styles.kicker}>{gospel.ref}</Text>
               {gospel.titre ? <Text style={styles.gospelTitle}>{plainText(gospel.titre)}</Text> : null}
               <Text style={styles.gospelText} numberOfLines={4}>
-                {plainText(gospel.contenu).replace(/\n/g, ' ')}
+                {plainText(gospel.contenu).replaceAll('\n', ' ')}
               </Text>
               <Text style={styles.link}>Lire la suite</Text>
             </>

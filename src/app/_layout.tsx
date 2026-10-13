@@ -89,6 +89,7 @@ function ThemedShell() {
           <Stack.Screen name="adoration" options={{ title: 'Adoration' }} />
           <Stack.Screen name="priere-edition" options={{ title: 'Ma prière', presentation: 'modal' }} />
           <Stack.Screen name="messe" options={{ title: 'Messe du jour' }} />
+          <Stack.Screen name="suivre-messe" options={{ title: 'Suivre la messe' }} />
           <Stack.Screen name="genealogie" options={{ title: 'D’Adam à Jésus' }} />
           <Stack.Screen name="plan/[id]" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
