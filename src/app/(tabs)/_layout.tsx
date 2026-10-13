@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router/js-tabs';
 import type { ColorValue } from 'react-native';
-import { C } from '../../liturgy';
+import { usePalette } from '../../theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -12,13 +12,14 @@ const icon =
   );
 
 export default function TabLayout() {
+  const C = usePalette();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: C.gold,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
-        tabBarStyle: { backgroundColor: '#08090c', borderTopColor: C.line },
+        tabBarInactiveTintColor: C.tabInactive,
+        tabBarStyle: { backgroundColor: C.tabBar, borderTopColor: C.line },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Accueil', tabBarIcon: icon('home-outline', 'home') }} />

@@ -1,6 +1,7 @@
 import { type ExpoWebGLRenderingContext, GLView } from 'expo-gl';
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, AppState, type GestureResponderEvent, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import type { RosaryColorId } from './appearance';
 import type { RosaryStep } from './rosary';
 import { createRosaryScene, type RosaryScene } from './rosary-scene';
 
@@ -13,6 +14,8 @@ type Props = {
   onStep?: (delta: 1 | -1) => void;
   /** La 3D n'a pas pu démarrer ou s'est arrêtée : l'écran affiche alors le chapelet à plat. */
   onError?: (e: unknown) => void;
+  /** Matière des grains. Changer la recrée sur le même contexte WebGL. */
+  material?: RosaryColorId;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -22,12 +25,14 @@ const PULL = 150; // points à glisser pour passer franchement un grain
  * Le chapelet en bois d'olivier, en 3D. On l'égrène en le tirant vers soi (glisser vers le bas)
  * ou d'une simple touche ; glisser vers le haut revient en arrière.
  */
-export function Rosary3D({ steps, index, peek = false, finished = false, onStep, onError, style }: Props) {
+export function Rosary3D({ steps, index, peek = false, finished = false, onStep, onError, material = 'olive', style }: Props) {
   const scene = useRef<RosaryScene | null>(null);
   const view = useRef({ steps, index, peek, finished });
   const stepRef = useRef(onStep);
   const errorRef = useRef(onError);
   const reduced = useRef(false);
+  const glRef = useRef<ExpoWebGLRenderingContext | null>(null);
+  const materialRef = useRef(material);
 
   // Les rappels du geste et de la création du contexte lisent toujours les dernières valeurs.
   useEffect(() => {
@@ -53,20 +58,37 @@ export function Rosary3D({ steps, index, peek = false, finished = false, onStep,
     scene.current?.setView({ steps, index, peek, finished });
   }, [steps, index, peek, finished]);
 
-  const onContextCreate = (gl: ExpoWebGLRenderingContext) => {
-    scene.current?.dispose();
-    scene.current = null;
+  const boot = (gl: ExpoWebGLRenderingContext, mat: RosaryColorId) => {
     const fail = (e: unknown) => {
       console.warn('Chapelet 3D indisponible', e);
       errorRef.current?.(e);
     };
     try {
-      scene.current = createRosaryScene(gl, { reducedMotion: reduced.current, onError: fail });
+      scene.current?.dispose();
+    } catch {
+      // Le contexte précédent peut déjà être parti.
+    }
+    scene.current = null;
+    try {
+      scene.current = createRosaryScene(gl, { reducedMotion: reduced.current, onError: fail, material: mat });
       scene.current.setView(view.current);
     } catch (e) {
       fail(e);
     }
   };
+
+  const onContextCreate = (gl: ExpoWebGLRenderingContext) => {
+    glRef.current = gl;
+    boot(gl, materialRef.current);
+  };
+
+  // La matière seule recrée les grains : `boot` change à chaque rendu et ne doit pas relancer l'effet.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: boot lit les refs du rendu où la matière change
+  useEffect(() => {
+    const changed = materialRef.current !== material;
+    materialRef.current = material;
+    if (changed && glRef.current) boot(glRef.current, material);
+  }, [material]);
 
   // Le geste : on suit le doigt depuis qu'il s'est posé.
   const touch = useRef({ x: 0, y: 0, t: 0 });

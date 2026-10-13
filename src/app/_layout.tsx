@@ -1,45 +1,84 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { AppState, useColorScheme } from 'react-native';
+import { type Palette, paletteFor } from '../appearance';
 import { EchoHost } from '../echoes';
-import { C } from '../liturgy';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
+import { supabase } from '../supabase';
+import { syncProgress } from '../sync';
+import { PaletteProvider } from '../theme';
+import { dayComplete, liveLog } from '../today';
 
-const theme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: C.bg, card: C.bg, primary: C.gold, text: C.text, border: C.line },
-};
+function navigationTheme(palette: Palette) {
+  const base = palette.statusBar === 'light' ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: { ...base.colors, background: palette.bg, card: palette.bg, primary: palette.gold, text: palette.text, border: palette.line },
+  };
+}
 
-/** Chaque ouverture de l'app reporte le rappel quotidien à demain. */
-function ReminderSync() {
-  const { loaded, progress } = useApp();
-  const { reminder } = progress;
+/** Envoie la progression dès qu'une session existe, et la fusionne au retour du cloud. */
+function ProgressSync() {
+  const { loaded, progress, hydrate } = useApp();
+  const ref = useRef(progress);
+  ref.current = progress;
   useEffect(() => {
-    if (!loaded) return;
-    scheduleReminders(reminder).catch(() => {});
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') scheduleReminders(reminder).catch(() => {});
+    if (!loaded || !supabase) return;
+    ref.current = progress;
+    const timer = setTimeout(() => {
+      syncProgress(() => ref.current, hydrate).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [loaded, progress, hydrate]);
+  useEffect(() => {
+    const client = supabase;
+    if (!loaded || !client) return;
+    syncProgress(() => ref.current, hydrate).catch(() => {});
+    const { data } = client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') syncProgress(() => ref.current, hydrate).catch(() => {});
     });
-    return () => sub.remove();
-  }, [loaded, reminder]);
+    return () => data.subscription.unsubscribe();
+  }, [loaded, hydrate]);
   return null;
 }
 
-export default function RootLayout() {
+/** Le rappel part aujourd'hui tant que la journée n'est pas faite et que l'heure est encore devant. */
+function ReminderSync() {
+  const { loaded, progress } = useApp();
+  const { reminder } = progress;
+  const todayDone = dayComplete(liveLog(progress));
+  useEffect(() => {
+    if (!loaded) return;
+    scheduleReminders(reminder, todayDone).catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') scheduleReminders(reminder, todayDone).catch(() => {});
+    });
+    return () => sub.remove();
+  }, [loaded, reminder, todayDone]);
+  return null;
+}
+
+function ThemedShell() {
+  const { progress } = useApp();
+  const system = useColorScheme();
+  const palette = useMemo(() => paletteFor(progress.appearance.scheme, system), [progress.appearance.scheme, system]);
+  const theme = useMemo(() => navigationTheme(palette), [palette]);
   return (
-    <ThemeProvider value={theme}>
-      <ProgressProvider>
-        <StatusBar style="light" />
+    <PaletteProvider value={palette}>
+      <ThemeProvider value={theme}>
+        <StatusBar style={palette.statusBar} />
         <ReminderSync />
+        <ProgressSync />
         <EchoHost />
         <Stack
           screenOptions={{
-            headerTintColor: C.text,
-            headerStyle: { backgroundColor: C.bg },
+            headerTintColor: palette.text,
+            headerStyle: { backgroundColor: palette.bg },
             headerShadowVisible: false,
             headerBackTitle: 'Retour',
+            contentStyle: { backgroundColor: palette.bg },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -55,8 +94,19 @@ export default function RootLayout() {
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
+          <Stack.Screen name="compte" options={{ title: 'Compte' }} />
+          <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
+          <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>
-      </ProgressProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </PaletteProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ProgressProvider>
+      <ThemedShell />
+    </ProgressProvider>
   );
 }

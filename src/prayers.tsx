@@ -4,13 +4,14 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
+import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
-import { C } from './liturgy';
 import { biometricName, lockSupported } from './lock';
 import { sessionLabel } from './rosary';
 import { type CustomPrayer, useApp } from './storage';
+import { usePalette, useThemed } from './theme';
 
 const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
 
@@ -33,6 +34,7 @@ const scriptureRef = (p: Prayer) => {
 };
 
 function PinButton({ id, size = 20 }: { id: string; size?: number }) {
+  const C = usePalette();
   const { progress, togglePin } = useApp();
   const pinned = progress.pinnedPrayers.includes(id);
   return (
@@ -43,6 +45,7 @@ function PinButton({ id, size = 20 }: { id: string; size?: number }) {
 }
 
 function PrayerRow({ prayer }: { prayer: Prayer }) {
+  const { styles } = useThemed(stylesFor);
   const preview = prayer.text?.split('\n')[0] ?? scriptureRef(prayer) ?? (prayer.rosary ? 'Les mystères du jour et comment le prier' : '');
   return (
     <Pressable onPress={() => router.push(`/priere/${prayer.id}`)} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -59,6 +62,7 @@ function PrayerRow({ prayer }: { prayer: Prayer }) {
 
 /** Onglet Prières : épinglées en haut, puis tout le recueil par thème, avec recherche. */
 export function PrayersScreen() {
+  const { C, styles } = useThemed(stylesFor);
   const { progress } = useApp();
   const all = useAllPrayers();
   const [query, setQuery] = useState('');
@@ -224,6 +228,7 @@ export function PrayersScreen() {
 
 /** Une ligne « — … » est la réponse de l'assemblée. */
 function PrayerText({ text }: { text: string }) {
+  const { styles } = useThemed(stylesFor);
   return (
     <>
       {text.split('\n\n').map((para, i) => (
@@ -241,6 +246,7 @@ function PrayerText({ text }: { text: string }) {
 }
 
 function ScriptureText({ scripture }: { scripture: [number, number, number, number] }) {
+  const { styles } = useThemed(stylesFor);
   const [b, c, f, t] = scripture;
   const verses = loadBook(b)[c - 1].slice(f - 1, t);
   return (
@@ -256,11 +262,12 @@ function ScriptureText({ scripture }: { scripture: [number, number, number, numb
 }
 
 function Rosary() {
+  const { C, styles } = useThemed(stylesFor);
   const today = new Date().getDay();
   return (
     <>
       <Pressable onPress={() => router.push('/chapelet')} style={styles.guided}>
-        <Ionicons name="rose" size={20} color={C.bg} />
+        <Ionicons name="rose" size={20} color={C.onGold} />
         <Text style={styles.guidedText}>Prier le chapelet guidé</Text>
       </Pressable>
       <Text style={styles.subhead}>Comment le prier</Text>
@@ -290,6 +297,7 @@ function Rosary() {
 }
 
 function CustomActions({ id }: { id: string }) {
+  const { C, styles } = useThemed(stylesFor);
   const { deleteCustomPrayer } = useApp();
   // Supprimer est définitif : on demande une seconde confirmation.
   const [confirm, setConfirm] = useState(false);
@@ -316,6 +324,7 @@ function CustomActions({ id }: { id: string }) {
 }
 
 export function PrayerScreen({ id }: { id: string }) {
+  const { styles } = useThemed(stylesFor);
   const prayer = useAllPrayers().find((p) => p.id === id);
   if (!prayer) return <Text style={[styles.empty, { padding: 24 }]}>Cette prière n’existe plus.</Text>;
   const ref = scriptureRef(prayer);
@@ -337,138 +346,139 @@ export function PrayerScreen({ id }: { id: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 40 },
-  h1: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 42, marginTop: 4, marginBottom: 14 },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: C.card,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchInput: { flex: 1, color: C.text, fontSize: 16, padding: 0 },
-  chips: { gap: 8, paddingVertical: 12 },
-  chip: {
-    backgroundColor: C.card,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  chipActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
-  chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
-  chipTextActive: { color: C.gold },
-  section: {
-    color: C.muted,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginTop: 18,
-    marginBottom: 8,
-  },
-  group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  pressed: { backgroundColor: C.cardHi },
-  rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
-  rowPreview: { color: C.faint, fontSize: 13, marginTop: 2 },
-  empty: { color: C.muted, fontSize: 14, lineHeight: 20 },
-  detail: { paddingHorizontal: 24, paddingBottom: 60 },
-  kicker: { color: C.red, fontSize: 12, letterSpacing: 2, fontWeight: '800', textTransform: 'uppercase', marginTop: 8 },
-  title: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40, marginTop: 6 },
-  ref: { color: C.muted, fontSize: 13, marginTop: 6 },
-  para: { color: C.text, fontFamily: SERIF, fontSize: 20, lineHeight: 32, marginBottom: 18 },
-  response: { color: C.gold },
-  verseNum: { color: C.gold, fontSize: 12, fontWeight: '700', fontFamily: undefined },
-  note: {
-    color: C.muted,
-    fontStyle: 'italic',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 10,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  subhead: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 8, marginBottom: 8 },
-  step: { color: C.text, fontSize: 16, lineHeight: 24, marginBottom: 6 },
-  mysteries: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'transparent' },
-  mysteriesToday: { borderColor: 'rgba(255,209,102,0.5)' },
-  mysteriesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  todayBadge: {
-    color: C.bg,
-    backgroundColor: C.gold,
-    fontSize: 12,
-    fontWeight: '800',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
-  confession: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,209,102,0.2)',
-  },
-  confessionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,209,102,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guided: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: C.gold,
-    paddingVertical: 13,
-    borderRadius: 999,
-    marginBottom: 18,
-  },
-  guidedText: { color: C.bg, fontWeight: '800', fontSize: 16 },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: C.card,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  actionDanger: { borderColor: C.red },
-  actionText: { color: C.text, fontSize: 14, fontWeight: '600' },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { padding: 20, paddingBottom: 40 },
+    h1: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 42, marginTop: 4, marginBottom: 14 },
+    search: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.card,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    searchInput: { flex: 1, color: C.text, fontSize: 16, padding: 0 },
+    chips: { gap: 8, paddingVertical: 12 },
+    chip: {
+      backgroundColor: C.card,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    chipActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
+    chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
+    chipTextActive: { color: C.gold },
+    section: {
+      color: C.muted,
+      fontSize: 12,
+      letterSpacing: 1.8,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginTop: 18,
+      marginBottom: 8,
+    },
+    group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    pressed: { backgroundColor: C.cardHi },
+    rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
+    rowPreview: { color: C.faint, fontSize: 13, marginTop: 2 },
+    empty: { color: C.muted, fontSize: 14, lineHeight: 20 },
+    detail: { paddingHorizontal: 24, paddingBottom: 60 },
+    kicker: { color: C.red, fontSize: 12, letterSpacing: 2, fontWeight: '800', textTransform: 'uppercase', marginTop: 8 },
+    title: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40, marginTop: 6 },
+    ref: { color: C.muted, fontSize: 13, marginTop: 6 },
+    para: { color: C.text, fontFamily: SERIF, fontSize: 20, lineHeight: 32, marginBottom: 18 },
+    response: { color: C.gold },
+    verseNum: { color: C.gold, fontSize: 12, fontWeight: '700', fontFamily: undefined },
+    note: {
+      color: C.muted,
+      fontStyle: 'italic',
+      fontSize: 14,
+      lineHeight: 21,
+      marginTop: 10,
+      paddingTop: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    subhead: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 8, marginBottom: 8 },
+    step: { color: C.text, fontSize: 16, lineHeight: 24, marginBottom: 6 },
+    mysteries: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'transparent' },
+    mysteriesToday: { borderColor: 'rgba(255,209,102,0.5)' },
+    mysteriesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    todayBadge: {
+      color: C.onGold,
+      backgroundColor: C.gold,
+      fontSize: 12,
+      fontWeight: '800',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
+    confession: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: C.card,
+      borderRadius: 16,
+      padding: 14,
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(255,209,102,0.2)',
+    },
+    confessionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255,209,102,0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    guided: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: C.gold,
+      paddingVertical: 13,
+      borderRadius: 999,
+      marginBottom: 18,
+    },
+    guidedText: { color: C.onGold, fontWeight: '800', fontSize: 16 },
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 20,
+      paddingTop: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    actionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: C.card,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    actionDanger: { borderColor: C.red },
+    actionText: { color: C.text, fontSize: 14, fontWeight: '600' },
+  });

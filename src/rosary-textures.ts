@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { type RosaryColorId, type RosaryMaterial, rosaryMaterial } from './appearance';
 
 // Les textures du chapelet 3D, calculées pixel par pixel (React Native n'a pas de canvas 2D) :
 // le bois d'olivier des grains, la nappe de lin, le relief de la médaille et la flaque de lumière.
@@ -57,8 +58,8 @@ function texture(data: Uint8Array, w: number, h: number, srgb: boolean, wrap: TH
   return t;
 }
 
-/** Le bois d'olivier : fond miel et crème, veines brunes ondulées qui font le tour du grain. */
-function olive(seed: number) {
+/** Le veinage d'un grain : fond, ombre et veines, selon la matière choisie. */
+function wood(seed: number, mat: RosaryMaterial) {
   const W = 256,
     H = 128,
     px = new Uint8Array(W * H * 4);
@@ -76,13 +77,13 @@ function olive(seed: number) {
       const heart = smooth(0.45, 0.75, fbm(u * 4, v * 3.2, seed + 21, 4));
       const broad = 0.5 + 0.5 * Math.sin(w * Math.PI * 0.5);
       const shade = broad * 0.3 + heart * 0.45;
-      let r = mix(mix(222, 188, tone), 156, shade);
-      let g = mix(mix(188, 140, tone), 104, shade);
-      let b = mix(mix(132, 82, tone), 56, shade);
+      let r = mix(mix(mat.light[0], mat.mid[0], tone), mat.shade[0], shade);
+      let g = mix(mix(mat.light[1], mat.mid[1], tone), mat.shade[1], shade);
+      let b = mix(mix(mat.light[2], mat.mid[2], tone), mat.shade[2], shade);
       const k = Math.min(1, dark * 0.95 + fine);
-      r = mix(r, 58, k);
-      g = mix(g, 34, k);
-      b = mix(b, 19, k);
+      r = mix(r, mat.vein[0], k);
+      g = mix(g, mat.vein[1], k);
+      b = mix(b, mat.vein[2], k);
       const pore = hash(x, y, seed + 99) < 0.04 ? 0.88 : 1;
       const i = (y * W + x) * 4;
       px[i] = r * pore;
@@ -191,16 +192,16 @@ export type RosaryTextures = {
   shadow: THREE.DataTexture;
 };
 
-let cache: RosaryTextures | null = null;
+let shared: Omit<RosaryTextures, 'woods'> | null = null;
+const woods = new Map<RosaryColorId, THREE.DataTexture[]>();
 
-export function rosaryTextures(): RosaryTextures {
-  if (!cache)
-    cache = {
-      woods: [13, 26, 39].map(olive),
-      linen: linen(),
-      medal: medal(),
-      pool: pool(),
-      shadow: shadow(),
-    };
-  return cache;
+export function rosaryTextures(id: RosaryColorId = 'olive'): RosaryTextures {
+  if (!shared) shared = { linen: linen(), medal: medal(), pool: pool(), shadow: shadow() };
+  let grain = woods.get(id);
+  if (!grain) {
+    const mat = rosaryMaterial(id);
+    grain = [13, 26, 39].map((seed) => wood(seed, mat));
+    woods.set(id, grain);
+  }
+  return { woods: grain, ...shared };
 }

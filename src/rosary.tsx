@@ -2,8 +2,8 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES } from './data/prayers';
-import { C } from './liturgy';
 import type { RosarySession } from './storage';
+import { usePalette } from './theme';
 
 // Le chapelet guidé : la suite des prières, grain après grain, et le chapelet dessiné qui se remplit.
 //
@@ -127,7 +127,7 @@ function layout(r: number) {
   return { pos, height: y + big * 1.8 * 0.6, u };
 }
 
-function Halo({ size }: { size: number }) {
+function Halo({ size, color }: { size: number; color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(Animated.timing(anim, { toValue: 1, duration: 1400, useNativeDriver: Platform.OS !== 'web' }));
@@ -141,7 +141,7 @@ function Halo({ size }: { size: number }) {
         StyleSheet.absoluteFill,
         {
           borderRadius: size,
-          backgroundColor: C.gold,
+          backgroundColor: color,
           opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
           transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.6] }) }],
         },
@@ -159,14 +159,22 @@ export function RosaryBeads({
   index,
   diameter,
   onPress,
+  bead,
+  prayed,
   children,
 }: {
   steps: RosaryStep[];
   index: number;
   diameter: number;
   onPress?: () => void;
+  /** Couleur des grains encore à prier, et des grains déjà priés. */
+  bead?: string;
+  prayed?: string;
   children?: ReactNode;
 }) {
+  const C = usePalette();
+  const beadColor = bead ?? '#c4a46a';
+  const litColor = prayed ?? C.gold;
   const r = diameter / 2;
   const { pos, height } = useMemo(() => layout(r), [r]);
   const lit = litBead(steps, index);
@@ -219,7 +227,8 @@ export function RosaryBeads({
         const isLit = b === lit;
         const isDone = done.has(b) || isLit;
         const inSession = used.has(b);
-        const color = isDone ? C.gold : inSession ? 'rgba(236,232,223,0.22)' : 'rgba(236,232,223,0.08)';
+        const color = isDone ? litColor : beadColor;
+        const opacity = inSession ? 1 : 0.28;
         if (b === CROSS) {
           const s = p.d;
           return (
@@ -228,7 +237,7 @@ export function RosaryBeads({
               pointerEvents="none"
               style={{ position: 'absolute', left: pad + p.x - s / 2, top: pad + p.y - s / 2, width: s, height: s }}
             >
-              {isLit && onBead && <Halo size={s} />}
+              {isLit && onBead && <Halo size={s} color={litColor} />}
               <View
                 style={{
                   position: 'absolute',
@@ -238,6 +247,7 @@ export function RosaryBeads({
                   height: s,
                   borderRadius: 2,
                   backgroundColor: color,
+                  opacity,
                 }}
               />
               <View
@@ -249,6 +259,7 @@ export function RosaryBeads({
                   height: s * 0.18,
                   borderRadius: 2,
                   backgroundColor: color,
+                  opacity,
                 }}
               />
             </View>
@@ -260,12 +271,13 @@ export function RosaryBeads({
             pointerEvents="none"
             style={{ position: 'absolute', left: pad + p.x - p.d / 2, top: pad + p.y - p.d / 2, width: p.d, height: p.d }}
           >
-            {isLit && onBead && <Halo size={p.d} />}
+            {isLit && onBead && <Halo size={p.d} color={litColor} />}
             <View
               style={{
                 flex: 1,
                 borderRadius: b === MEDAL ? p.d * 0.3 : p.d,
                 backgroundColor: color,
+                opacity,
                 transform: b === MEDAL ? [{ rotate: '45deg' }, { scale: 0.75 }] : undefined,
                 borderWidth: isLit ? 2 : 0,
                 borderColor: '#fff6dc',

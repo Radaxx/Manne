@@ -3,10 +3,12 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { readingTheme } from './appearance';
 import { ChapterView, TopScrim } from './chapter';
 import { formatRange, type Plan, planById, planChapters, planStatus } from './plans';
 import { bookMeta } from './reading';
 import { today, useApp } from './storage';
+import { FocusedStatusBar } from './theme';
 
 /** Le fil plein écran d'un plan de lecture : un chapitre entier à la fois, avec son propre marque-page. */
 function PlanReader({ plan }: { plan: Plan }) {
@@ -41,6 +43,7 @@ function PlanReader({ plan }: { plan: Plan }) {
       ? `Lecture du jour faite ✓${status.ahead > 0 ? ` · +${status.ahead} d’avance` : ''}`
       : `Aujourd’hui : ${formatRange(status.today)} · ${status.todayDone}/${status.today.length}`;
   const todayProgress = status.today.length ? status.todayDone / status.today.length : 1;
+  const chrome = readingTheme(api.progress.appearance.reading);
 
   // En fin de chapitre : la portion du jour atteinte, ou le plan terminé.
   const isLast = idx === status.total - 1;
@@ -49,7 +52,7 @@ function PlanReader({ plan }: { plan: Plan }) {
       <View style={styles.banner}>
         <Ionicons name={isLast ? 'trophy-outline' : 'checkmark-done-outline'} size={20} color="#5cc48a" />
         <Text style={styles.bannerTitle}>{isLast ? 'Plan terminé — bravo !' : 'Lecture du jour terminée ✓'}</Text>
-        <Text style={styles.bannerBody}>
+        <Text style={[styles.bannerBody, { color: chrome.muted }]}>
           {isLast
             ? `Tu as lu les ${status.total} chapitres de « ${plan.title} ». Rends grâce pour ce chemin parcouru avec la Parole.`
             : `Tu as lu la portion prévue aujourd’hui pour « ${plan.title} ». Tu peux t’arrêter là, ou continuer pour prendre de l’avance.`}
@@ -58,7 +61,11 @@ function PlanReader({ plan }: { plan: Plan }) {
     ) : null;
 
   return (
-    <View style={styles.root} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+    <View
+      style={[styles.root, chrome.colors ? { backgroundColor: chrome.colors[0] } : null]}
+      onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+    >
+      <FocusedStatusBar style={chrome.statusBar} />
       {height > 0 && current && (
         <ChapterView
           key={current.key}
@@ -83,23 +90,23 @@ function PlanReader({ plan }: { plan: Plan }) {
             accessibilityLabel="Fermer"
             style={styles.close}
           >
-            <Ionicons name="chevron-down" size={24} color="#fff" />
+            <Ionicons name="chevron-down" size={24} color={chrome.ink} />
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={[styles.title, { color: chrome.ink }]} numberOfLines={1}>
               {plan.title}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={[styles.subtitle, { color: chrome.muted }]} numberOfLines={1}>
               Jour {status.day + 1}/{plan.days} · {subtitle}
             </Text>
           </View>
           <Pressable onPress={markHere} hitSlop={8} style={styles.mark} accessibilityLabel="Placer le marque-page du plan ici">
-            <Ionicons name="bookmark" size={14} color="#fff" />
-            <Text style={styles.markText}>Marquer ici</Text>
+            <Ionicons name="bookmark" size={14} color={chrome.ink} />
+            <Text style={[styles.markText, { color: chrome.ink }]}>Marquer ici</Text>
           </Pressable>
         </View>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${Math.round(todayProgress * 100)}%` }]} />
+        <View style={[styles.track, { backgroundColor: chrome.track }]}>
+          <View style={[styles.fill, { width: `${Math.round(todayProgress * 100)}%`, backgroundColor: chrome.accent }]} />
         </View>
       </View>
 
@@ -116,10 +123,16 @@ function PlanReader({ plan }: { plan: Plan }) {
 export function PlanReadingScreen({ id }: { id: string }) {
   const { progress, loaded } = useApp();
   const plan = planById(id);
-  if (!loaded) return <View style={styles.root} />;
+  if (!loaded)
+    return (
+      <View style={styles.root}>
+        <FocusedStatusBar style="light" />
+      </View>
+    );
   if (!plan || !progress.plans[id]) {
     return (
       <View style={[styles.root, { justifyContent: 'center', padding: 32 }]}>
+        <FocusedStatusBar style="light" />
         <Text style={styles.subtitle}>Ce plan n’est pas en cours.</Text>
       </View>
     );

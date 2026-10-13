@@ -1,12 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
-import { C } from '../liturgy';
 import { useApp } from '../storage';
+import { useThemed } from '../theme';
 
 /** Écrire ou modifier une prière personnelle. */
 export default function PrayerEditor() {
+  const { C, styles } = useThemed(stylesFor);
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { progress, saveCustomPrayer, togglePin } = useApp();
   const existing = progress.customPrayers.find((p) => p.id === id);
@@ -66,31 +68,40 @@ export default function PrayerEditor() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  label: { color: C.muted, fontSize: 12, letterSpacing: 1.8, fontWeight: '800', textTransform: 'uppercase', marginBottom: 8, marginTop: 8 },
-  title: {
-    color: C.text,
-    fontFamily: SERIF,
-    fontSize: 24,
-    backgroundColor: C.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  text: {
-    color: C.text,
-    fontFamily: SERIF,
-    fontSize: 19,
-    lineHeight: 29,
-    backgroundColor: C.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 260,
-  },
-  hint: { color: C.faint, fontSize: 13, marginTop: 10, lineHeight: 19 },
-  save: { color: C.gold, fontSize: 16, fontWeight: '700' },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { padding: 20, paddingBottom: 60 },
+    label: {
+      color: C.muted,
+      fontSize: 12,
+      letterSpacing: 1.8,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 8,
+      marginTop: 8,
+    },
+    title: {
+      color: C.text,
+      fontFamily: SERIF,
+      fontSize: 24,
+      backgroundColor: C.card,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 16,
+    },
+    text: {
+      color: C.text,
+      fontFamily: SERIF,
+      fontSize: 19,
+      lineHeight: 29,
+      backgroundColor: C.card,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      minHeight: 260,
+    },
+    hint: { color: C.faint, fontSize: 13, marginTop: 10, lineHeight: 19 },
+    save: { color: C.gold, fontSize: 16, fontWeight: '700' },
+  });

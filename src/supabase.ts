@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 /** Sous la limite historique du trousseau iOS, pour y loger une session découpée. */
 const CHUNK = 1800;
@@ -68,11 +68,43 @@ export const supabase: SupabaseClient | null =
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: false,
+          flowType: 'pkce',
         },
       })
     : null;
 
+if (supabase) {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void supabase.auth.startAutoRefresh();
+    else void supabase.auth.stopAutoRefresh();
+  });
+}
+
 let sessionInflight: Promise<boolean> | null = null;
+/** Utilisateur déjà confirmé auprès du serveur, pour ne pas le revérifier à chaque appel. */
+let checkedUserId: string | null = null;
+
+function missingUser(error: { code?: string; message?: string; status?: number } | null) {
+  if (!error) return false;
+  return error.code === 'user_not_found' || error.status === 404 || /does not exist/i.test(error.message ?? '');
+}
+
+/** La session locale peut survivre à la suppression de l'utilisateur. On la jette alors. */
+async function sessionAlive(client: SupabaseClient): Promise<boolean> {
+  const { data } = await client.auth.getSession();
+  const id = data.session?.user.id;
+  if (!id) return false;
+  if (checkedUserId === id) return true;
+  const { data: userData, error } = await client.auth.getUser();
+  if (!error && userData.user) {
+    checkedUserId = userData.user.id;
+    return true;
+  }
+  if (!missingUser(error)) return true;
+  checkedUserId = null;
+  await client.auth.signOut({ scope: 'local' });
+  return false;
+}
 
 /** Ouvre une session anonyme au premier besoin. Faux si le réseau ou le projet manque. */
 export function ensureSession(): Promise<boolean> {
@@ -81,9 +113,9 @@ export function ensureSession(): Promise<boolean> {
   if (!sessionInflight) {
     sessionInflight = (async () => {
       try {
-        const { data } = await client.auth.getSession();
-        if (data.session) return true;
+        if (await sessionAlive(client)) return true;
         const { data: signed, error } = await client.auth.signInAnonymously();
+        if (!error && signed.session) checkedUserId = signed.session.user.id;
         return !error && !!signed.session;
       } catch {
         return false;

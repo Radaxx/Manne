@@ -1,5 +1,6 @@
 import type { ExpoWebGLRenderingContext } from 'expo-gl';
 import * as THREE from 'three';
+import type { RosaryColorId } from './appearance';
 import { litBead, type RosaryStep } from './rosary';
 import { rosaryTextures } from './rosary-textures';
 
@@ -92,7 +93,7 @@ function layout() {
  */
 export function createRosaryScene(
   gl: ExpoWebGLRenderingContext,
-  { reducedMotion, onError }: { reducedMotion: boolean; onError?: (e: unknown) => void },
+  { reducedMotion, onError, material = 'olive' }: { reducedMotion: boolean; onError?: (e: unknown) => void; material?: RosaryColorId },
 ): RosaryScene {
   const g = globalThis as { WebGLRenderingContext?: unknown; WebGL2RenderingContext?: new () => unknown };
   if (!g.WebGL2RenderingContext || !(gl instanceof g.WebGL2RenderingContext)) throw new Error('WebGL 2 indisponible sur ce téléphone');
@@ -139,7 +140,7 @@ export function createRosaryScene(
   scene.fog = new THREE.Fog(BG, 10, 26);
   const fog = scene.fog as THREE.Fog;
   const camera = new THREE.PerspectiveCamera(52, width / height, 0.05, 120);
-  const tex = rosaryTextures();
+  const tex = rosaryTextures(material);
 
   // Reflets : un petit studio (boîte à lumière chaude au-dessus, contre-jour froid) précalculé, si le téléphone sait le faire.
   const ext = renderer.extensions;

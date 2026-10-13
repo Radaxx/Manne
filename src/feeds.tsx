@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type ReadingChrome, readingTheme } from './appearance';
 import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import { ChapterReader, TopScrim } from './chapter';
 import { communityKey, useCommunity } from './community';
@@ -10,6 +12,8 @@ import type { Passage, Theme } from './data/content';
 import { type Card, FeedGenerator } from './feed';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
+import { FocusedStatusBar } from './theme';
+import { goalCaption, goalToast } from './today';
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -135,12 +139,15 @@ function FeedScreen({
   title,
   left,
   scrim,
+  chrome,
   children,
 }: {
   title: string;
   left?: ReactNode;
-  /** Voile sombre sous le bandeau du haut, pour un contenu qui défile dessous. */
+  /** Voile sous le bandeau du haut, pour un contenu qui défile dessous. */
   scrim?: boolean;
+  /** Couleurs du bandeau, quand la lecture n'est plus sur fond sombre. */
+  chrome?: ReadingChrome;
   children: (height: number, openContext: (p: Passage) => void) => ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -153,6 +160,7 @@ function FeedScreen({
   const celebrate = useRef(new Animated.Value(0)).current;
   const readCount = progress.readToday.length;
   const prevCount = useRef(readCount);
+  const toast = goalToast(progress);
 
   // On ne célèbre que le passage de l'objectif en direct, pas au rechargement.
   useEffect(() => {
@@ -165,8 +173,16 @@ function FeedScreen({
     prevCount.current = readCount;
   }, [readCount, celebrate]);
 
+  const ink = chrome?.ink ?? '#fff';
+  const muted = chrome?.muted ?? 'rgba(255,255,255,0.7)';
+  const track = chrome?.track ?? 'rgba(255,255,255,0.2)';
+  const accent = chrome?.accent ?? '#ffd166';
+
   return (
-    <View style={styles.root} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+    <View
+      style={[styles.root, chrome?.colors ? { backgroundColor: chrome.colors[0] } : null]}
+      onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+    >
       {height > 0 && api.loaded && children(height, setChapter)}
 
       {scrim && <TopScrim />}
@@ -174,25 +190,21 @@ function FeedScreen({
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
           <View style={styles.side}>{left}</View>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: ink }]}>{title}</Text>
           <View style={[styles.side, styles.topRight]}>
-            <View style={styles.streak}>
+            <Pressable onPress={() => router.push('/compte')} hitSlop={8} accessibilityLabel="Mon compte" style={styles.streak}>
               <Ionicons name="flame" size={15} color="#ffb703" />
-              <Text style={styles.streakText}>{progress.streak}</Text>
-            </View>
+              <Text style={[styles.streakText, { color: ink }]}>{progress.streak}</Text>
+            </Pressable>
             <Pressable onPress={() => setShowSaved(true)} hitSlop={10} accessibilityLabel="Mes versets">
-              <Ionicons name="bookmarks-outline" size={21} color="#fff" />
+              <Ionicons name="bookmarks-outline" size={21} color={ink} />
             </Pressable>
           </View>
         </View>
-        <View style={styles.goalTrack}>
-          <View style={[styles.goalFill, { width: `${Math.min(1, readCount / DAILY_GOAL) * 100}%` }]} />
+        <View style={[styles.goalTrack, { backgroundColor: track }]}>
+          <View style={[styles.goalFill, { width: `${Math.min(1, readCount / DAILY_GOAL) * 100}%`, backgroundColor: accent }]} />
         </View>
-        <Text style={styles.goalText}>
-          {readCount >= DAILY_GOAL
-            ? `Objectif atteint · ${readCount} versets aujourd’hui`
-            : `${readCount}/${DAILY_GOAL} versets aujourd’hui`}
-        </Text>
+        <Text style={[styles.goalText, { color: muted }]}>{goalCaption(progress)}</Text>
       </View>
 
       <Animated.View
@@ -206,8 +218,8 @@ function FeedScreen({
           },
         ]}
       >
-        <Text style={styles.toastTitle}>Ta manne du jour est récoltée ✨</Text>
-        <Text style={styles.toastBody}>{DAILY_GOAL} versets lus. Tu peux continuer… ou garder une parole en tête pour la journée.</Text>
+        <Text style={styles.toastTitle}>{toast.title}</Text>
+        <Text style={styles.toastBody}>{toast.body}</Text>
       </Animated.View>
 
       {chapter && <ChapterSheet passage={chapter} onClose={() => setChapter(null)} />}
@@ -230,14 +242,17 @@ export function ReadingScreen() {
   const api = useApp();
   const [showBooks, setShowBooks] = useState(false);
   const { selectBook, goTo, restartReading } = api;
+  const chrome = readingTheme(api.progress.appearance.reading);
   return (
     <>
+      <FocusedStatusBar style={chrome.statusBar} />
       <FeedScreen
         title="Lecture"
         scrim
+        chrome={chrome}
         left={
           <Pressable onPress={() => setShowBooks(true)} hitSlop={10} accessibilityLabel="Choisir un livre" style={styles.booksBtn}>
-            <Ionicons name="library-outline" size={21} color="#fff" />
+            <Ionicons name="library-outline" size={21} color={chrome.ink} />
           </Pressable>
         }
       >
@@ -264,9 +279,12 @@ export function ReadingScreen() {
 export function DiscoverScreen() {
   const api = useApp();
   return (
-    <FeedScreen title="Découvrir">
-      {(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}
-    </FeedScreen>
+    <>
+      <FocusedStatusBar style="light" />
+      <FeedScreen title="Découvrir">
+        {(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}
+      </FeedScreen>
+    </>
   );
 }
 

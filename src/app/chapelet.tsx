@@ -15,13 +15,15 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { Palette } from '../appearance';
+import { rosaryMaterial } from '../appearance';
 import { SERIF } from '../cards';
 import { MYSTERIES, prayerById } from '../data/prayers';
-import { C } from '../liturgy';
 import { daysSince } from '../plans';
 import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, type RosaryStep, rosarySteps, sessionLabel } from '../rosary';
 import { Rosary3D } from '../rosary3d';
 import { type RosarySession, today, useApp } from '../storage';
+import { useThemed } from '../theme';
 
 // Prier le chapelet, guidé grain après grain : on choisit ses mystères, on touche le chapelet
 // (ou le bouton) à chaque prière, et Manne compte à notre place. On peut quitter et reprendre.
@@ -48,6 +50,7 @@ function lastRosaryLabel(day: string | null, count: number) {
 }
 
 function Kicker({ step, set }: { step: RosaryStep; set: number }) {
+  const { styles } = useThemed(stylesFor);
   let text = 'Introduction';
   if (step.kind === 'mystery' && step.decade !== null) text = mysteryOrdinal(set, step.decade);
   else if (step.decade !== null) text = `Dizaine ${step.decade + 1} · ${MYSTERIES[set].mysteries[step.decade]}`;
@@ -57,6 +60,7 @@ function Kicker({ step, set }: { step: RosaryStep; set: number }) {
 
 /** Une ligne « — … » est la réponse, en doré. */
 function PrayerLines({ text }: { text: string }) {
+  const { C, styles } = useThemed(stylesFor);
   return (
     <>
       {text.split('\n\n').map((para, i) => (
@@ -74,6 +78,7 @@ function PrayerLines({ text }: { text: string }) {
 }
 
 function StepBody({ step, session, texts }: { step: RosaryStep; session: RosarySession; texts: boolean }) {
+  const { C, styles } = useThemed(stylesFor);
   if (step.kind === 'mystery' && step.decade !== null) {
     const set = MYSTERIES[session.set];
     const verse = mysteryVerse(session.set, step.decade);
@@ -114,8 +119,10 @@ function StepBody({ step, session, texts }: { step: RosaryStep; session: RosaryS
 }
 
 function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: () => void; onExit: () => void }) {
+  const { C, styles } = useThemed(stylesFor);
   const { progress, setRosarySession, setRosaryPrefs } = useApp();
   const { texts } = progress.rosary;
+  const material = rosaryMaterial(progress.appearance.rosary);
   // Si la 3D ne peut pas démarrer sur ce téléphone, on prie avec le chapelet à plat.
   const [glFailed, setGlFailed] = useState(false);
   const view3d = progress.rosary.view3d && !glFailed;
@@ -201,6 +208,7 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
             steps={steps}
             index={index}
             peek={peek}
+            material={material.id}
             onError={() => setGlFailed(true)}
             onStep={(delta) => {
               setGestured(true);
@@ -217,7 +225,7 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
           )}
         </>
       ) : (
-        <RosaryBeads steps={steps} index={index} diameter={diameter} onPress={() => go(1)}>
+        <RosaryBeads steps={steps} index={index} diameter={diameter} bead={material.bead} prayed={material.lit} onPress={() => go(1)}>
           {center}
         </RosaryBeads>
       )}
@@ -248,7 +256,7 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
         </Pressable>
         <Pressable onPress={() => go(1)} style={({ pressed }) => [styles.btn, styles.mainBtn, pressed && { opacity: 0.85 }]}>
           <Text style={styles.btnText}>{buttonLabel}</Text>
-          <Ionicons name={last ? 'checkmark' : 'arrow-forward'} size={20} color={C.bg} />
+          <Ionicons name={last ? 'checkmark' : 'arrow-forward'} size={20} color={C.onGold} />
         </Pressable>
       </View>
     </View>
@@ -256,6 +264,7 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
 }
 
 function Finished({ decade, intention, onAgain }: { decade: boolean; intention: string; onAgain: () => void }) {
+  const { C, styles } = useThemed(stylesFor);
   const { progress } = useApp();
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.scroll, { alignItems: 'center', paddingTop: 50 }]}>
@@ -284,6 +293,7 @@ function Finished({ decade, intention, onAgain }: { decade: boolean; intention: 
 }
 
 function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
+  const { C, styles } = useThemed(stylesFor);
   const { progress, setRosaryPrefs, setRosarySession } = useApp();
   const { session, fatima, texts, last, count } = progress.rosary;
   const [set, setSet] = useState(todaySet());
@@ -306,7 +316,7 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
         {session && (
           <Pressable onPress={() => onStart(session)} style={({ pressed }) => [styles.resume, pressed && { opacity: 0.85 }]}>
             <View style={styles.resumeIcon}>
-              <Ionicons name="play" size={18} color={C.bg} />
+              <Ionicons name="play" size={18} color={C.onGold} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.resumeTitle}>Reprendre mon chapelet</Text>
@@ -336,7 +346,7 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
               onPress={() => setSingle(one)}
               style={[styles.segmentItem, single === one && styles.segmentActive]}
             >
-              <Text style={[styles.segmentText, single === one && { color: C.bg }]}>{one ? 'Une dizaine' : 'Chapelet entier'}</Text>
+              <Text style={[styles.segmentText, single === one && { color: C.onGold }]}>{one ? 'Une dizaine' : 'Chapelet entier'}</Text>
               <Text style={[styles.segmentHint, single === one && { color: 'rgba(13,14,18,0.6)' }]}>
                 {one ? '≈ 4 min' : '5 dizaines · ≈ 20 min'}
               </Text>
@@ -419,7 +429,7 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
         </View>
 
         <Pressable onPress={start} style={({ pressed }) => [styles.btn, { marginTop: 24 }, pressed && { opacity: 0.85 }]}>
-          <Ionicons name="rose" size={20} color={C.bg} />
+          <Ionicons name="rose" size={20} color={C.onGold} />
           <Text style={styles.btnText}>{single ? 'Commencer la dizaine' : 'Commencer le chapelet'}</Text>
         </Pressable>
         {session && <Text style={styles.warn}>Commencer remplacera le chapelet en cours.</Text>}
@@ -470,153 +480,154 @@ export default function ChapeletScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
-  last: { color: C.text, fontSize: 14, fontWeight: '600', marginTop: 10 },
-  section: {
-    color: C.muted,
-    fontSize: 12,
-    letterSpacing: 1.8,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginTop: 22,
-    marginBottom: 8,
-  },
-  group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
-  rowHint: { color: C.faint, fontSize: 13, marginTop: 2 },
-  badge: {
-    color: C.bg,
-    backgroundColor: C.gold,
-    fontSize: 12,
-    fontWeight: '800',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  segment: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  segmentItem: { flex: 1, backgroundColor: C.card, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
-  segmentActive: { backgroundColor: C.gold },
-  segmentText: { color: C.text, fontSize: 15, fontWeight: '700' },
-  segmentHint: { color: C.faint, fontSize: 12, marginTop: 2 },
-  mysteryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  mysteryNum: { color: C.gold, fontWeight: '800', fontSize: 15, width: 18, textAlign: 'center' },
-  mysteryName: { color: C.text, fontFamily: SERIF, fontSize: 16 },
-  mysteryFruit: { color: C.faint, fontSize: 12, marginTop: 1 },
-  input: {
-    color: C.text,
-    fontSize: 16,
-    backgroundColor: C.card,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 52,
-  },
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: C.gold,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 999,
-  },
-  btnText: { color: C.bg, fontWeight: '800', fontSize: 16 },
-  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
-  btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
-  warn: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 8 },
-  resume: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(255,209,102,0.1)',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,209,102,0.35)',
-  },
-  resumeIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
-  resumeTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
-  resumeText: { color: C.muted, fontSize: 13, marginTop: 2 },
-  // Pendant la prière
-  card: { flex: 1, marginHorizontal: 16, backgroundColor: C.card, borderRadius: 20 },
-  // Par-dessus le chapelet 3D : la feuille prend la hauteur de son texte, jusqu'à 42 % de l'écran.
-  card3d: {
-    flexGrow: 0,
-    flexShrink: 1,
-    marginHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: 'rgba(23,25,31,0.92)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-  },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  cardCount: { color: C.gold, fontFamily: SERIF, fontSize: 26, lineHeight: 28, fontVariant: ['tabular-nums'] },
-  hintPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(13,14,18,0.72)',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 10,
-  },
-  hintText: { color: C.text, fontSize: 13 },
-  cardBody: { padding: 20, paddingBottom: 28 },
-  kicker: { color: C.red, fontSize: 12, letterSpacing: 1.6, fontWeight: '800', textTransform: 'uppercase' },
-  title: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 33, marginTop: 6, marginBottom: 12 },
-  intent: { color: C.gold, fontFamily: SERIF, fontSize: 17, fontStyle: 'italic', marginTop: 2, marginBottom: 12 },
-  prayer: { color: C.text, fontFamily: SERIF, fontSize: 19, lineHeight: 29, marginBottom: 14 },
-  fruit: { color: C.text, fontSize: 15, fontWeight: '600', marginBottom: 14 },
-  verse: { borderLeftWidth: 2, borderColor: C.gold, paddingLeft: 14, marginBottom: 14 },
-  verseText: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 18, lineHeight: 28 },
-  verseRef: { color: C.muted, fontSize: 13, marginTop: 6 },
-  hint: { color: C.faint, fontSize: 14, lineHeight: 20 },
-  intentionBox: { backgroundColor: 'rgba(255,209,102,0.08)', borderRadius: 12, padding: 12, marginBottom: 14 },
-  intentionLabel: { color: C.gold, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
-  intentionText: { color: C.text, fontSize: 16, lineHeight: 22, marginTop: 4 },
-  count: { color: C.text, fontFamily: SERIF, fontSize: 40, lineHeight: 46 },
-  countOf: { color: C.faint, fontSize: 13, fontWeight: '600' },
-  centerSmall: { color: C.faint, fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 14 },
-  backBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  mainBtn: { flex: 1, paddingVertical: 16 },
-  doneIcon: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    backgroundColor: 'rgba(255,209,102,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  doneTitle: { color: C.text, fontFamily: SERIF, fontSize: 30 },
-  doneText: { color: C.muted, fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
-  doneIntention: { color: C.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
-  doneCount: { color: C.gold, fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 18 },
-});
+const stylesFor = (C: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { padding: 20, paddingBottom: 60 },
+    intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
+    last: { color: C.text, fontSize: 14, fontWeight: '600', marginTop: 10 },
+    section: {
+      color: C.muted,
+      fontSize: 12,
+      letterSpacing: 1.8,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginTop: 22,
+      marginBottom: 8,
+    },
+    group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    rowTitle: { color: C.text, fontSize: 16, fontWeight: '600' },
+    rowHint: { color: C.faint, fontSize: 13, marginTop: 2 },
+    badge: {
+      color: C.onGold,
+      backgroundColor: C.gold,
+      fontSize: 12,
+      fontWeight: '800',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    segment: { flexDirection: 'row', gap: 8, marginTop: 14 },
+    segmentItem: { flex: 1, backgroundColor: C.card, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
+    segmentActive: { backgroundColor: C.gold },
+    segmentText: { color: C.text, fontSize: 15, fontWeight: '700' },
+    segmentHint: { color: C.faint, fontSize: 12, marginTop: 2 },
+    mysteryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    mysteryNum: { color: C.gold, fontWeight: '800', fontSize: 15, width: 18, textAlign: 'center' },
+    mysteryName: { color: C.text, fontFamily: SERIF, fontSize: 16 },
+    mysteryFruit: { color: C.faint, fontSize: 12, marginTop: 1 },
+    input: {
+      color: C.text,
+      fontSize: 16,
+      backgroundColor: C.card,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      minHeight: 52,
+    },
+    btn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: C.gold,
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      borderRadius: 999,
+    },
+    btnText: { color: C.onGold, fontWeight: '800', fontSize: 16 },
+    btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
+    btnGhostText: { color: C.text, fontWeight: '700', fontSize: 15 },
+    warn: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 8 },
+    resume: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: 'rgba(255,209,102,0.1)',
+      borderRadius: 16,
+      padding: 14,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255,209,102,0.35)',
+    },
+    resumeIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
+    resumeTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    resumeText: { color: C.muted, fontSize: 13, marginTop: 2 },
+    // Pendant la prière
+    card: { flex: 1, marginHorizontal: 16, backgroundColor: C.card, borderRadius: 20 },
+    // Par-dessus le chapelet 3D : la feuille prend la hauteur de son texte, jusqu'à 42 % de l'écran.
+    card3d: {
+      flexGrow: 0,
+      flexShrink: 1,
+      marginHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: 'rgba(23,25,31,0.92)',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: C.line,
+    },
+    cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    cardCount: { color: C.gold, fontFamily: SERIF, fontSize: 26, lineHeight: 28, fontVariant: ['tabular-nums'] },
+    hintPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(13,14,18,0.72)',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      marginBottom: 10,
+    },
+    hintText: { color: C.text, fontSize: 13 },
+    cardBody: { padding: 20, paddingBottom: 28 },
+    kicker: { color: C.red, fontSize: 12, letterSpacing: 1.6, fontWeight: '800', textTransform: 'uppercase' },
+    title: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 33, marginTop: 6, marginBottom: 12 },
+    intent: { color: C.gold, fontFamily: SERIF, fontSize: 17, fontStyle: 'italic', marginTop: 2, marginBottom: 12 },
+    prayer: { color: C.text, fontFamily: SERIF, fontSize: 19, lineHeight: 29, marginBottom: 14 },
+    fruit: { color: C.text, fontSize: 15, fontWeight: '600', marginBottom: 14 },
+    verse: { borderLeftWidth: 2, borderColor: C.gold, paddingLeft: 14, marginBottom: 14 },
+    verseText: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 18, lineHeight: 28 },
+    verseRef: { color: C.muted, fontSize: 13, marginTop: 6 },
+    hint: { color: C.faint, fontSize: 14, lineHeight: 20 },
+    intentionBox: { backgroundColor: 'rgba(255,209,102,0.08)', borderRadius: 12, padding: 12, marginBottom: 14 },
+    intentionLabel: { color: C.gold, fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    intentionText: { color: C.text, fontSize: 16, lineHeight: 22, marginTop: 4 },
+    count: { color: C.text, fontFamily: SERIF, fontSize: 40, lineHeight: 46 },
+    countOf: { color: C.faint, fontSize: 13, fontWeight: '600' },
+    centerSmall: { color: C.faint, fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+    controls: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 14 },
+    backBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    mainBtn: { flex: 1, paddingVertical: 16 },
+    doneIcon: {
+      width: 86,
+      height: 86,
+      borderRadius: 43,
+      backgroundColor: 'rgba(255,209,102,0.1)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 18,
+    },
+    doneTitle: { color: C.text, fontFamily: SERIF, fontSize: 30 },
+    doneText: { color: C.muted, fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
+    doneIntention: { color: C.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
+    doneCount: { color: C.gold, fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 18 },
+  });
