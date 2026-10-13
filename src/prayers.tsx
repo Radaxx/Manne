@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
@@ -60,27 +60,39 @@ function PrayerRow({ prayer }: { prayer: Prayer }) {
   );
 }
 
-/** Onglet Prières : épinglées en haut, puis tout le recueil par thème, avec recherche. */
+const prayerCount = (n: number) => `${n} ${n === 1 ? 'prière' : 'prières'}`;
+
+/** Thèmes du recueil, hors essentielles : celles-ci restent dépliées sur l'index. */
+const CATALOG_CATEGORIES = PRAYER_CATEGORIES.filter((c) => c !== 'Essentielles');
+
+/** Onglet Prières : pratiques et raccourcis, essentielles dépliées, puis le recueil par thème. */
 export function PrayersScreen() {
   const { C, styles } = useThemed(stylesFor);
   const { progress } = useApp();
   const all = useAllPrayers();
+  const scrollRef = useRef<ScrollView>(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<PrayerCategory | null>(null);
 
   const pinned = progress.pinnedPrayers.map((id) => all.find((p) => p.id === id)).filter((p): p is Prayer => !!p);
   const mine = all.filter((p) => p.custom);
+  const essentielles = PRAYERS.filter((p) => p.category === 'Essentielles');
+  const trimmed = query.trim();
   const results = useMemo(() => {
-    const q = fold(query.trim());
-    return all.filter(
-      (p) => (!category || p.category === category) && (!q || fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q)),
-    );
-  }, [all, query, category]);
-  const searching = query.trim().length > 0 || category !== null;
+    const q = fold(trimmed);
+    if (!q) return [];
+    return all.filter((p) => fold(`${p.title} ${p.text ?? ''} ${p.note ?? ''}`).includes(q));
+  }, [all, trimmed]);
+  const categoryPrayers = category ? PRAYERS.filter((p) => p.category === category) : [];
+  const mode = trimmed ? 'search' : (category ?? 'index');
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: mode === 'index' });
+  }, [mode]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.h1}>Prières</Text>
 
         <View style={styles.search}>
@@ -100,19 +112,20 @@ export function PrayersScreen() {
           ) : null}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {PRAYER_CATEGORIES.map((c) => (
-            <Pressable
-              key={c}
-              onPress={() => setCategory(category === c ? null : c)}
-              style={[styles.chip, category === c && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {!searching && (
+        {mode === 'search' ? (
+          <>
+            <Text style={styles.section}>{prayerCount(results.length)}</Text>
+            {results.length === 0 ? (
+              <Text style={styles.empty}>Aucune prière ne correspond.</Text>
+            ) : (
+              <View style={styles.group}>
+                {results.map((p) => (
+                  <PrayerRow key={p.id} prayer={p} />
+                ))}
+              </View>
+            )}
+          </>
+        ) : mode === 'index' ? (
           <>
             <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.confession, pressed && styles.pressed]}>
               <View style={styles.confessionIcon}>
@@ -195,31 +208,47 @@ export function PrayersScreen() {
                 </View>
               </Pressable>
             </View>
-          </>
-        )}
 
-        {searching ? (
-          <>
-            <Text style={styles.section}>
-              {results.length} prière{results.length > 1 ? 's' : ''}
-            </Text>
+            <Text style={styles.section}>Essentielles</Text>
             <View style={styles.group}>
-              {results.map((p) => (
+              {essentielles.map((p) => (
+                <PrayerRow key={p.id} prayer={p} />
+              ))}
+            </View>
+
+            <Text style={styles.section}>Recueil</Text>
+            <View style={styles.catalog}>
+              {CATALOG_CATEGORIES.map((c) => {
+                const n = PRAYERS.filter((p) => p.category === c).length;
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => setCategory(c)}
+                    accessibilityLabel={`${c}, ${prayerCount(n)}`}
+                    style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.catalogTitle} numberOfLines={2}>
+                      {c}
+                    </Text>
+                    <Text style={styles.catalogCount}>{prayerCount(n)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={() => setCategory(null)} style={styles.backRow} hitSlop={8}>
+              <Ionicons name="chevron-back" size={18} color={C.gold} />
+              <Text style={styles.backText}>Recueil</Text>
+            </Pressable>
+            <Text style={styles.section}>{category}</Text>
+            <View style={styles.group}>
+              {categoryPrayers.map((p) => (
                 <PrayerRow key={p.id} prayer={p} />
               ))}
             </View>
           </>
-        ) : (
-          PRAYER_CATEGORIES.map((c) => (
-            <View key={c}>
-              <Text style={styles.section}>{c}</Text>
-              <View style={styles.group}>
-                {PRAYERS.filter((p) => p.category === c).map((p) => (
-                  <PrayerRow key={p.id} prayer={p} />
-                ))}
-              </View>
-            </View>
-          ))
         )}
       </ScrollView>
     </SafeAreaView>
@@ -361,18 +390,20 @@ const stylesFor = (C: Palette) =>
       paddingVertical: 10,
     },
     searchInput: { flex: 1, color: C.text, fontSize: 16, padding: 0 },
-    chips: { gap: 8, paddingVertical: 12 },
-    chip: {
+    backRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 16, alignSelf: 'flex-start' },
+    backText: { color: C.gold, fontSize: 15, fontWeight: '700' },
+    catalog: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+    catalogCard: {
+      width: '48%',
+      minHeight: 88,
+      justifyContent: 'space-between',
       backgroundColor: C.card,
+      borderRadius: 16,
       paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: 'transparent',
+      paddingVertical: 14,
     },
-    chipActive: { borderColor: C.gold, backgroundColor: 'rgba(255,209,102,0.12)' },
-    chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
-    chipTextActive: { color: C.gold },
+    catalogTitle: { color: C.text, fontSize: 16, fontWeight: '600', lineHeight: 21 },
+    catalogCount: { color: C.faint, fontSize: 13, marginTop: 10 },
     section: {
       color: C.muted,
       fontSize: 12,
