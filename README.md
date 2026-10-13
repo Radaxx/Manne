@@ -7,6 +7,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 - **Prier maintenant** : l’office de la Liturgie des Heures qui correspond à l’heure (Laudes, Tierce, Sexte, None, Vêpres, Complies, et l’Office des lectures).
 - **Évangile du jour** et toutes les lectures de la messe.
 - **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Chaque plan a son propre fil de lecture et son propre marque-page, indépendants de la lecture libre ; on peut prendre de l’avance, et rattraper son retard.
+- **Arbre généalogique** : la lignée d’Adam et Ève jusqu’à Jésus, en un seul fil vertical. Il suit la Genèse et Ruth jusqu’à David, puis se partage en deux colonnes là où Matthieu (les rois de Juda) et Luc (par Nathan) divergent, et se rejoint à Salathiel puis à Joseph. Les personnages clés ont leur carte ; on la touche pour lire le passage dans son chapitre, sans déplacer le marque-page.
 - **Continuer ma lecture** et quelques statistiques.
 - **Rappel quotidien** (cloche) : une notification par jour à l’heure choisie, avec un verset, seulement si l’app n’a pas encore été ouverte ce jour-là.
 
@@ -62,6 +63,7 @@ Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la
 - `src/rosary.tsx` : le déroulé du chapelet guidé et le chapelet dessiné à plat
 - `src/rosary3d.tsx` / `src/rosary-scene.ts` / `src/rosary-textures.ts` : le chapelet en 3D (Three.js sur expo-gl) et ses textures calculées
 - `src/adoration.ts` : les temps de l’adoration guidée et leur durée
+- `src/genealogy.tsx` / `src/data/genealogy.ts` : l’arbre généalogique d’Adam à Jésus et ses données (noms d’après la Louis Segond embarquée)
 - `src/reading.ts` : découpage du texte en passages pour la lecture suivie
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes

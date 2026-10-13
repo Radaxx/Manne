@@ -262,6 +262,19 @@ export function HomeScreen() {
           <Text style={styles.small}>{Math.round(bookDone * 100)} % du livre</Text>
         </Card>
 
+        {/* L'arbre généalogique : d'Adam et Ève à Jésus */}
+        <SectionTitle>Arbre généalogique</SectionTitle>
+        <Card onPress={() => router.push('/genealogie')} style={styles.officeCard}>
+          <View style={styles.officeIcon}>
+            <Ionicons name="git-network-outline" size={26} color={C.gold} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.officeName}>D’Adam à Jésus</Text>
+            <Text style={styles.muted}>Les patriarches, les rois, les femmes que Matthieu nomme, jusqu’à Joseph et Marie.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={C.muted} />
+        </Card>
+
         {/* Statistiques */}
         <View style={styles.stats}>
           <View style={styles.stat}>
