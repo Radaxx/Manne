@@ -14,13 +14,23 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ReadingChrome, readingTheme } from './appearance';
+import {
+  bookMeta,
+  bookRank,
+  chapterSource,
+  isDeuterocanonical,
+  isNewTestament,
+  loadChapter,
+  prevBook,
+  type TranslationId,
+  translationName,
+} from './bible';
 import { bookGradient, SERIF } from './cards';
 import { communityKey } from './community';
-import { loadBook } from './data/bible';
 import type { Passage } from './data/content';
 import { INTROS } from './data/intros';
 import { haptic } from './haptics';
-import { bookMeta, chapterPrompt, normalize } from './reading';
+import { chapterPrompt, normalize } from './reading';
 import { type ProgressApi, readingPosition, useApp } from './storage';
 
 export type Loc = { book: number; chapter: number };
@@ -41,16 +51,17 @@ export function TopScrim({ extra = 108 }: { extra?: number }) {
 }
 
 /** Vrai si a est strictement après b dans l'ordre de la Bible. */
-const isAfter = (a: Loc, b: Loc) => a.book > b.book || (a.book === b.book && a.chapter > b.chapter);
+const isAfter = (a: Loc, b: Loc) => bookRank(a.book) > bookRank(b.book) || (a.book === b.book && a.chapter > b.chapter);
 
-const nextLoc = ({ book, chapter }: Loc): Loc => {
-  const { book: b, chapter: c } = normalize({ book, chapter: chapter + 1, verse: 1 });
+const nextLoc = ({ book, chapter }: Loc, t: TranslationId): Loc => {
+  const { book: b, chapter: c } = normalize({ book, chapter: chapter + 1, verse: 1 }, t);
   return { book: b, chapter: c };
 };
 
-const prevLoc = ({ book, chapter }: Loc): Loc | null => {
+const prevLoc = ({ book, chapter }: Loc, t: TranslationId): Loc | null => {
   if (chapter > 1) return { book, chapter: chapter - 1 };
-  return book > 1 ? { book: book - 1, chapter: bookMeta(book - 1).verses.length } : null;
+  const prev = prevBook(book);
+  return prev === null ? null : { book: prev, chapter: bookMeta(prev, t).verses.length };
 };
 
 type Run = { from: number; to: number };
@@ -71,8 +82,8 @@ const rangeLabel = (r: Run) => (r.to > r.from ? `${r.from}-${r.to}` : `${r.from}
 /** Un verset seul garde l'identifiant des versets du fil Découvrir (« livre-chapitre-verset »). */
 const passageId = (loc: Loc, r: Run) => `${loc.book}-${loc.chapter}-${r.from}${r.to > r.from ? `-${r.to}` : ''}`;
 
-function makePassage(loc: Loc, texts: string[], r: Run): Passage {
-  const name = bookMeta(loc.book).name;
+function makePassage(loc: Loc, texts: string[], r: Run, t: TranslationId): Passage {
+  const name = bookMeta(loc.book, t).name;
   return {
     id: passageId(loc, r),
     book: loc.book,
@@ -108,13 +119,14 @@ const overlaps = (a: Run, verses: Set<number>) => {
  * sélectionner (appui long : jusqu'à ce verset), puis on les aime, on les garde ou on les partage.
  */
 export function ChapterReader({ api, height }: { api: ProgressApi; height: number }) {
+  const t = api.progress.translation;
   const [loc, setLoc] = useState<Loc>(() => {
-    const { book, chapter } = normalize(readingPosition(api.progress));
+    const { book, chapter } = normalize(readingPosition(api.progress), t);
     return { book, chapter };
   });
   const insets = useSafeAreaInsets();
   const bookmark = readingPosition(api.progress);
-  const prev = prevLoc(loc);
+  const prev = prevLoc(loc, t);
   const progressRef = useRef(api.progress);
   progressRef.current = api.progress;
 
@@ -126,13 +138,13 @@ export function ChapterReader({ api, height }: { api: ProgressApi; height: numbe
 
   return (
     <ChapterView
-      key={`${loc.book}-${loc.chapter}`}
+      key={`${loc.book}-${loc.chapter}-${t}`}
       loc={loc}
       api={api}
       height={height}
       topPad={insets.top + 100}
       onPrev={prev ? () => open(prev) : null}
-      onNext={() => open(nextLoc(loc))}
+      onNext={() => open(nextLoc(loc, t))}
       onFinish={(whole) => {
         // Relire un chapitre déjà dépassé ne déplace pas le marque-page.
         if (isAfter(readingPosition(progressRef.current), loc)) api.markChapterRead(loc.book, loc.chapter);
@@ -169,8 +181,11 @@ export function ChapterView({
   /** Affiché en fin de chapitre, avant le bouton « suivant ». */
   footer?: ReactNode;
 }) {
-  const book = bookMeta(loc.book);
-  const texts = useMemo(() => loadBook(loc.book)[loc.chapter - 1], [loc.book, loc.chapter]);
+  const t = api.progress.translation;
+  const book = bookMeta(loc.book, t);
+  const texts = useMemo(() => loadChapter(loc.book, loc.chapter, t), [loc.book, loc.chapter, t]);
+  // La Louis Segond emprunte à la Crampon les livres et les chapitres qu'elle n'a pas.
+  const source = chapterSource(loc.book, loc.chapter, t);
   const total = texts.length;
   const { liked, saved } = api.progress;
 
@@ -198,7 +213,7 @@ export function ChapterView({
   };
 
   const runs = useMemo(() => toRuns(selected), [selected]);
-  const passages = useMemo(() => runs.map((r) => makePassage(loc, texts, r)), [runs, loc, texts]);
+  const passages = useMemo(() => runs.map((r) => makePassage(loc, texts, r, t)), [runs, loc, texts, t]);
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
   // Les versets de ce chapitre déjà aimés / gardés (quelle que soit l'étendue du passage enregistré).
@@ -238,7 +253,7 @@ export function ChapterView({
   };
 
   const onShare = () => {
-    const message = passages.map((p) => `« ${p.text} »\n— ${p.reference} (Louis Segond 1910)`).join('\n\n');
+    const message = passages.map((p) => `« ${p.text} »\n— ${p.reference} (${translationName(source)})`).join('\n\n');
     Share.share({ message: `${message}\n\nLu sur Manne` }).catch(() => {});
   };
 
@@ -264,11 +279,11 @@ export function ChapterView({
     }
     if (furthest <= readTo.current) return;
     const a = apiRef.current;
-    a.markRead(makePassage(loc, texts, { from: readTo.current + 1, to: furthest }));
+    a.markRead(makePassage(loc, texts, { from: readTo.current + 1, to: furthest }, t));
     readTo.current = furthest;
     if (furthest === total && !finished.current) {
       finished.current = true;
-      onFinishRef.current(makePassage(loc, texts, { from: 1, to: total }));
+      onFinishRef.current(makePassage(loc, texts, { from: 1, to: total }, t));
     }
   };
 
@@ -327,9 +342,16 @@ export function ChapterView({
           )}
         </View>
 
-        <Text style={styles.kicker}>{book.n >= 40 ? 'NOUVEAU TESTAMENT' : 'ANCIEN TESTAMENT'}</Text>
+        <Text style={styles.kicker}>
+          {isNewTestament(book.n) ? 'NOUVEAU TESTAMENT' : isDeuterocanonical(book.n) ? 'LIVRE DEUTÉROCANONIQUE' : 'ANCIEN TESTAMENT'}
+        </Text>
         <Text style={styles.bookName}>{book.name}</Text>
         <Text style={styles.chapterNum}>Chapitre {loc.chapter}</Text>
+        <Text style={styles.source}>
+          {source === t
+            ? translationName(t)
+            : `${isDeuterocanonical(book.n) ? 'Ce livre' : 'Ce chapitre, conservé en grec,'} ne figure pas dans la Louis Segond : texte de la ${translationName(source)}.`}
+        </Text>
         {loc.chapter === 1 && <Text style={styles.intro}>{INTROS[book.n]}</Text>}
         <Text style={styles.hint}>Touche des versets pour les aimer, les garder ou les partager. Appui long : jusqu’à ce verset.</Text>
 
@@ -448,6 +470,7 @@ const readingStyles = (t: ReadingChrome) =>
     kicker: { color: t.muted, fontSize: 12, letterSpacing: 2.5, fontWeight: '700' },
     bookName: { color: t.ink, fontSize: 34, lineHeight: 42, fontWeight: '700', marginTop: 6 },
     chapterNum: { color: t.accent, fontSize: 18, fontWeight: '700', marginTop: 2 },
+    source: { color: t.faint, fontSize: 12, lineHeight: 17, marginTop: 6 },
     intro: { color: t.ink, fontSize: 16, lineHeight: 25, marginTop: 18 },
     hint: { color: t.faint, fontSize: 12, lineHeight: 17, marginTop: 14, marginBottom: 14 },
     verse: { flexDirection: 'row', gap: 10, paddingVertical: 7, paddingHorizontal: 8, marginHorizontal: -8, borderRadius: 10 },

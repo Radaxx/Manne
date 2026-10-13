@@ -45,9 +45,10 @@ function Kicker({ step, set }: { step: RosaryStep; set: number }) {
 
 function StepBody({ step, session, texts }: { step: RosaryStep; session: RosarySession; texts: boolean }) {
   const { C, styles } = useThemed(stylesFor);
+  const { translation } = useApp().progress;
   if (step.kind === 'mystery' && step.decade !== null) {
     const set = MYSTERIES[session.set];
-    const verse = mysteryVerse(session.set, step.decade);
+    const verse = mysteryVerse(session.set, step.decade, translation);
     return (
       <>
         <Text style={styles.title}>{set.mysteries[step.decade]}</Text>

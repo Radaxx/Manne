@@ -1,4 +1,4 @@
-import { BOOKS } from './bible';
+import { bookMeta } from '../bible';
 import type { Passage } from './content';
 
 /** Où lire le passage : livre, chapitre, premier et dernier verset. */
@@ -28,7 +28,8 @@ export type Stage =
   | { kind: 'fork'; title: string; caption: string; left: Branch; right: Branch };
 
 /** « Genèse 3:20 », « 1 Rois 12:16 »… */
-export const placeLabel = ([book, chapter, from, to]: Place) => `${BOOKS[book - 1].name} ${chapter}:${from}${to > from ? `-${to}` : ''}`;
+export const placeLabel = ([book, chapter, from, to]: Place) =>
+  `${bookMeta(book, 'lsg').name} ${chapter}:${from}${to > from ? `-${to}` : ''}`;
 
 /** Le passage à ouvrir dans la feuille « chapitre complet », sans toucher au marque-page. */
 export const placePassage = (place: Place): Passage => {
@@ -36,7 +37,7 @@ export const placePassage = (place: Place): Passage => {
   return {
     id: `genealogie-${book}-${chapter}-${from}`,
     book,
-    bookName: BOOKS[book - 1].name,
+    bookName: bookMeta(book, 'lsg').name,
     chapter,
     from,
     to,

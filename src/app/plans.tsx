@@ -16,10 +16,10 @@ export default function PlansScreen() {
       <Text style={styles.intro}>
         Un peu chaque jour, à ton rythme. Chaque plan a son propre marque-page, indépendant de ta lecture dans l’onglet Lecture.
       </Text>
-      {PLANS.map((plan) => {
+      {PLANS.filter((plan) => !plan.retired || progress.plans[plan.id]).map((plan) => {
         const state = progress.plans[plan.id];
-        const chapters = planChapters(plan).length;
-        const status = state ? planStatus(plan, state, today()) : null;
+        const chapters = planChapters(plan, progress.translation).length;
+        const status = state ? planStatus(plan, state, today(), progress.translation) : null;
         return (
           <View key={plan.id} style={[styles.card, state && styles.cardActive]}>
             <Text style={styles.title}>{plan.title}</Text>

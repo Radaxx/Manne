@@ -1,4 +1,4 @@
-import { type Progress, prepareStored, today } from '../src/storage';
+import { type Progress, prepareStored, readingPosition, today } from '../src/storage';
 import { mergeProgress } from '../src/sync';
 import { shiftDay } from '../src/today';
 
@@ -66,6 +66,13 @@ describe('mergeProgress', () => {
     expect(merged.readToday).toEqual([]);
   });
 
+  it('fait gagner le dernier choix de traduction', () => {
+    const crampon = progress({ translation: 'crampon', stamps: { translation: NOW } });
+    const lsg = progress({ translation: 'lsg', stamps: { translation: NOW - 1000 } });
+    expect(mergeProgress(lsg, crampon).translation).toBe('crampon');
+    expect(mergeProgress(crampon, lsg).translation).toBe('crampon');
+  });
+
   it('garde le plus grand nombre de chapelets', () => {
     const here = progress({ rosary: { ...progress().rosary, count: 3 } });
     const there = progress({ rosary: { ...progress().rosary, count: 5 } });
@@ -81,6 +88,27 @@ describe('prepareStored', () => {
     });
     expect(p.currentBook).toBe(41);
     expect(p.positions).toEqual({ 41: { chapter: 3, verse: 2 } });
+  });
+
+  it('garde les livres deutérocanoniques et les chapitres d’une seule des traductions', () => {
+    const p = prepareStored({
+      currentBook: 67,
+      positions: { 67: { chapter: 2, verse: 1 }, 29: { chapter: 4, verse: 3 }, 74: { chapter: 1, verse: 1 } },
+    });
+    expect(p.currentBook).toBe(67);
+    expect(p.positions).toEqual({ 67: { chapter: 2, verse: 1 }, 29: { chapter: 4, verse: 3 } });
+  });
+
+  it('ramène dans le livre un marque-page venu de l’autre traduction', () => {
+    const joel4 = { currentBook: 29, positions: { 29: { chapter: 4, verse: 3 } } };
+    expect(readingPosition(prepareStored({ ...joel4, translation: 'lsg' }))).toEqual({ book: 29, chapter: 3, verse: 1 });
+    expect(readingPosition(prepareStored({ ...joel4, translation: 'crampon' }))).toEqual({ book: 29, chapter: 4, verse: 3 });
+  });
+
+  it('lit la Louis Segond quand la traduction est absente ou inconnue', () => {
+    expect(prepareStored({}).translation).toBe('lsg');
+    expect(prepareStored({ translation: 'tob' as never }).translation).toBe('lsg');
+    expect(prepareStored({ translation: 'crampon' }).translation).toBe('crampon');
   });
 
   it('jette une session de chapelet ou d’adoration abîmée', () => {

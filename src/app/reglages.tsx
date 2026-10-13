@@ -5,17 +5,20 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
 import { SERIF } from '../cards';
 import { formatTime } from '../reminder';
+import { TranslationPicker } from '../sheets';
 import { useApp } from '../storage';
 import { useThemed } from '../theme';
 
 export default function ReglagesScreen() {
-  const { progress, setAppearance } = useApp();
+  const { progress, setAppearance, setTranslation } = useApp();
   const { appearance, reminder } = progress;
   const { C, styles } = useThemed(stylesFor);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
-      <Text style={styles.intro}>Le thème du téléphone, la matière du chapelet, le fond de la lecture et le rappel du jour.</Text>
+      <Text style={styles.intro}>
+        Le thème du téléphone, la matière du chapelet, la traduction et le fond de la lecture, et le rappel du jour.
+      </Text>
 
       <Text style={styles.section}>Apparence</Text>
       <View style={styles.segment}>
@@ -84,6 +87,9 @@ export default function ReglagesScreen() {
           );
         })}
       </View>
+
+      <Text style={styles.section}>Traduction de la Bible</Text>
+      <TranslationPicker translation={progress.translation} onChange={setTranslation} />
 
       <Text style={styles.section}>Notification</Text>
       <Pressable onPress={() => router.push('/rappel')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { BOOKS, loadBook } from './data/bible';
+import { loadChapter, passageLabel, type TranslationId } from './bible';
 import { MYSTERIES } from './data/prayers';
 import type { RosarySession } from './storage';
 import { usePalette } from './theme';
@@ -67,16 +67,16 @@ export function rosarySteps(decade: number | null, fatima: boolean): RosaryStep[
 /** « 3ᵉ mystère douloureux » */
 export const mysteryOrdinal = (set: number, d: number) => `${d === 0 ? '1ᵉʳ' : `${d + 1}ᵉ`} mystère ${MYSTERIES[set].adjective}`;
 
-/** Le verset d'Écriture associé au mystère, dans la Louis Segond embarquée. */
-export function mysteryVerse(set: number, d: number) {
+/** Le verset d'Écriture associé au mystère, dans la traduction choisie. */
+export function mysteryVerse(set: number, d: number, translation: TranslationId) {
   const [b, c, f, t] = MYSTERIES[set].verses[d];
-  const text = loadBook(b)
-    [c - 1].slice(f - 1, t)
+  const text = loadChapter(b, c, translation)
+    .slice(f - 1, t)
     .join(' ')
     .replace(/\s+([,.])/g, '$1')
     .trim()
     .replace(/[,;:]$/, '…');
-  return { text, ref: `${BOOKS[b - 1].name} ${c}:${f}${t > f ? `-${t}` : ''}` };
+  return { text, ref: passageLabel(b, c, f, t, translation) };
 }
 
 /** Où on en est, en quelques mots : pour la carte « Reprendre » et l'onglet Prières. */

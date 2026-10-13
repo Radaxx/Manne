@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { useAccount } from '../auth';
+import { TOTAL_CHAPTERS } from '../bible';
 import { SERIF } from '../cards';
 import { planById, planStatus } from '../plans';
-import { TOTAL_CHAPTERS } from '../reading';
 import { today, useApp } from '../storage';
 import { syncProgress } from '../sync';
 import { usePalette, useThemed } from '../theme';
@@ -37,10 +37,10 @@ export default function CompteScreen() {
   const resume = resumeTarget(progress);
   const week = weekStrip(progress);
   const share = bibleShare(progress.chaptersRead);
-  const started = bookShares(progress.chaptersRead).filter((book) => book.read > 0);
+  const started = bookShares(progress.chaptersRead, progress.translation).filter((book) => book.read > 0);
   const plans = Object.entries(progress.plans).flatMap(([id, state]) => {
     const plan = planById(id);
-    return plan ? [planStatus(plan, state, day)] : [];
+    return plan ? [planStatus(plan, state, day, progress.translation)] : [];
   });
   const steps = reachedSteps(progress);
 

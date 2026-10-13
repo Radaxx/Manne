@@ -3,11 +3,11 @@ import { sessionLabel } from '../src/rosary';
 
 const plan = planById('evangiles-30');
 if (!plan) throw new Error('plan evangiles-30 introuvable');
-const total = planChapters(plan).length; // 89 chapitres sur 30 jours
+const total = planChapters(plan, 'lsg').length; // 89 chapitres sur 30 jours
 
 describe('planStatus', () => {
   it('prévoit la portion du premier jour', () => {
-    const s = planStatus(plan, { start: '2026-01-01', pos: 0, verse: 1 }, '2026-01-01');
+    const s = planStatus(plan, { start: '2026-01-01', pos: 0, verse: 1 }, '2026-01-01', 'lsg');
     expect(s.day).toBe(0);
     expect(s.today).toHaveLength(Math.floor(total / plan.days));
     expect(s.todayComplete).toBe(false);
@@ -15,18 +15,18 @@ describe('planStatus', () => {
   });
 
   it('compte le retard sur les jours passés', () => {
-    const s = planStatus(plan, { start: '2026-01-01', pos: 10, verse: 1 }, '2026-01-06');
+    const s = planStatus(plan, { start: '2026-01-01', pos: 10, verse: 1 }, '2026-01-06', 'lsg');
     expect(s.day).toBe(5);
     expect(s.behind).toBe(Math.floor((5 * total) / plan.days) - 10);
     expect(s.todayComplete).toBe(false);
   });
 
   it('compte l’avance et la fin du plan', () => {
-    const ahead = planStatus(plan, { start: '2026-01-01', pos: 20, verse: 1 }, '2026-01-01');
+    const ahead = planStatus(plan, { start: '2026-01-01', pos: 20, verse: 1 }, '2026-01-01', 'lsg');
     expect(ahead.todayComplete).toBe(true);
     expect(ahead.ahead).toBe(20 - Math.floor(total / plan.days));
 
-    const done = planStatus(plan, { start: '2026-01-01', pos: total, verse: 1 }, '2026-03-01');
+    const done = planStatus(plan, { start: '2026-01-01', pos: total, verse: 1 }, '2026-03-01', 'lsg');
     expect(done.finished).toBe(true);
     expect(done.next).toBeNull();
     expect(done.day).toBe(plan.days - 1);

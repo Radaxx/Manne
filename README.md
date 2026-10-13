@@ -7,7 +7,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 - **Prier maintenant** : l’office de la Liturgie des Heures qui correspond à l’heure (Laudes, Tierce, Sexte, None, Vêpres, Complies, et l’Office des lectures).
 - **Évangile du jour** et toutes les lectures de la messe.
 - **Suivre la messe** : le déroulé, moment par moment (ouverture, Parole, eucharistie, envoi) : qui parle (prêtre, lecteur, assemblée), ce qu’on répond, quand se lever ou s’asseoir. Les chants fixes en français ou en latin, le Credo de Nicée ou celui des Apôtres, les lectures du jour (AELF), et une introduction pour une première fois.
-- **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Chaque plan se lit chapitre entier par chapitre entier (même vue et même sélection de versets que la lecture libre), avec son propre marque-page, indépendant de la lecture libre : il avance quand on finit un chapitre, ne recule jamais en relecture, et « Marquer ici » le place où l’on veut ; on peut prendre de l’avance, et rattraper son retard.
+- **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an (avec les livres deutérocanoniques)… Chaque plan se lit chapitre entier par chapitre entier (même vue et même sélection de versets que la lecture libre), avec son propre marque-page, indépendant de la lecture libre : il avance quand on finit un chapitre, ne recule jamais en relecture, et « Marquer ici » le place où l’on veut ; on peut prendre de l’avance, et rattraper son retard.
 - **Arbre généalogique** : la lignée d’Adam et Ève jusqu’à Jésus, en un seul fil vertical. Il suit la Genèse et Ruth jusqu’à David, puis se partage en deux colonnes là où Matthieu (les rois de Juda) et Luc (par Nathan) divergent, et se rejoint à Salathiel puis à Joseph. Les personnages clés ont leur carte ; on la touche pour lire le passage dans son chapitre, sans déplacer le marque-page.
 - **Continuer ma lecture** et quelques statistiques.
 - **Intentions confiées** : porter la prière de quelqu’un, ou confier la sienne.
@@ -35,7 +35,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 ## Deux fils
 
-- **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit un livre puis un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
+- **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit la traduction (Louis Segond 1910 ou Bible Crampon 1923, aussi dans les réglages), puis un livre et un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les livres suivent l’ordre de la Bible catholique, deutérocanoniques compris. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
 - **Découvrir** : des versets choisis par thème (qui s’adaptent à ce que tu aimes), des anecdotes, des quiz et des personnages bibliques.
 
 Et pour ne pas reproduire le « doomscrolling » : un objectif quotidien de 30 versets, une série de jours, et une carte Pause toutes les 15 cartes dans Découvrir.
@@ -48,13 +48,18 @@ Sur les versets de Découvrir et les passages d’un plan, le cœur compte pour 
 
 **Intentions confiées** : une liste de prières publiées exprès. « Je la porte » dit qu’on s’en charge, et l’auteur peut retirer la sienne. Depuis l’adoration, « Confier à la communauté » ouvre cet écran avec le texte déjà écrit : rien ne part sans confirmation, et la liste privée de l’adoration ne change pas. Trois signalements retirent une intention.
 
-Le chemin (marque-pages, plans, journal et série, favoris, prières personnelles, chapelet et adoration en cours, intentions d’adoration, réglages d’apparence) est synchronisé avec Supabase dès qu’une session existe, anonyme au départ, puis reliée à un compte. Seules la liste de confession, son verrou et l’heure du rappel restent sur le téléphone. Sans projet Supabase configuré, tout reste sur le téléphone et la lecture continue ; les compteurs et les textes communs restent silencieux.
+Le chemin (marque-pages, plans, journal et série, favoris, prières personnelles, chapelet et adoration en cours, intentions d’adoration, réglages d’apparence, traduction) est synchronisé avec Supabase dès qu’une session existe, anonyme au départ, puis reliée à un compte. Seules la liste de confession, son verrou et l’heure du rappel restent sur le téléphone. Sans projet Supabase configuré, tout reste sur le téléphone et la lecture continue ; les compteurs et les textes communs restent silencieux.
 
 ## Texte
 
-Louis Segond 1910 (domaine public), embarquée dans l’app pour fonctionner hors connexion. Source : [getbible.net](https://getbible.net) (module CrossWire).
+Deux traductions, embarquées dans l’app pour fonctionner hors connexion :
 
-- `scripts/build-bible.mjs` régénère `src/data/bible/` (un fichier JSON par livre).
+- **Louis Segond 1910**. Source : [getbible.net](https://getbible.net) (module CrossWire).
+- **Bible Crampon 1923** (domaine public), traduction catholique avec les livres deutérocanoniques : Tobie, Judith, 1 et 2 Maccabées, Sagesse, Siracide, Baruch, et les parties grecques d’Esther (chap. 11-16) et de Daniel (chap. 13-14). Source : [Wikisource](https://fr.wikisource.org/wiki/Bible_Crampon_1923), sans les notes ni les sommaires de l’édition. Elle écrit le nom divin « Yahweh ».
+
+La Louis Segond n’a pas les deutérocanoniques : quand on la lit, ces livres et les chapitres grecs d’Esther et de Daniel viennent de la Crampon, et l’écran le dit. Les deux traductions ont donc les mêmes 73 livres et 1 334 chapitres ; seuls Joël (3 ou 4 chapitres) et Malachie (4 ou 3) se découpent autrement. Les livres gardent leur numéro (1-66 comme la Segond, 67-73 pour les deutérocanoniques). Le choix vaut pour la lecture, les plans, les prières tirées de la Bible et le chapelet ; Découvrir et l’arbre généalogique restent dans la Segond, sur laquelle leurs références sont calées.
+
+- `scripts/build-bible.mjs` régénère `src/data/bible/lsg/` et `src/data/bible/crampon/` (un fichier JSON par livre et un index par traduction). `node scripts/build-bible.mjs crampon <dossier>` garde les pages Wikisource dans le dossier, pour ne pas les retélécharger.
 - `scripts/build-verses.mjs` régénère `src/data/verses.json` (versets du fil Découvrir).
 
 ## Logo
@@ -105,6 +110,7 @@ Pour les j’aime, les échos, les intentions et le compte : copier `.env.exampl
 - `src/rosary3d.tsx` / `src/rosary-scene.ts` / `src/rosary-textures.ts` : le chapelet en 3D (Three.js sur expo-gl) et ses textures calculées
 - `src/adoration.ts` : les temps de l’adoration guidée et leur durée
 - `src/genealogy.tsx` / `src/data/genealogy.ts` : l’arbre généalogique d’Adam à Jésus et ses données (noms d’après la Louis Segond embarquée)
+- `src/bible.ts` : les deux traductions, l’ordre des livres, ce que la Segond emprunte à la Crampon
 - `src/reading.ts` : positions dans la Bible, question de méditation de fin de chapitre
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes

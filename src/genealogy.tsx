@@ -189,7 +189,8 @@ export function GenealogyScreen() {
         ))}
         <Text style={styles.credits}>Noms d’après la Bible Louis Segond 1910</Text>
       </ScrollView>
-      {open && <ChapterSheet passage={open} onClose={() => setOpen(null)} />}
+      {/* Les références et les noms de l'arbre suivent la Louis Segond. */}
+      {open && <ChapterSheet passage={open} translation="lsg" onClose={() => setOpen(null)} />}
     </>
   );
 }

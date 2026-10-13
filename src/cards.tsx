@@ -146,6 +146,8 @@ export function VerseCard({ verse, height, onRead, ...actions }: Actions & { ver
 
 /** Une ambiance de couleur par grande partie de la Bible, stable pendant toute la lecture d'un livre. */
 export function bookGradient(n: number): Gradient {
+  // Les deutérocanoniques (67-73) prennent la couleur de leur groupe : historiques, sagesse, prophètes.
+  if (n >= 67) n = n <= 70 ? 17 : n <= 72 ? 22 : 39;
   if (n <= 5) return ['#140d06', '#3a2410', '#74471d']; // Pentateuque
   if (n <= 17) return ['#0e0f14', '#262b38', '#454d61']; // Livres historiques
   if (n <= 22) return ['#0b1424', '#1d3557', '#3d5a80']; // Livres poétiques

@@ -130,6 +130,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     plans,
     reminder: here.reminder,
     appearance: byStamp(here, there, 'appearance', here.appearance, there.appearance, (mine) => mine),
+    translation: byStamp(here, there, 'translation', here.translation, there.translation, (mine) => mine),
     pinnedPrayers: mergeItems(
       here,
       there,

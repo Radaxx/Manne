@@ -252,13 +252,16 @@ export function ReadingScreen() {
           </Pressable>
         }
       >
-        {(height) => <ChapterReader key={api.readingSession} api={api} height={height} />}
+        {/* Changer de traduction (ici ou dans les réglages) repart du marque-page, ramené dans le livre. */}
+        {(height) => <ChapterReader key={`${api.readingSession}-${api.progress.translation}`} api={api} height={height} />}
       </FeedScreen>
       {showBooks && (
         <BooksSheet
           current={api.progress.currentBook}
           positions={api.progress.positions}
           chaptersRead={api.progress.chaptersRead}
+          translation={api.progress.translation}
+          onTranslation={api.setTranslation}
           onPick={(book, chapter) => {
             if (chapter) goTo(book, chapter);
             else selectBook(book);

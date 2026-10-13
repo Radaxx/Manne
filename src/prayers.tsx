@@ -5,8 +5,8 @@ import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, typ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
 import type { Palette } from './appearance';
+import { loadChapter, passageLabel, type TranslationId, translationName } from './bible';
 import { SERIF } from './cards';
-import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
 import { biometricName, lockSupported } from './lock';
 import { sessionLabel } from './rosary';
@@ -27,10 +27,10 @@ const fold = (s: string) => {
   return (typeof lower.normalize === 'function' ? lower.normalize('NFD') : lower).replace(/[̀-ͯ]/g, '').replace(/’/g, "'");
 };
 
-const scriptureRef = (p: Prayer) => {
+const scriptureRef = (p: Prayer, translation: TranslationId) => {
   if (!p.scripture) return null;
   const [b, c, f, t] = p.scripture;
-  return `${BOOKS[b - 1].name} ${c}:${f}${t > f ? `-${t}` : ''}`;
+  return passageLabel(b, c, f, t, translation);
 };
 
 function PinButton({ id, size = 20 }: { id: string; size?: number }) {
@@ -46,7 +46,9 @@ function PinButton({ id, size = 20 }: { id: string; size?: number }) {
 
 function PrayerRow({ prayer }: { prayer: Prayer }) {
   const { styles } = useThemed(stylesFor);
-  const preview = prayer.text?.split('\n')[0] ?? scriptureRef(prayer) ?? (prayer.rosary ? 'Les mystères du jour et comment le prier' : '');
+  const { translation } = useApp().progress;
+  const preview =
+    prayer.text?.split('\n')[0] ?? scriptureRef(prayer, translation) ?? (prayer.rosary ? 'Les mystères du jour et comment le prier' : '');
   return (
     <Pressable onPress={() => router.push(`/priere/${prayer.id}`)} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
       <View style={{ flex: 1 }}>
@@ -274,10 +276,10 @@ export function PrayerText({ text, style }: { text: string; style?: StyleProp<Te
   );
 }
 
-function ScriptureText({ scripture }: { scripture: [number, number, number, number] }) {
+function ScriptureText({ scripture, translation }: { scripture: [number, number, number, number]; translation: TranslationId }) {
   const { styles } = useThemed(stylesFor);
   const [b, c, f, t] = scripture;
-  const verses = loadBook(b)[c - 1].slice(f - 1, t);
+  const verses = loadChapter(b, c, translation).slice(f - 1, t);
   return (
     <Text style={styles.para}>
       {verses.map((v, i) => (
@@ -355,18 +357,23 @@ function CustomActions({ id }: { id: string }) {
 export function PrayerScreen({ id }: { id: string }) {
   const { styles } = useThemed(stylesFor);
   const prayer = useAllPrayers().find((p) => p.id === id);
+  const { translation } = useApp().progress;
   if (!prayer) return <Text style={[styles.empty, { padding: 24 }]}>Cette prière n’existe plus.</Text>;
-  const ref = scriptureRef(prayer);
+  const ref = scriptureRef(prayer, translation);
   return (
     <>
       <Stack.Screen options={{ title: '', headerRight: () => <PinButton id={prayer.id} size={22} /> }} />
       <ScrollView style={styles.root} contentContainerStyle={styles.detail}>
         <Text style={styles.kicker}>{prayer.category}</Text>
         <Text style={styles.title}>{prayer.title}</Text>
-        {ref ? <Text style={styles.ref}>{ref} · Louis Segond 1910</Text> : null}
+        {ref ? (
+          <Text style={styles.ref}>
+            {ref} · {translationName(translation)}
+          </Text>
+        ) : null}
         <View style={{ height: 18 }} />
         {prayer.text ? <PrayerText text={prayer.text} /> : null}
-        {prayer.scripture ? <ScriptureText scripture={prayer.scripture} /> : null}
+        {prayer.scripture ? <ScriptureText scripture={prayer.scripture} translation={translation} /> : null}
         {prayer.rosary ? <Rosary /> : null}
         {prayer.note ? <Text style={styles.note}>{prayer.note}</Text> : null}
         {prayer.custom ? <CustomActions id={prayer.id} /> : null}

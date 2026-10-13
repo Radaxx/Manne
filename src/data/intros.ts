@@ -1,5 +1,5 @@
 // Présentation courte de chaque livre, affichée en tête de lecture.
-// Les citations sont tirées de la Louis Segond 1910.
+// Les citations sont tirées de la Louis Segond 1910, et de la Crampon 1923 pour ce que la Segond n'a pas.
 export const INTROS: Record<number, string> = {
   1: 'Le livre des commencements : la création, la chute, le déluge, puis l’histoire d’Abraham, Isaac, Jacob et Joseph. Il pose les fondations de l’alliance entre Dieu et son peuple.',
   2: 'La sortie d’Égypte du peuple d’Israël, conduit par Moïse : la Pâque, le passage de la mer, les Dix Commandements au Sinaï et la construction du tabernacle.',
@@ -17,7 +17,7 @@ export const INTROS: Record<number, string> = {
   14: 'De Salomon à l’exil à Babylone, du point de vue du royaume de Juda, jusqu’à l’édit de Cyrus qui permet le retour.',
   15: 'Le retour d’exil et la reconstruction du Temple de Jérusalem. Esdras, prêtre et scribe, ramène le peuple à la Loi.',
   16: 'Néhémie, échanson du roi de Perse, revient à Jérusalem pour en relever les murailles, malgré l’opposition et le découragement.',
-  17: 'Une jeune femme juive devenue reine de Perse risque sa vie pour sauver son peuple d’un massacre. C’est l’origine de la fête de Pourim.',
+  17: 'Une jeune femme juive devenue reine de Perse risque sa vie pour sauver son peuple d’un massacre. C’est l’origine de la fête de Pourim. Les chapitres 11 à 16, conservés en grec, ajoutent le songe de Mardochée, les édits du roi et les prières de Mardochée et d’Esther.',
   18: 'Un homme juste perd tout. Un long poème sur la souffrance et le mystère de Dieu, qui finit par répondre à Job du milieu de la tempête.',
   19: '150 prières et chants : louange, détresse, colère, confiance. Le livre de prière d’Israël, que Jésus lui-même priait. Beaucoup sont attribués à David.',
   20: 'Des maximes de sagesse pour la vie de tous les jours, en grande partie attribuées à Salomon. « La crainte de l’Éternel est le commencement de la science » (1:7).',
@@ -27,7 +27,7 @@ export const INTROS: Record<number, string> = {
   24: 'Le prophète qui a vu tomber Jérusalem. Souvent rejeté, il annonce pourtant « une alliance nouvelle », écrite dans les cœurs (31:31-34).',
   25: 'Cinq poèmes de deuil sur la destruction de Jérusalem, traditionnellement attribués à Jérémie. En plein milieu : « Les bontés de l’Éternel ne sont pas épuisées » (3:22).',
   26: 'Prêtre et prophète exilé à Babylone, aux visions saisissantes : la gloire de Dieu, et la vallée d’ossements desséchés qui reprennent vie (chapitre 37).',
-  27: 'Des récits de fidélité à la cour de Babylone — la fournaise, la fosse aux lions — suivis de visions sur la fin des temps.',
+  27: 'Des récits de fidélité à la cour de Babylone — la fournaise, la fosse aux lions — suivis de visions sur la fin des temps. Le texte grec ajoute le cantique des trois jeunes gens dans la fournaise (chapitre 3) et les histoires de Susanne et de Bel (chapitres 13 et 14).',
   28: 'Le prophète épouse une femme infidèle : une image bouleversante de l’amour de Dieu pour un peuple qui se détourne de lui.',
   29: 'Une invasion de sauterelles devient un appel à revenir à Dieu. Pierre cite sa promesse de l’Esprit répandu le jour de la Pentecôte (Actes 2).',
   30: 'Un berger de Juda envoyé au royaume du Nord dénonce l’injustice : « Que la droiture soit comme un courant d’eau » (5:24).',
@@ -67,4 +67,12 @@ export const INTROS: Record<number, string> = {
   64: 'Un billet à Gaïus, félicité pour son hospitalité envers ceux qui annoncent l’Évangile.',
   65: 'Une courte lettre pour « combattre pour la foi » (v. 3) face à ceux qui la déforment. Elle se termine par une magnifique louange.',
   66: 'Une révélation donnée à Jean sur l’île de Patmos, en images symboliques : le combat entre le bien et le mal, la victoire de l’Agneau et la nouvelle Jérusalem.',
+  // Les livres deutérocanoniques, lus dans la Crampon.
+  67: 'Un juif fidèle exilé à Ninive, Tobie, devient aveugle ; son fils part en voyage, guidé sans le savoir par un compagnon qui se révèle à la fin : « Je suis l’ange Raphaël » (12:15). Une histoire de providence, de charité et de mariage béni.',
+  68: 'L’armée d’Holoferne assiège Béthulie et la ville est prête à se rendre. Une veuve pieuse, Judith, prie, sort de la ville et sauve son peuple par son courage : la confiance en Dieu quand tout semble perdu.',
+  69: 'La résistance des Juifs, menée par Mathathias et ses fils Judas Maccabée, Jonathas et Simon, contre le roi Antiochus qui veut leur imposer le culte grec. La purification du Temple est à l’origine de la fête de Hanoukka (4:59).',
+  70: 'La même époque, racontée autour de Judas Maccabée et du Temple : le martyre du vieil Éléazar et des sept frères avec leur mère, et l’un des premiers témoignages de la foi en la résurrection et de la prière pour les morts (12:43-46).',
+  71: 'Écrit en grec peu avant la naissance de Jésus, un éloge de la sagesse, « resplendissement de la lumière éternelle » (7:26), et une méditation sur l’espérance des justes : « Les âmes des justes sont dans la main de Dieu » (3:1).',
+  72: 'Les conseils d’un sage de Jérusalem, Jésus fils de Sirach, sur l’amitié, la famille, la parole et la crainte de Dieu : « Un ami fidèle est une protection puissante » (6:14). On l’appelle aussi l’Ecclésiastique, le livre de l’Église.',
+  73: 'Attribué à Baruch, le secrétaire du prophète Jérémie : une prière de pénitence des exilés, un éloge de la Sagesse donnée à Israël, puis une lettre de Jérémie contre les idoles (chapitre 6).',
 };

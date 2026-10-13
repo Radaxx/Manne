@@ -1,5 +1,5 @@
 // Recueil de prières. Les textes traditionnels ont été vérifiés auprès de sources catholiques
-// (diocèses, sanctuaires) ; les prières bibliques sont lues dans la Louis Segond 1910 embarquée.
+// (diocèses, sanctuaires) ; les prières bibliques sont lues dans la traduction choisie (Louis Segond 1910 ou Crampon 1923).
 // Format du texte : paragraphes séparés par une ligne vide ; une ligne qui commence par « — » est
 // la réponse de l'assemblée.
 

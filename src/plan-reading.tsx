@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { readingTheme } from './appearance';
+import { bookMeta } from './bible';
 import { ChapterView, TopScrim } from './chapter';
 import { formatRange, type Plan, planById, planChapters, planStatus } from './plans';
-import { bookMeta } from './reading';
 import { today, useApp } from './storage';
 import { FocusedStatusBar } from './theme';
 
@@ -16,8 +16,9 @@ function PlanReader({ plan }: { plan: Plan }) {
   const insets = useSafeAreaInsets();
   const [height, setHeight] = useState(0);
   const state = api.progress.plans[plan.id];
-  const status = planStatus(plan, state, today());
-  const chapters = planChapters(plan);
+  const t = api.progress.translation;
+  const status = planStatus(plan, state, today(), t);
+  const chapters = planChapters(plan, t);
 
   // On s'ouvre sur le prochain chapitre à lire (le dernier si le plan est terminé) ; on peut aller et venir
   // d'un chapitre à l'autre sans déplacer le marque-page du plan, sauf « Marquer ici » ou en finissant un chapitre.
@@ -34,14 +35,14 @@ function PlanReader({ plan }: { plan: Plan }) {
 
   const markHere = () => {
     api.setPlanPosition(plan.id, idx, 1);
-    setToast(`Plan placé à ${bookMeta(current.book).name} ${current.chapter}`);
+    setToast(`Plan placé à ${bookMeta(current.book, t).name} ${current.chapter}`);
   };
 
   const subtitle = status.finished
     ? 'Plan terminé ✓'
     : status.todayComplete
       ? `Lecture du jour faite ✓${status.ahead > 0 ? ` · +${status.ahead} d’avance` : ''}`
-      : `Aujourd’hui : ${formatRange(status.today)} · ${status.todayDone}/${status.today.length}`;
+      : `Aujourd’hui : ${formatRange(status.today, t)} · ${status.todayDone}/${status.today.length}`;
   const todayProgress = status.today.length ? status.todayDone / status.today.length : 1;
   const chrome = readingTheme(api.progress.appearance.reading);
 
@@ -68,7 +69,7 @@ function PlanReader({ plan }: { plan: Plan }) {
       <FocusedStatusBar style={chrome.statusBar} />
       {height > 0 && current && (
         <ChapterView
-          key={current.key}
+          key={`${current.key}/${t}`}
           loc={{ book: current.book, chapter: current.chapter }}
           api={api}
           height={height}

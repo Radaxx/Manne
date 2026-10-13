@@ -1,8 +1,7 @@
 import { currentOffice } from './aelf';
-import { BOOKS } from './data/bible';
+import { BOOK_ORDER, bookMeta, clampChapter, TOTAL_CHAPTERS, type TranslationId } from './bible';
 import { longDate } from './dates';
 import { daysSince, formatRange, planById, planStatus } from './plans';
-import { TOTAL_CHAPTERS } from './reading';
 import type { Progress } from './storage';
 
 /** Objectif quotidien, en versets lus (un chapitre en compte souvent 20 à 40). */
@@ -40,8 +39,8 @@ export function shiftDay(iso: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function readingDone(plans: Progress['plans'], verses: number, date: string): boolean {
-  const active = activePlans(plans, date);
+export function readingDone(plans: Progress['plans'], verses: number, date: string, t: TranslationId): boolean {
+  const active = activePlans(plans, date, t);
   if (active.length === 0) return verses >= DAILY_GOAL;
   return active.every((s) => s.status.todayComplete);
 }
@@ -69,7 +68,7 @@ export function streakFrom(days: Record<string, DayLog>, date: string): number {
 export function liveLog(p: Progress, date = p.day): DayLog {
   const prev = p.days[date] ?? EMPTY_DAY;
   const verses = Math.max(prev.verses, date === p.day ? p.readToday.length : 0);
-  return { ...prev, verses, reading: readingDone(p.plans, verses, date) };
+  return { ...prev, verses, reading: readingDone(p.plans, verses, date, p.translation) };
 }
 
 export function currentStreak(p: Progress, date = p.day): number {
@@ -78,8 +77,8 @@ export function currentStreak(p: Progress, date = p.day): number {
 
 export function bookmarkLabel(p: Progress): string {
   const pos = p.positions[p.currentBook] ?? { chapter: 1, verse: 1 };
-  const name = BOOKS[p.currentBook - 1]?.name ?? 'La suite';
-  return `${name} ${pos.chapter} t’attend`;
+  const name = bookMeta(p.currentBook, p.translation)?.name ?? 'La suite';
+  return `${name} ${clampChapter(p.currentBook, pos.chapter, p.translation)} t’attend`;
 }
 
 /** Une seule suite : une prière laissée en cours, puis le premier point incomplet, puis le marque-page. */
@@ -88,11 +87,11 @@ export function resumeTarget(p: Progress): ResumeTarget {
   if (p.adoration.session) return { href: '/adoration', label: 'Reprendre l’adoration' };
   const log = liveLog(p);
   if (!log.gospel) return { href: '/messe', label: 'Lire l’Évangile' };
-  const pending = activePlans(p.plans, p.day).filter((s) => !s.status.todayComplete);
+  const pending = activePlans(p.plans, p.day, p.translation).filter((s) => !s.status.todayComplete);
   if (pending.length > 0) {
     const first = pending[0];
     const behind = first.status.behind;
-    const label = behind > 0 ? `${behind} chapitre${behind > 1 ? 's' : ''} à rattraper` : formatRange(first.status.today);
+    const label = behind > 0 ? `${behind} chapitre${behind > 1 ? 's' : ''} à rattraper` : formatRange(first.status.today, p.translation);
     return { href: `/plan/${first.plan.id}`, label };
   }
   return { href: '/lecture', label: bookmarkLabel(p), book: p.currentBook };
@@ -105,18 +104,23 @@ export function todayLine(p: Progress): string {
   if (!log.reading) missing.push('la lecture');
   if (!prayed(log)) missing.push('une prière');
   if (missing.length === 0) return bookmarkLabel(p);
-  if (missing.length === 1 && missing[0] === 'la lecture' && activePlans(p.plans, p.day).length === 0) return bookmarkLabel(p);
+  if (missing.length === 1 && missing[0] === 'la lecture' && activePlans(p.plans, p.day, p.translation).length === 0)
+    return bookmarkLabel(p);
   const sentence = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(', ')} et ${missing[missing.length - 1]}`;
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 export function todayTasks(p: Progress): TodayTask[] {
   const log = liveLog(p);
-  const pending = activePlans(p.plans, p.day).filter((s) => !s.status.todayComplete);
-  const active = activePlans(p.plans, p.day);
+  const active = activePlans(p.plans, p.day, p.translation);
+  const pending = active.filter((s) => !s.status.todayComplete);
   const readingHref = pending[0] ? `/plan/${pending[0].plan.id}` : active[0] ? `/plan/${active[0].plan.id}` : '/lecture';
   const readingLabel =
-    active.length === 0 ? `${log.verses}/${DAILY_GOAL} versets` : pending[0] ? formatRange(pending[0].status.today) : 'Lecture du jour';
+    active.length === 0
+      ? `${log.verses}/${DAILY_GOAL} versets`
+      : pending[0]
+        ? formatRange(pending[0].status.today, p.translation)
+        : 'Lecture du jour';
   const prayerHref = p.rosary.session ? '/chapelet' : p.adoration.session ? '/adoration' : `/office/${currentOffice().id}`;
   return [
     { id: 'gospel', label: 'Évangile du jour', done: log.gospel, href: '/messe' },
@@ -152,12 +156,14 @@ export function weekStrip(p: Progress, date = p.day): WeekCell[] {
   return cells;
 }
 
-export function bookShares(chaptersRead: string[]): BookShare[] {
+/** La part lue de chaque livre, dans l'ordre de la Bible. */
+export function bookShares(chaptersRead: string[], t: TranslationId): BookShare[] {
   const read = new Set(chaptersRead);
-  return BOOKS.map((book) => {
-    let n = 0;
-    for (let chapter = 1; chapter <= book.verses.length; chapter++) if (read.has(`${book.n}:${chapter}`)) n += 1;
-    return { n: book.n, name: book.name, read: n, total: book.verses.length };
+  return BOOK_ORDER.map((n) => {
+    const book = bookMeta(n, t);
+    let count = 0;
+    for (let chapter = 1; chapter <= book.verses.length; chapter++) if (read.has(`${n}:${chapter}`)) count += 1;
+    return { n, name: book.name, read: count, total: book.verses.length };
   });
 }
 
@@ -171,12 +177,12 @@ export function reachedSteps(p: Progress): Step[] {
   const streak = currentStreak(p);
   if (streak >= 7) steps.push({ id: 'streak-7', title: '7 jours d’affilée', next: 'Continue jusqu’à 30.', href: '/lecture' });
   if (streak >= 30) steps.push({ id: 'streak-30', title: '30 jours d’affilée', next: 'La suite de la Bible t’attend.', href: '/lecture' });
-  const shares = bookShares(p.chaptersRead);
+  const shares = bookShares(p.chaptersRead, p.translation);
   for (const book of GOSPELS) {
-    const share = shares[book - 1];
+    const share = shares.find((s) => s.n === book);
     if (!share || share.read < share.total) continue;
     const nextBook = book < 43 ? book + 1 : 44;
-    const nextName = BOOKS[nextBook - 1]?.name ?? 'la suite';
+    const nextName = bookMeta(nextBook, p.translation).name;
     steps.push({
       id: `gospel-${book}`,
       title: `${share.name} est lu`,
@@ -187,7 +193,7 @@ export function reachedSteps(p: Progress): Step[] {
   }
   for (const [id, state] of Object.entries(p.plans)) {
     const plan = planById(id);
-    if (!plan || !planStatus(plan, state, p.day).finished) continue;
+    if (!plan || !planStatus(plan, state, p.day, p.translation).finished) continue;
     steps.push({ id: `plan-${id}`, title: `${plan.title} terminé`, next: 'Un autre plan t’attend.', href: '/plans' });
   }
   const share = bibleShare(p.chaptersRead);
@@ -225,11 +231,11 @@ function prayerTaskLabel(log: DayLog): string {
   return 'Une prière';
 }
 
-function activePlans(plans: Progress['plans'], date: string) {
+function activePlans(plans: Progress['plans'], date: string, t: TranslationId) {
   return Object.entries(plans).flatMap(([id, state]) => {
     const plan = planById(id);
     if (!plan) return [];
-    const status = planStatus(plan, state, date);
+    const status = planStatus(plan, state, date, t);
     if (status.finished) return [];
     return [{ plan, status }];
   });

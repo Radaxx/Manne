@@ -64,7 +64,7 @@ export const FACTS: Fact[] = [
   },
   {
     title: 'La Louis Segond',
-    text: 'Louis Segond, pasteur et théologien suisse, a publié sa traduction de l’Ancien Testament en 1874 et du Nouveau en 1880. La version révisée de 1910 est celle que tu lis ici.',
+    text: 'Louis Segond, pasteur et théologien suisse, a publié sa traduction de l’Ancien Testament en 1874 et du Nouveau en 1880. Sa version révisée de 1910 est l’une des deux traductions de Manne, avec la Crampon.',
   },
   {
     title: '« Évangile »',
@@ -84,7 +84,7 @@ export const FACTS: Fact[] = [
   },
   {
     title: 'Un nom pour Dieu',
-    text: 'Le nom divin, composé des quatre lettres YHWH, apparaît environ 6 800 fois dans l’Ancien Testament hébreu. La Louis Segond le traduit par « l’Éternel ».',
+    text: 'Le nom divin, composé des quatre lettres YHWH, apparaît environ 6 800 fois dans l’Ancien Testament hébreu. La Louis Segond le traduit par « l’Éternel », la Crampon l’écrit « Yahweh ».',
   },
   {
     title: 'La Bible de Gutenberg',

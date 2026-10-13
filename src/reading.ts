@@ -1,4 +1,4 @@
-import { BOOKS } from './data/bible';
+import { bookMeta, nextBook, type TranslationId } from './bible';
 
 export type Position = { book: number; chapter: number; verse: number };
 
@@ -14,19 +14,13 @@ const PROMPTS = [
 /** La question de méditation qui clôt un chapitre (toujours la même pour un chapitre donné). */
 export const chapterPrompt = (book: number, chapter: number) => PROMPTS[(book * 7 + chapter) % PROMPTS.length];
 
-export const TOTAL_CHAPTERS = BOOKS.reduce((n, b) => n + b.verses.length, 0);
-
-export const bookMeta = (n: number) => BOOKS[n - 1];
-
-export const isNewTestament = (n: number) => n >= 40;
-
-/** Ramène une position « après la fin » au début du chapitre ou du livre suivant. */
-export function normalize({ book, chapter, verse }: Position): Position {
-  const meta = bookMeta(book);
-  if (verse > meta.verses[chapter - 1]) {
+/** Ramène une position « après la fin » au début du chapitre ou du livre suivant (dans l'ordre de lecture). */
+export function normalize({ book, chapter, verse }: Position, t: TranslationId): Position {
+  const meta = bookMeta(book, t);
+  if (chapter <= meta.verses.length && verse > meta.verses[chapter - 1]) {
     chapter += 1;
     verse = 1;
   }
-  if (chapter > meta.verses.length) return { book: book === 66 ? 1 : book + 1, chapter: 1, verse: 1 };
+  if (chapter > meta.verses.length) return { book: nextBook(book), chapter: 1, verse: 1 };
   return { book, chapter, verse };
 }

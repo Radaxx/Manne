@@ -3,10 +3,19 @@ import { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from './appearance';
+import {
+  bookMeta,
+  isDeuterocanonical,
+  loadChapter,
+  NEW_TESTAMENT,
+  OLD_TESTAMENT,
+  TOTAL_CHAPTERS,
+  TRANSLATIONS,
+  type TranslationId,
+} from './bible';
 import { SERIF } from './cards';
-import { BOOKS, loadBook } from './data/bible';
 import type { Passage } from './data/content';
-import { TOTAL_CHAPTERS } from './reading';
+import { useApp } from './storage';
 import { useThemed } from './theme';
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -26,10 +35,14 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-/** Le chapitre complet autour d'un verset : pour lire dans son contexte, pas seulement en extrait. */
-export function ChapterSheet({ passage, onClose }: { passage: Passage; onClose: () => void }) {
+/**
+ * Le chapitre complet autour d'un verset : pour lire dans son contexte, pas seulement en extrait.
+ * Par défaut dans la traduction choisie ; `translation` impose celle dont viennent les numéros du passage.
+ */
+export function ChapterSheet({ passage, translation, onClose }: { passage: Passage; translation?: TranslationId; onClose: () => void }) {
   const { styles } = useThemed(stylesFor);
-  const verses = loadBook(passage.book)[passage.chapter - 1];
+  const { progress } = useApp();
+  const verses = loadChapter(passage.book, passage.chapter, translation ?? progress.translation);
   const scroll = useRef<ScrollView>(null);
 
   return (
@@ -92,17 +105,48 @@ export function SavedSheet({
   );
 }
 
-/** Choisir un livre puis un chapitre, avec la progression de chacun. */
+/** Louis Segond ou Crampon : le choix vaut pour la lecture, les plans et les prières tirées de la Bible. */
+export function TranslationPicker({ translation, onChange }: { translation: TranslationId; onChange: (t: TranslationId) => void }) {
+  const { styles } = useThemed(stylesFor);
+  const about = TRANSLATIONS.find((t) => t.id === translation)?.about;
+  return (
+    <View>
+      <View style={styles.segment}>
+        {TRANSLATIONS.map((t) => {
+          const on = t.id === translation;
+          return (
+            <Pressable
+              key={t.id}
+              onPress={() => onChange(t.id)}
+              style={[styles.segmentItem, on && styles.segmentOn]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+            >
+              <Text style={[styles.segmentText, on && styles.segmentTextOn]}>{t.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={styles.legend}>{about}</Text>
+    </View>
+  );
+}
+
+/** Choisir la traduction, puis un livre et un chapitre, avec la progression de chacun. */
 export function BooksSheet({
   current,
   positions,
   chaptersRead,
+  translation,
+  onTranslation,
   onPick,
   onClose,
 }: {
   current: number;
   positions: Record<number, { chapter: number; verse: number }>;
   chaptersRead: string[];
+  translation: TranslationId;
+  onTranslation: (t: TranslationId) => void;
   /** chapter absent : reprendre là où on en était dans ce livre. */
   onPick: (book: number, chapter?: number) => void;
   onClose: () => void;
@@ -120,7 +164,7 @@ export function BooksSheet({
   }, [chaptersRead]);
 
   if (selected !== null) {
-    const b = BOOKS[selected - 1];
+    const b = bookMeta(selected, translation);
     const pos = positions[selected];
     return (
       <Sheet title={b.name} onClose={onClose}>
@@ -162,10 +206,11 @@ export function BooksSheet({
     );
   }
 
-  const section = (title: string, from: number, to: number) => (
+  const section = (title: string, ids: number[]) => (
     <View key={title}>
       <Text style={styles.section}>{title}</Text>
-      {BOOKS.slice(from - 1, to).map((b) => {
+      {ids.map((n) => {
+        const b = bookMeta(n, translation);
         const count = readByBook.get(b.n) ?? 0;
         const total = b.verses.length;
         const active = b.n === current;
@@ -179,6 +224,9 @@ export function BooksSheet({
               <Text style={styles.bookName}>
                 {b.name}
                 {b.n === 41 && count === 0 ? <Text style={styles.badge}> conseillé pour commencer</Text> : null}
+                {isDeuterocanonical(b.n) ? (
+                  <Text style={styles.tag}> deutérocanonique{translation === 'lsg' ? ' · Crampon' : ''}</Text>
+                ) : null}
               </Text>
               <View style={styles.track}>
                 <View style={[styles.fill, { width: `${(count / total) * 100}%` }]} />
@@ -197,14 +245,16 @@ export function BooksSheet({
   return (
     <Sheet title="Livres" onClose={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
+        <Text style={styles.section}>Traduction</Text>
+        <TranslationPicker translation={translation} onChange={onTranslation} />
         <Text style={styles.overall}>
           {chaptersRead.length} chapitre{chaptersRead.length > 1 ? 's' : ''} lu{chaptersRead.length > 1 ? 's' : ''} sur {TOTAL_CHAPTERS}
         </Text>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${(chaptersRead.length / TOTAL_CHAPTERS) * 100}%` }]} />
         </View>
-        {section('Nouveau Testament', 40, 66)}
-        {section('Ancien Testament', 1, 39)}
+        {section('Nouveau Testament', NEW_TESTAMENT)}
+        {section('Ancien Testament', OLD_TESTAMENT)}
       </ScrollView>
     </Sheet>
   );
@@ -232,6 +282,11 @@ const stylesFor = (C: Palette) =>
     item: { flexDirection: 'row', gap: 12, backgroundColor: C.card, padding: 16, borderRadius: 14, alignItems: 'flex-start' },
     itemText: { fontFamily: SERIF, fontSize: 16, lineHeight: 23, color: C.text },
     itemRef: { marginTop: 8, fontSize: 12, letterSpacing: 1.5, color: C.muted, fontWeight: '600', textTransform: 'uppercase' },
+    segment: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 14, padding: 4, gap: 4 },
+    segmentItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 6, borderRadius: 11 },
+    segmentOn: { backgroundColor: C.gold },
+    segmentText: { color: C.text, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+    segmentTextOn: { color: C.onGold },
     overall: { fontSize: 15, fontWeight: '700', color: C.text },
     section: {
       fontSize: 12,
@@ -255,6 +310,7 @@ const stylesFor = (C: Palette) =>
     bookRowActive: { borderWidth: 2, borderColor: C.gold },
     bookName: { fontSize: 16, fontWeight: '600', color: C.text, marginBottom: 6 },
     badge: { fontSize: 12, fontWeight: '600', color: '#2a9d6a' },
+    tag: { fontSize: 12, fontWeight: '600', color: C.faint },
     bookCount: { fontSize: 13, color: C.muted, fontVariant: ['tabular-nums'] },
     track: { height: 4, borderRadius: 2, backgroundColor: C.track, overflow: 'hidden' },
     fill: { height: '100%', backgroundColor: C.gold },

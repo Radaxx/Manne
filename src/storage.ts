@@ -3,12 +3,12 @@ import { createContext, createElement, type ReactNode, useCallback, useContext, 
 import { AppState } from 'react-native';
 import { pruneAelfCache } from './aelf';
 import { type AppearanceSettings, DEFAULT_APPEARANCE, normalizeAppearance } from './appearance';
+import { bookMeta, clampChapter, DEFAULT_TRANSLATION, isBook, isTranslation, type TranslationId } from './bible';
 import { queueLike } from './community';
-import { BOOKS } from './data/bible';
 import { type Passage, type Theme, VERSES } from './data/content';
 import { MYSTERIES } from './data/prayers';
 import { localDate } from './dates';
-import { type PlanState, planById, planChapters, planIndex } from './plans';
+import { movePlan, type PlanState, planById, planChapters, planIndex } from './plans';
 import { normalize, type Position } from './reading';
 import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
 import { DAILY_GOAL, type DayLog, EMPTY_DAY, readingDone, streakFrom } from './today';
@@ -37,6 +37,7 @@ export type Progress = {
   plans: Record<string, PlanState>; // plans de lecture en cours, chacun avec son marque-page
   reminder: ReminderSettings;
   appearance: AppearanceSettings; // thème, chapelet, fond de lecture
+  translation: TranslationId; // traduction de la Bible pour la lecture, les plans et les prières bibliques
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
   customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
   confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
@@ -47,7 +48,8 @@ export type Progress = {
    * Date (ms) du dernier geste explicite sur un élément : retrait, remise, déplacement en arrière,
    * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
    * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
-   * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance.
+   * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance,
+   * translation.
    */
   stamps: Record<string, number>;
 };
@@ -107,6 +109,7 @@ const initial = (): Progress => ({
   plans: {},
   reminder: DEFAULT_REMINDER,
   appearance: DEFAULT_APPEARANCE,
+  translation: DEFAULT_TRANSLATION,
   pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
   customPrayers: [],
   confession: { items: [], lastConfession: null },
@@ -126,9 +129,11 @@ function stamped(p: Progress, ...keys: string[]): Progress['stamps'] {
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
 
+/** Le marque-page de la lecture libre, ramené dans le livre (une position venue de l'autre traduction peut le dépasser). */
 export function readingPosition(p: Progress): Position {
   const pos = p.positions[p.currentBook] ?? { chapter: 1, verse: 1 };
-  return { book: p.currentBook, ...pos };
+  const chapter = clampChapter(p.currentBook, pos.chapter, p.translation);
+  return { book: p.currentBook, chapter, verse: chapter === pos.chapter ? pos.verse : 1 };
 }
 
 function pruneDays(days: Record<string, DayLog>): Record<string, DayLog> {
@@ -148,7 +153,7 @@ function sealDay(p: Progress): DayLog {
     office: prev.office,
     rosary: prev.rosary,
     adoration: prev.adoration,
-    reading: readingDone(p.plans, verses, p.day),
+    reading: readingDone(p.plans, verses, p.day, p.translation),
   };
 }
 
@@ -170,7 +175,7 @@ function touchDay(p: Progress, patch?: Partial<Pick<DayLog, 'gospel' | 'office' 
     office: prev.office || !!patch?.office,
     rosary: prev.rosary || !!patch?.rosary,
     adoration: prev.adoration || !!patch?.adoration,
-    reading: readingDone(rolled.plans, verses, rolled.day),
+    reading: readingDone(rolled.plans, verses, rolled.day, rolled.translation),
   };
   if (
     rolled === p &&
@@ -205,6 +210,7 @@ export function prepareStored(raw: unknown): Progress {
   stored.confession = { ...initial().confession, ...(stored.confession ?? {}) };
   stored.reminder = { ...initial().reminder, ...(stored.reminder ?? {}) };
   stored.appearance = normalizeAppearance(stored.appearance);
+  stored.translation = isTranslation(stored.translation) ? stored.translation : DEFAULT_TRANSLATION;
   stored.days = stored.days && typeof stored.days === 'object' && !Array.isArray(stored.days) ? stored.days : {};
   stored.stamps = stored.stamps && typeof stored.stamps === 'object' && !Array.isArray(stored.stamps) ? stored.stamps : {};
   stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
@@ -248,8 +254,9 @@ export function prepareStored(raw: unknown): Progress {
     if (!plan || !isRecord(state) || typeof state.start !== 'string') delete stored.plans[id];
     else if (state.pos === undefined) {
       const done = new Set(state.done ?? []);
-      const pos = planChapters(plan).findIndex((c) => !done.has(c.key));
-      stored.plans[id] = { start: state.start, pos: pos === -1 ? planChapters(plan).length : pos, verse: 1 };
+      const chapters = planChapters(plan, stored.translation);
+      const pos = chapters.findIndex((c) => !done.has(c.key));
+      stored.plans[id] = { start: state.start, pos: pos === -1 ? chapters.length : pos, verse: 1 };
     } else if (!Number.isInteger(state.pos) || state.pos < 0 || !Number.isInteger(state.verse) || state.verse < 1) {
       stored.plans[id] = { start: state.start, pos: Math.max(0, Math.floor(Number(state.pos)) || 0), verse: 1 };
     }
@@ -264,15 +271,16 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 const isNote = (v: unknown): v is { id: string; text: string; at: number } =>
   isRecord(v) && typeof v.id === 'string' && typeof v.text === 'string' && typeof v.at === 'number';
 
-const validBook = (book: unknown): book is number => Number.isInteger(book) && (book as number) >= 1 && (book as number) <= BOOKS.length;
+const validBook = (book: unknown): book is number => Number.isInteger(book) && isBook(book);
 
+/** Une position est gardée si elle existe dans l'une des traductions : on peut en changer sans la perdre. */
 function validPlace(book: number, chapter: unknown, verse: unknown): boolean {
-  const chapters = BOOKS[book - 1].verses;
+  const chapters = Math.max(bookMeta(book, 'lsg').verses.length, bookMeta(book, 'crampon').verses.length);
   return (
     Number.isInteger(chapter) &&
     Number.isInteger(verse) &&
     (chapter as number) >= 1 &&
-    (chapter as number) <= chapters.length &&
+    (chapter as number) <= chapters &&
     (verse as number) >= 1
   );
 }
@@ -375,7 +383,7 @@ export function useProgress() {
   /** Lecture libre : avance le marque-page juste après ce passage. N'a aucun effet sur les plans. */
   const advanceReading = useCallback((passage: Passage, chapterEnd: boolean) => {
     setProgress((p) => {
-      const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 });
+      const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 }, p.translation);
       const moved = {
         ...p,
         currentBook: next.book,
@@ -395,7 +403,7 @@ export function useProgress() {
       const plan = planById(id);
       const state = base.plans[id];
       if (!plan || !state) return base;
-      const idx = planIndex(plan, passage.book, passage.chapter);
+      const idx = planIndex(plan, passage.book, passage.chapter, base.translation);
       if (idx === -1) return base;
       const pos = chapterEnd ? idx + 1 : idx;
       const verse = chapterEnd ? 1 : passage.to + 1;
@@ -569,6 +577,7 @@ export function useProgress() {
       ...initial(),
       reminder: p.reminder,
       appearance: p.appearance,
+      translation: p.translation,
       confession: { ...initial().confession, items: p.confession.items },
       confessionLock: p.confessionLock,
     }));
@@ -597,6 +606,19 @@ export function useProgress() {
 
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
+  }, []);
+
+  /** Change de traduction : chaque plan garde son chapitre (Joël et Malachie ne se découpent pas pareil). */
+  const setTranslation = useCallback((translation: TranslationId) => {
+    setProgress((p) => {
+      if (p.translation === translation) return p;
+      const plans: Progress['plans'] = {};
+      for (const [id, state] of Object.entries(p.plans)) {
+        const plan = planById(id);
+        plans[id] = plan ? movePlan(plan, state, p.translation, translation) : state;
+      }
+      return { ...p, translation, plans, stamps: stamped(p, 'translation') };
+    });
   }, []);
 
   const setAppearance = useCallback((patch: Partial<AppearanceSettings>) => {
@@ -666,6 +688,7 @@ export function useProgress() {
     stopPlan,
     setReminder,
     setAppearance,
+    setTranslation,
     togglePin,
     saveCustomPrayer,
     deleteCustomPrayer,

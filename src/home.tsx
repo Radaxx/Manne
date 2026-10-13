@@ -5,12 +5,12 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
+import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
-import { BOOKS } from './data/bible';
 import { MONTHS, WEEKDAYS } from './dates';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
-import { today, useApp } from './storage';
+import { readingPosition, today, useApp } from './storage';
 import { useThemed } from './theme';
 import { todayLine, unseenSteps } from './today';
 
@@ -49,7 +49,7 @@ function Bar({ value, color }: { value: number; color?: string }) {
   );
 }
 
-function PlanCard({ status, onRead }: { status: PlanStatus; onRead: () => void }) {
+function PlanCard({ status, t, onRead }: { status: PlanStatus; t: TranslationId; onRead: () => void }) {
   const { C, styles } = useThemed(stylesFor);
   const { plan, day, done, total, today: todays, todayDone, todayComplete, behind, ahead, finished, next, nextVerse } = status;
   return (
@@ -74,7 +74,7 @@ function PlanCard({ status, onRead }: { status: PlanStatus; onRead: () => void }
             ) : (
               <>
                 <Text style={styles.planToday}>
-                  Aujourd’hui : <Text style={styles.strong}>{formatRange(todays)}</Text>
+                  Aujourd’hui : <Text style={styles.strong}>{formatRange(todays, t)}</Text>
                 </Text>
                 <Text style={styles.muted}>
                   {todayDone}/{todays.length}
@@ -87,7 +87,7 @@ function PlanCard({ status, onRead }: { status: PlanStatus; onRead: () => void }
               {behind > 0
                 ? `${behind} chapitre${behind > 1 ? 's' : ''} de retard, pas de panique`
                 : next
-                  ? `Reprendre : ${BOOKS[next.book - 1].name} ${next.chapter}${nextVerse > 1 ? `, v. ${nextVerse}` : ''}`
+                  ? `Reprendre : ${bookMeta(next.book, t).name} ${next.chapter}${nextVerse > 1 ? `, v. ${nextVerse}` : ''}`
                   : ''}
             </Text>
             <View style={styles.readBtn}>
@@ -119,17 +119,17 @@ export function HomeScreen() {
       Object.entries(progress.plans)
         .map(([id, state]) => {
           const plan = planById(id);
-          return plan ? planStatus(plan, state, day) : null;
+          return plan ? planStatus(plan, state, day, progress.translation) : null;
         })
         .filter((s): s is PlanStatus => !!s),
-    [progress.plans, day],
+    [progress.plans, day, progress.translation],
   );
 
   const allPrayers = useAllPrayers();
   const pinnedPrayers = progress.pinnedPrayers.map((id) => allPrayers.find((p) => p.id === id)).filter((p) => !!p);
 
-  const book = BOOKS[progress.currentBook - 1];
-  const pos = progress.positions[progress.currentBook] ?? { chapter: 1, verse: 1 };
+  const book = bookMeta(progress.currentBook, progress.translation);
+  const pos = readingPosition(progress);
   const bookDone = (pos.chapter - 1 + (pos.verse - 1) / book.verses[pos.chapter - 1]) / book.verses.length;
 
   // Chaque plan a son propre fil de lecture : il n'interfère pas avec la lecture libre.
@@ -296,7 +296,7 @@ export function HomeScreen() {
             <Text style={styles.link}>Voir les plans</Text>
           </Card>
         ) : (
-          plans.map((s) => <PlanCard key={s.plan.id} status={s} onRead={() => readPlan(s)} />)
+          plans.map((s) => <PlanCard key={s.plan.id} status={s} t={progress.translation} onRead={() => readPlan(s)} />)
         )}
 
         {/* Reprendre la lecture libre */}
@@ -326,7 +326,7 @@ export function HomeScreen() {
           <Ionicons name="chevron-forward" size={20} color={C.muted} />
         </Card>
 
-        <Text style={styles.credits}>Textes liturgiques © AELF · Bible Louis Segond 1910</Text>
+        <Text style={styles.credits}>Textes liturgiques © AELF · Bibles Louis Segond 1910 et Crampon 1923</Text>
       </ScrollView>
     </SafeAreaView>
   );

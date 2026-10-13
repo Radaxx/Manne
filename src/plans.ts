@@ -1,6 +1,16 @@
-import { BOOKS } from './data/bible';
+import { BOOK_ORDER, bookMeta, hebrewChapters, type TranslationId } from './bible';
 
-export type Plan = { id: string; title: string; description: string; days: number; books: number[] };
+export type Plan = {
+  id: string;
+  title: string;
+  description: string;
+  days: number;
+  books: number[];
+  /** Sans les chapitres grecs d'Esther et de Daniel : la liste des chapitres d'avant les deutérocanoniques. */
+  hebrewOnly?: boolean;
+  /** Remplacé : il n'est plus proposé, mais ceux qui l'ont commencé le gardent. */
+  retired?: boolean;
+};
 
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
@@ -41,11 +51,21 @@ export const PLANS: Plan[] = [
     books: range(40, 66),
   },
   {
-    id: 'bible-365',
+    id: 'bible-catholique-365',
     title: 'Toute la Bible en un an',
-    description: 'De la Genèse à l’Apocalypse, 3 à 4 chapitres par jour.',
+    description: 'De la Genèse à l’Apocalypse, avec les livres deutérocanoniques, 3 à 4 chapitres par jour.',
+    days: 365,
+    books: BOOK_ORDER,
+  },
+  {
+    // Les 66 livres de la Louis Segond : son marque-page est un rang dans cette liste, qui ne doit plus bouger.
+    id: 'bible-365',
+    title: 'Toute la Bible en un an (66 livres)',
+    description: 'De la Genèse à l’Apocalypse, sans les livres deutérocanoniques, 3 à 4 chapitres par jour.',
     days: 365,
     books: range(1, 66),
+    hebrewOnly: true,
+    retired: true,
   },
 ];
 
@@ -53,11 +73,19 @@ export type ChapterRef = { book: number; chapter: number; key: string };
 
 const chaptersCache = new Map<string, ChapterRef[]>();
 
-export function planChapters(plan: Plan): ChapterRef[] {
-  let chapters = chaptersCache.get(plan.id);
+/**
+ * Les chapitres d'un plan dans une traduction. Joël et Malachie ne se découpent pas pareil dans les deux,
+ * mais un plan a toujours autant de chapitres : seul le chapitre à un rang donné peut changer.
+ */
+export function planChapters(plan: Plan, t: TranslationId): ChapterRef[] {
+  const cacheKey = `${plan.id}/${t}`;
+  let chapters = chaptersCache.get(cacheKey);
   if (!chapters) {
-    chapters = plan.books.flatMap((book) => BOOKS[book - 1].verses.map((_, i) => ({ book, chapter: i + 1, key: `${book}:${i + 1}` })));
-    chaptersCache.set(plan.id, chapters);
+    chapters = plan.books.flatMap((book) => {
+      const count = plan.hebrewOnly ? hebrewChapters(book, t) : bookMeta(book, t).verses.length;
+      return Array.from({ length: count }, (_, i) => ({ book, chapter: i + 1, key: `${book}:${i + 1}` }));
+    });
+    chaptersCache.set(cacheKey, chapters);
   }
   return chapters;
 }
@@ -71,11 +99,11 @@ export function daysSince(start: string, today: string) {
 export const planById = (id: string) => PLANS.find((p) => p.id === id);
 
 /** « Marc 4–6 », « Psaumes 1–5 », « Matthieu 28 – Marc 2 ». */
-export function formatRange(chapters: ChapterRef[]) {
+export function formatRange(chapters: ChapterRef[], t: TranslationId) {
   if (chapters.length === 0) return '';
   const first = chapters[0];
   const last = chapters[chapters.length - 1];
-  const name = (b: number) => BOOKS[b - 1].name;
+  const name = (b: number) => bookMeta(b, t).name;
   if (first.key === last.key) return `${name(first.book)} ${first.chapter}`;
   if (first.book === last.book) return `${name(first.book)} ${first.chapter}–${last.chapter}`;
   return `${name(first.book)} ${first.chapter} – ${name(last.book)} ${last.chapter}`;
@@ -91,13 +119,21 @@ export type PlanState = { start: string; pos: number; verse: number };
 const indexCache = new Map<string, Map<string, number>>();
 
 /** Position d'un chapitre dans le plan, ou -1 s'il n'en fait pas partie. */
-export function planIndex(plan: Plan, book: number, chapter: number): number {
-  let index = indexCache.get(plan.id);
+export function planIndex(plan: Plan, book: number, chapter: number, t: TranslationId): number {
+  const cacheKey = `${plan.id}/${t}`;
+  let index = indexCache.get(cacheKey);
   if (!index) {
-    index = new Map(planChapters(plan).map((c, i) => [c.key, i]));
-    indexCache.set(plan.id, index);
+    index = new Map(planChapters(plan, t).map((c, i) => [c.key, i]));
+    indexCache.set(cacheKey, index);
   }
   return index.get(`${book}:${chapter}`) ?? -1;
+}
+
+/** Garde le marque-page d'un plan sur le même chapitre quand on change de traduction. */
+export function movePlan(plan: Plan, state: PlanState, from: TranslationId, to: TranslationId): PlanState {
+  const current = planChapters(plan, from)[state.pos];
+  const pos = current ? planIndex(plan, current.book, current.chapter, to) : -1;
+  return pos === -1 || pos === state.pos ? state : { ...state, pos };
 }
 
 export type PlanStatus = {
@@ -116,8 +152,8 @@ export type PlanStatus = {
   finished: boolean;
 };
 
-export function planStatus(plan: Plan, state: PlanState, today: string): PlanStatus {
-  const all = planChapters(plan);
+export function planStatus(plan: Plan, state: PlanState, today: string, t: TranslationId): PlanStatus {
+  const all = planChapters(plan, t);
   const total = all.length;
   const day = Math.min(Math.max(daysSince(state.start, today), 0), plan.days - 1);
   const todayStart = Math.floor((day * total) / plan.days);
