@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
-import { ChapterReader } from './chapter';
+import { ChapterReader, TopScrim } from './chapter';
 import { communityKey, useCommunity } from './community';
 import type { Passage, Theme } from './data/content';
 import { type Card, FeedGenerator } from './feed';
@@ -170,14 +169,7 @@ function FeedScreen({
     <View style={styles.root} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
       {height > 0 && api.loaded && children(height, setChapter)}
 
-      {scrim && (
-        <LinearGradient
-          pointerEvents="none"
-          colors={['rgba(6,7,10,0.98)', 'rgba(6,7,10,0.97)', 'rgba(6,7,10,0)']}
-          locations={[0, 0.78, 1]}
-          style={[styles.scrim, { height: insets.top + 108 }]}
-        />
-      )}
+      {scrim && <TopScrim />}
 
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
@@ -280,7 +272,6 @@ export function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0 },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { width: 84 },

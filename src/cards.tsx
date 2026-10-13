@@ -2,9 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { BookMeta } from './data/bible';
 import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
-import type { ReadingPassage } from './reading';
 
 export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
 
@@ -157,92 +155,6 @@ export function bookGradient(n: number): Gradient {
   return ['#0a0a0a', '#2b1d0e', '#80621d']; // Apocalypse
 }
 
-export function BookIntroCard({ book, intro, height }: { book: BookMeta; intro: string; height: number }) {
-  return (
-    <Shell colors={bookGradient(book.n)} height={height}>
-      <View style={styles.center}>
-        <Kicker icon="library-outline" label={book.n >= 40 ? 'NOUVEAU TESTAMENT' : 'ANCIEN TESTAMENT'} />
-        <Text style={styles.bookTitle}>{book.name}</Text>
-        <Text style={styles.bookMeta}>
-          {book.verses.length} chapitre{book.verses.length > 1 ? 's' : ''} · environ{' '}
-          {Math.max(1, Math.round(book.verses.reduce((a, b) => a + b, 0) / 25))} min de lecture
-        </Text>
-        <Text style={styles.body}>{intro}</Text>
-        <View style={styles.swipeHint}>
-          <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
-          <Text style={styles.footerHint}>Glisse pour commencer la lecture</Text>
-        </View>
-      </View>
-    </Shell>
-  );
-}
-
-export function PassageCard({ passage, book, height, ...actions }: Actions & { passage: ReadingPassage; book: BookMeta; height: number }) {
-  const size = passage.text.length < 260 ? styles.passageL : passage.text.length < 400 ? styles.passageM : styles.passageS;
-  const chapters = book.verses.length;
-  const done = (passage.chapter - 1 + passage.to / book.verses[passage.chapter - 1]) / chapters;
-  return (
-    <Shell colors={bookGradient(book.n)} height={height}>
-      <DoubleTapArea onLike={actions.onLike}>
-        <Text style={styles.passageRef}>
-          {book.name} {passage.chapter} · v. {passage.from}
-          {passage.to > passage.from ? `–${passage.to}` : ''}
-        </Text>
-        <Text selectable={false} style={[styles.passageText, size]}>
-          {passage.verses.map(([n, t]) => (
-            <Text key={n}>
-              <Text style={styles.verseNum}>{n} </Text>
-              {t}{' '}
-            </Text>
-          ))}
-        </Text>
-      </DoubleTapArea>
-
-      <View style={styles.footer} pointerEvents="box-none">
-        <Text style={styles.footerHint}>
-          {book.name} · chapitre {passage.chapter}/{chapters}
-        </Text>
-        <View style={styles.bookTrack}>
-          <View style={[styles.bookFill, { width: `${Math.round(done * 100)}%` }]} />
-        </View>
-      </View>
-
-      <Rail {...actions} />
-    </Shell>
-  );
-}
-
-export function ChapterEndCard({
-  book,
-  chapter,
-  prompt,
-  chaptersToday,
-  height,
-}: {
-  book: BookMeta;
-  chapter: number;
-  prompt: string;
-  chaptersToday: number;
-  height: number;
-}) {
-  const last = chapter === book.verses.length;
-  return (
-    <Shell colors={['#050507', '#0e1016', '#171a24']} height={height}>
-      <View style={styles.center}>
-        <Kicker icon="checkmark-circle-outline" label={last ? 'LIVRE TERMINÉ' : 'FIN DU CHAPITRE'} />
-        <Text style={styles.title}>
-          {book.name} {chapter} ✓
-        </Text>
-        <Text style={[styles.verseText, styles.verseTextLong, { fontStyle: 'italic', marginBottom: 28 }]}>{prompt}</Text>
-        <Text style={styles.footerHint}>
-          {chaptersToday} chapitre{chaptersToday > 1 ? 's' : ''} lu{chaptersToday > 1 ? 's' : ''} aujourd’hui.
-          {last ? ` Tu as lu tout le livre de ${book.name} !` : ' Prends un instant avant de continuer.'}
-        </Text>
-      </View>
-    </Shell>
-  );
-}
-
 export function FactCard({ fact, height }: { fact: Fact; height: number }) {
   return (
     <Shell colors={['#0d0d12', '#1d1d2b', '#2c2c44']} height={height}>
@@ -322,38 +234,6 @@ export function ReflectionCard({ prompt, height }: { prompt: string; height: num
       <View style={styles.center}>
         <Kicker icon="leaf-outline" label="UN INSTANT POUR TOI" />
         <Text style={[styles.verseText, { fontStyle: 'italic' }]}>{prompt}</Text>
-      </View>
-    </Shell>
-  );
-}
-
-export function PlanGoalCard({ planTitle, height }: { planTitle: string; height: number }) {
-  return (
-    <Shell colors={['#06140e', '#0f2a1f', '#1f4a36']} height={height}>
-      <View style={styles.center}>
-        <Kicker icon="checkmark-done-outline" label="PLAN DE LECTURE" />
-        <Text style={styles.title}>Lecture du jour terminée ✓</Text>
-        <Text style={styles.body}>
-          Tu as lu la portion prévue aujourd’hui pour « {planTitle} ». Tu peux t’arrêter là, ou continuer pour prendre de l’avance.
-        </Text>
-        <View style={styles.swipeHint}>
-          <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
-          <Text style={styles.footerHint}>Glisse pour continuer</Text>
-        </View>
-      </View>
-    </Shell>
-  );
-}
-
-export function PlanEndCard({ planTitle, total, height }: { planTitle: string; total: number; height: number }) {
-  return (
-    <Shell colors={['#1f1205', '#6b4310', '#c4882c']} height={height}>
-      <View style={styles.center}>
-        <Kicker icon="trophy-outline" label="PLAN TERMINÉ" />
-        <Text style={styles.title}>Bravo !</Text>
-        <Text style={styles.body}>
-          Tu as lu les {total} chapitres de « {planTitle} ». Rends grâce pour ce chemin parcouru avec la Parole.
-        </Text>
       </View>
     </Shell>
   );
@@ -471,22 +351,4 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(160,190,255,0.5)',
   },
   breathText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  bookTitle: { color: '#fff', fontFamily: SERIF, fontSize: 44, lineHeight: 52, marginBottom: 6 },
-  bookMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', marginBottom: 22 },
-  swipeHint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 36 },
-  passageRef: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    letterSpacing: 2.5,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 18,
-  },
-  passageText: { color: '#fff', fontFamily: SERIF },
-  passageL: { fontSize: 24, lineHeight: 36 },
-  passageM: { fontSize: 21, lineHeight: 31 },
-  passageS: { fontSize: 18, lineHeight: 27 },
-  verseNum: { fontSize: 12, color: 'rgba(255,209,102,0.85)', fontWeight: '700', fontFamily: undefined },
-  bookTrack: { height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 8, overflow: 'hidden' },
-  bookFill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.75)' },
 });

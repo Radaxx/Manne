@@ -6,7 +6,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 
 - **Prier maintenant** : l’office de la Liturgie des Heures qui correspond à l’heure (Laudes, Tierce, Sexte, None, Vêpres, Complies, et l’Office des lectures).
 - **Évangile du jour** et toutes les lectures de la messe.
-- **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Chaque plan a son propre fil de lecture et son propre marque-page, indépendants de la lecture libre ; on peut prendre de l’avance, et rattraper son retard.
+- **Plans de lecture** : les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Chaque plan se lit chapitre entier par chapitre entier (même vue et même sélection de versets que la lecture libre), avec son propre marque-page, indépendant de la lecture libre : il avance quand on finit un chapitre, ne recule jamais en relecture, et « Marquer ici » le place où l’on veut ; on peut prendre de l’avance, et rattraper son retard.
 - **Arbre généalogique** : la lignée d’Adam et Ève jusqu’à Jésus, en un seul fil vertical. Il suit la Genèse et Ruth jusqu’à David, puis se partage en deux colonnes là où Matthieu (les rois de Juda) et Luc (par Nathan) divergent, et se rejoint à Salathiel puis à Joseph. Les personnages clés ont leur carte ; on la touche pour lire le passage dans son chapitre, sans déplacer le marque-page.
 - **Continuer ma lecture** et quelques statistiques.
 - **Intentions confiées** : porter la prière de quelqu’un, ou confier la sienne.
@@ -28,7 +28,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 ## Deux fils
 
-- **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit un livre puis un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc. (Les plans de lecture gardent leur fil de cartes.)
+- **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit un livre puis un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
 - **Découvrir** : des versets choisis par thème (qui s’adaptent à ce que tu aimes), des anecdotes, des quiz et des personnages bibliques.
 
 Et pour ne pas reproduire le « doomscrolling » : un objectif quotidien de 30 versets, une série de jours, et une carte Pause toutes les 15 cartes dans Découvrir.
@@ -70,7 +70,7 @@ Pour les j’aime, les échos et les intentions : copier `.env.example` vers `.e
 - `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration, intentions confiées
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
-- `src/chapter.tsx` : la lecture d’un chapitre entier, sélection de versets, J’aime / Garder / Partager
+- `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager
 - `src/aelf.ts` / `src/liturgy.tsx` : textes liturgiques AELF et leur affichage
 - `src/plans.ts` : plans de lecture
 - `src/prayers.tsx` / `src/data/prayers.ts` : l’onglet Prières et son recueil
@@ -78,7 +78,7 @@ Pour les j’aime, les échos et les intentions : copier `.env.example` vers `.e
 - `src/rosary3d.tsx` / `src/rosary-scene.ts` / `src/rosary-textures.ts` : le chapelet en 3D (Three.js sur expo-gl) et ses textures calculées
 - `src/adoration.ts` : les temps de l’adoration guidée et leur durée
 - `src/genealogy.tsx` / `src/data/genealogy.ts` : l’arbre généalogique d’Adam à Jésus et ses données (noms d’après la Louis Segond embarquée)
-- `src/reading.ts` : découpage du texte en passages pour la lecture suivie
+- `src/reading.ts` : positions dans la Bible, question de méditation de fin de chapitre
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes
 - `src/sheets.tsx` : chapitre complet, favoris, liste des livres
