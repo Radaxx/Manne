@@ -9,6 +9,7 @@ import { MYSTERIES, prayerById } from '../data/prayers';
 import { C } from '../liturgy';
 import { daysSince } from '../plans';
 import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, rosarySteps, sessionLabel, type RosaryStep } from '../rosary';
+import { Rosary3D } from '../rosary3d';
 import { today, useApp, type RosarySession } from '../storage';
 
 // Prier le chapelet, guidé grain après grain : on choisit ses mystères, on touche le chapelet
@@ -102,6 +103,11 @@ function StepBody({ step, session, texts }: { step: RosaryStep; session: RosaryS
 function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: () => void; onExit: () => void }) {
   const { progress, setRosarySession, setRosaryPrefs } = useApp();
   const { texts } = progress.rosary;
+  // Si la 3D ne peut pas démarrer sur ce téléphone, on prie avec le chapelet à plat.
+  const [glFailed, setGlFailed] = useState(false);
+  const view3d = progress.rosary.view3d && !glFailed;
+  const [peek, setPeek] = useState(false);
+  const [gestured, setGestured] = useState(false);
   const steps = useMemo(() => rosarySteps(session.decade, session.fatima), [session.decade, session.fatima]);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -146,6 +152,11 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
         options={{
           headerRight: () => (
             <View style={styles.headerActions}>
+              {view3d && (
+                <Pressable onPress={() => setPeek(!peek)} hitSlop={10} accessibilityLabel={peek ? 'Revenir au grain' : 'Voir tout le chapelet'}>
+                  <Ionicons name={peek ? 'contract-outline' : 'expand-outline'} size={22} color={peek ? C.gold : C.muted} />
+                </Pressable>
+              )}
               <Pressable onPress={() => setRosaryPrefs({ texts: !texts })} hitSlop={10} accessibilityLabel={texts ? 'Masquer le texte des prières' : 'Afficher le texte des prières'}>
                 <Ionicons name={texts ? 'document-text' : 'document-text-outline'} size={22} color={texts ? C.gold : C.muted} />
               </Pressable>
@@ -156,12 +167,46 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
           ),
         }}
       />
-      <RosaryBeads steps={steps} index={index} diameter={diameter} onPress={() => go(1)}>
-        {center}
-      </RosaryBeads>
+      {view3d ? (
+        <>
+          <Rosary3D
+            style={StyleSheet.absoluteFill}
+            steps={steps}
+            index={index}
+            peek={peek}
+            onError={() => setGlFailed(true)}
+            onStep={(delta) => {
+              setGestured(true);
+              go(delta);
+            }}
+          />
+          {/* Laisse passer les gestes jusqu'au chapelet, au-dessus de la feuille de prière. */}
+          <View style={{ flex: 1 }} pointerEvents="none" />
+          {!gestured && (
+            <View style={styles.hintPill} pointerEvents="none">
+              <Ionicons name="arrow-down" size={15} color={C.gold} />
+              <Text style={styles.hintText}>Glisse vers le bas pour égrener, ou touche le chapelet</Text>
+            </View>
+          )}
+        </>
+      ) : (
+        <RosaryBeads steps={steps} index={index} diameter={diameter} onPress={() => go(1)}>
+          {center}
+        </RosaryBeads>
+      )}
 
-      <ScrollView style={styles.card} contentContainerStyle={styles.cardBody}>
-        <Kicker step={step} set={session.set} />
+      <ScrollView style={view3d ? [styles.card3d, { maxHeight: height * 0.42 }] : styles.card} contentContainerStyle={styles.cardBody}>
+        <View style={styles.cardHead}>
+          <View style={{ flex: 1 }}>
+            <Kicker step={step} set={session.set} />
+          </View>
+          {view3d && (step.kind === 'ave' || step.kind === 'mystery') && (
+            <Text style={styles.cardCount}>
+              {step.kind === 'ave' ? step.count : (step.decade ?? 0) + 1}
+              <Text style={styles.countOf}> / {step.kind === 'ave' ? step.of : 5}</Text>
+            </Text>
+          )}
+        </View>
         <StepBody step={step} session={session} texts={texts} />
       </ScrollView>
 
@@ -291,6 +336,13 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
             </View>
             <Switch value={fatima} onValueChange={(v) => setRosaryPrefs({ fatima: v })} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
           </View>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Chapelet en 3D</Text>
+              <Text style={styles.rowHint}>En bois d’olivier, à égrener du pouce</Text>
+            </View>
+            <Switch value={progress.rosary.view3d} onValueChange={(v) => setRosaryPrefs({ view3d: v })} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+          </View>
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>Afficher le texte des prières</Text>
@@ -384,6 +436,12 @@ const styles = StyleSheet.create({
   resumeText: { color: C.muted, fontSize: 13, marginTop: 2 },
   // Pendant la prière
   card: { flex: 1, marginHorizontal: 16, backgroundColor: C.card, borderRadius: 20 },
+  // Par-dessus le chapelet 3D : la feuille prend la hauteur de son texte, jusqu'à 42 % de l'écran.
+  card3d: { flexGrow: 0, flexShrink: 1, marginHorizontal: 16, borderRadius: 20, backgroundColor: 'rgba(23,25,31,0.92)', borderWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  cardCount: { color: C.gold, fontFamily: SERIF, fontSize: 26, lineHeight: 28, fontVariant: ['tabular-nums'] },
+  hintPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 6, backgroundColor: 'rgba(13,14,18,0.72)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 10 },
+  hintText: { color: C.text, fontSize: 13 },
   cardBody: { padding: 20, paddingBottom: 28 },
   kicker: { color: C.red, fontSize: 12, letterSpacing: 1.6, fontWeight: '800', textTransform: 'uppercase' },
   title: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 33, marginTop: 6, marginBottom: 12 },

@@ -42,6 +42,7 @@ export type RosaryProgress = {
   count: number; // chapelets et dizaines terminés
   fatima: boolean; // « Ô mon Jésus » après chaque dizaine
   texts: boolean; // afficher le texte complet des prières
+  view3d: boolean; // chapelet en 3D (sinon l'anneau dessiné à plat)
 };
 
 export type AdorationMode = 'contemplative' | 'guided';
@@ -92,7 +93,7 @@ const initial = (): Progress => ({
   customPrayers: [],
   confession: { items: [], lastConfession: null },
   confessionLock: true,
-  rosary: { session: null, last: null, count: 0, fatima: true, texts: true },
+  rosary: { session: null, last: null, count: 0, fatima: true, texts: true, view3d: true },
   adoration: { session: null, last: null, count: 0, mode: 'guided', minutes: 30, intentions: [] },
 });
 
@@ -120,6 +121,8 @@ export function useProgress() {
       .then((raw) => {
         if (!raw) return;
         const stored = { ...initial(), ...(JSON.parse(raw) as Progress) };
+        // Les préférences du chapelet ajoutées depuis prennent leur valeur par défaut.
+        stored.rosary = { ...initial().rosary, ...stored.rosary };
         // Anciennes versions : les favoris étaient des identifiants de versets.
         stored.saved = (stored.saved as (Passage | string)[])
           .map((s) => (typeof s === 'string' ? VERSES.find((v) => v.id === s) : s))
@@ -275,7 +278,7 @@ export function useProgress() {
     setProgress((p) => ({ ...p, rosary: { ...p.rosary, session: null, last: today(), count: p.rosary.count + 1 } }));
   }, []);
 
-  const setRosaryPrefs = useCallback((prefs: Partial<Pick<RosaryProgress, 'fatima' | 'texts'>>) => {
+  const setRosaryPrefs = useCallback((prefs: Partial<Pick<RosaryProgress, 'fatima' | 'texts' | 'view3d'>>) => {
     setProgress((p) => ({ ...p, rosary: { ...p.rosary, ...prefs } }));
   }, []);
 
