@@ -45,7 +45,8 @@
         {
           "faceIDPermission": "Manne utilise Face ID pour protéger ta préparation à la confession."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "scheme": "manne",
     "backgroundColor": "#0d0e12"
