@@ -5,7 +5,7 @@ import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, typ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
 import type { Palette } from './appearance';
-import { loadChapter, passageLabel, type TranslationId, translationName } from './bible';
+import { chapterSource, loadChapter, passageLabel, type TranslationId, translationName } from './bible';
 import { SERIF } from './cards';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
 import { biometricName, lockSupported } from './lock';
@@ -368,7 +368,7 @@ export function PrayerScreen({ id }: { id: string }) {
         <Text style={styles.title}>{prayer.title}</Text>
         {ref ? (
           <Text style={styles.ref}>
-            {ref} · {translationName(translation)}
+            {ref} · {translationName(prayer.scripture ? chapterSource(prayer.scripture[0], prayer.scripture[1], translation) : translation)}
           </Text>
         ) : null}
         <View style={{ height: 18 }} />

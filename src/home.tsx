@@ -3,11 +3,13 @@ import { type Href, router } from 'expo-router';
 import { type ReactNode, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { adventDay, adventPhase, currentAdvent, weekTheme } from './advent';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
 import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
-import { MONTHS, WEEKDAYS } from './dates';
+import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
+import { liturgicalDay } from './liturgical-year';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
 import { readingPosition, today, useApp } from './storage';
@@ -112,6 +114,22 @@ export function HomeScreen() {
   const day = today();
 
   const info = mass?.informations;
+  const liturgy = liturgicalDay(day);
+  const advent = useMemo(() => {
+    const a = currentAdvent(day);
+    const phase = adventPhase(a, day);
+    const current = phase === 'pendant' ? adventDay(a, day) : null;
+    return {
+      phase,
+      start: dayLabel(a.start),
+      wait: daysSince(day, a.start),
+      index: a.dates.indexOf(day),
+      total: a.dates.length,
+      week: current?.week ?? 0,
+      title: current?.day.title ?? '',
+      done: (progress.journeys[a.id] ?? []).includes(day),
+    };
+  }, [day, progress.journeys]);
   const gospel = mass?.messes[0]?.lectures.find((l) => l.type === 'evangile');
 
   const plans = useMemo(
@@ -180,15 +198,43 @@ export function HomeScreen() {
             <Text style={styles.stepNext}>{step.next}</Text>
           </Pressable>
         ) : null}
-        {info && (
-          <View style={styles.liturgy}>
-            <View style={[styles.colorDot, { backgroundColor: LITURGICAL_COLORS[info.couleur] ?? C.muted }]} />
-            <Text style={styles.liturgyText}>
-              {capitalize(info.semaine || info.ligne1)}
-              {info.fete && info.fete !== 'de la férie' ? ` · ${capitalize(plainText(info.fete))}` : ''}
+        {/* Le jour liturgique : celui de l'AELF (avec les saints) en ligne, sinon le calendrier calculé ici */}
+        <Pressable
+          onPress={() => router.push('/annee-liturgique')}
+          style={({ pressed }) => [styles.liturgy, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityHint="Ouvre l’année liturgique"
+        >
+          <View style={[styles.colorDot, { backgroundColor: LITURGICAL_COLORS[info?.couleur ?? liturgy.color] ?? C.muted }]} />
+          <Text style={styles.liturgyText}>
+            {capitalize(info?.semaine || liturgy.label)}
+            {info?.fete && info.fete !== 'de la férie'
+              ? ` · ${capitalize(plainText(info.fete))}`
+              : !info && liturgy.feast
+                ? ` · ${liturgy.feast.name}`
+                : ''}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={C.muted} />
+        </Pressable>
+
+        {/* Le parcours de l'Avent : annoncé trois semaines avant, puis un jour à la fois */}
+        {advent.phase === 'pendant' ? (
+          <Card onPress={() => router.push('/avent')} style={styles.adventCard}>
+            <Text style={styles.adventKicker}>
+              AVENT · JOUR {advent.index + 1} SUR {advent.total} · {weekTheme(advent.week).theme.toUpperCase()}
             </Text>
-          </View>
-        )}
+            <Text style={styles.officeName}>{advent.title}</Text>
+            <Text style={styles.muted}>{advent.done ? 'Jour vécu ✓' : 'Un passage, une méditation, un geste pour aujourd’hui.'}</Text>
+          </Card>
+        ) : advent.phase === 'avant' && advent.wait <= 21 ? (
+          <Card onPress={() => router.push('/avent')} style={styles.adventCard}>
+            <Text style={styles.adventKicker}>PARCOURS DE L’AVENT</Text>
+            <Text style={styles.officeName}>
+              {advent.wait === 1 ? 'Demain, l’Avent commence' : `L’Avent commence dans ${advent.wait} jours`}
+            </Text>
+            <Text style={styles.muted}>Le {advent.start} : chaque jour jusqu’à Noël, un passage, une méditation et un geste.</Text>
+          </Card>
+        ) : null}
 
         {/* Prier maintenant : l'office de l'heure, et les autres à portée de main */}
         <SectionTitle>Prier maintenant</SectionTitle>
@@ -366,6 +412,8 @@ const stylesFor = (C: Palette) =>
     liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
     colorDot: { width: 10, height: 10, borderRadius: 5 },
     liturgyText: { color: C.muted, fontSize: 14, flexShrink: 1 },
+    adventCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
+    adventKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', marginBottom: 4 },
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 30, marginBottom: 10 },
     sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800' },
     sectionAction: { color: C.gold, fontSize: 14, fontWeight: '600' },

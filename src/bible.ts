@@ -100,6 +100,10 @@ export function loadChapter(n: number, chapter: number, t: TranslationId): strin
   return source.loadBook(n)[chapter - 1] ?? [];
 }
 
+/** Les versets d'un passage, du premier au dernier inclus. */
+export const loadPassage = (n: number, chapter: number, from: number, to: number, t: TranslationId) =>
+  loadChapter(n, chapter, t).slice(from - 1, to);
+
 /** Ramène un chapitre dans les bornes du livre (Joël 4 n'existe que dans la Crampon, Malachie 4 que dans la Segond). */
 export const clampChapter = (n: number, chapter: number, t: TranslationId) => Math.max(1, Math.min(chapter, bookMeta(n, t).verses.length));
 

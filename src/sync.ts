@@ -167,6 +167,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
         (id) => `intent:${id}`,
       ),
     },
+    journeys: mergeJourneys(here, there),
     stamps,
   });
   return { ...merged, streak: currentStreak(merged) };
@@ -240,6 +241,22 @@ async function once(local: Progress): Promise<{ ok: boolean; merged: Progress | 
   }
   if (ok) lastPushed = { userId, json };
   return { ok, merged: remote && json !== localJson ? merged : null };
+}
+
+/** Les jours vécus de chaque parcours : union des deux côtés, sauf un retrait plus récent. */
+function mergeJourneys(here: Progress, there: Progress): Progress['journeys'] {
+  const journeys: Progress['journeys'] = {};
+  for (const id of new Set([...Object.keys(here.journeys), ...Object.keys(there.journeys)])) {
+    const days = mergeItems(
+      here,
+      there,
+      (p) => p.journeys[id] ?? [],
+      (date) => date,
+      (date) => `journey:${id}:${date}`,
+    ).sort();
+    if (days.length) journeys[id] = days;
+  }
+  return journeys;
 }
 
 function mergeDay(a: DayLog | undefined, b: DayLog | undefined): DayLog {

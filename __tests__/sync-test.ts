@@ -73,6 +73,12 @@ describe('mergeProgress', () => {
     expect(mergeProgress(crampon, lsg).translation).toBe('crampon');
   });
 
+  it('additionne les jours vécus d’un parcours, sauf un retrait plus récent', () => {
+    const here = progress({ journeys: { 'avent-2026': ['2026-11-29', '2026-11-30'] } });
+    const there = progress({ journeys: { 'avent-2026': ['2026-12-01'] }, stamps: { 'journey:avent-2026:2026-11-30': NOW } });
+    expect(mergeProgress(here, there).journeys).toEqual({ 'avent-2026': ['2026-11-29', '2026-12-01'] });
+  });
+
   it('garde le plus grand nombre de chapelets', () => {
     const here = progress({ rosary: { ...progress().rosary, count: 3 } });
     const there = progress({ rosary: { ...progress().rosary, count: 5 } });
@@ -103,6 +109,13 @@ describe('prepareStored', () => {
     const joel4 = { currentBook: 29, positions: { 29: { chapter: 4, verse: 3 } } };
     expect(readingPosition(prepareStored({ ...joel4, translation: 'lsg' }))).toEqual({ book: 29, chapter: 3, verse: 1 });
     expect(readingPosition(prepareStored({ ...joel4, translation: 'crampon' }))).toEqual({ book: 29, chapter: 4, verse: 3 });
+  });
+
+  it('ne garde que des dates dans les parcours', () => {
+    const p = prepareStored({
+      journeys: { 'avent-2026': ['2026-12-02', 'demain', '2026-12-01', '2026-12-01'], x: ['2026-12-01'] } as never,
+    });
+    expect(p.journeys).toEqual({ 'avent-2026': ['2026-12-01', '2026-12-02'] });
   });
 
   it('lit la Louis Segond quand la traduction est absente ou inconnue', () => {

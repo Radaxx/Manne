@@ -44,12 +44,13 @@ export type Progress = {
   confessionLock: boolean; // protéger la confession par empreinte / Face ID
   rosary: RosaryProgress; // chapelet guidé
   adoration: AdorationProgress; // adoration guidée
+  journeys: Record<string, string[]>; // parcours de l'année liturgique (« avent-2026 ») : les jours vécus (AAAA-MM-JJ)
   /**
    * Date (ms) du dernier geste explicite sur un élément : retrait, remise, déplacement en arrière,
    * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
    * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
    * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance,
-   * translation.
+   * translation, journey:<parcours>:<date>.
    */
   stamps: Record<string, number>;
 };
@@ -116,6 +117,7 @@ const initial = (): Progress => ({
   confessionLock: true,
   rosary: { session: null, last: null, count: 0, fatima: true, texts: true, view3d: true },
   adoration: { session: null, last: null, count: 0, mode: 'guided', minutes: 30, intentions: [] },
+  journeys: {},
   stamps: {},
 });
 
@@ -233,6 +235,7 @@ export function prepareStored(raw: unknown): Progress {
   stored.adoration.intentions = (Array.isArray(stored.adoration.intentions) ? (stored.adoration.intentions as unknown[]) : []).filter(
     isNote,
   );
+  stored.journeys = validJourneys(stored.journeys);
   stored.rosary.session = validRosarySession(stored.rosary.session);
   stored.adoration.session = validAdorationSession(stored.adoration.session);
   // Un livre ou une position hors de la Bible ferait planter l'accueil et la lecture.
@@ -283,6 +286,18 @@ function validPlace(book: number, chapter: unknown, verse: unknown): boolean {
     (chapter as number) <= chapters &&
     (verse as number) >= 1
   );
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Les jours vécus de chaque parcours : des dates, sans doublon. */
+function validJourneys(v: unknown): Progress['journeys'] {
+  const journeys: Progress['journeys'] = {};
+  for (const [id, days] of Object.entries(isRecord(v) ? v : {})) {
+    const valid = [...new Set(strings(days).filter((d) => DAY.test(d)))].sort();
+    if (/^[a-z]+-\d{4}$/.test(id) && valid.length) journeys[id] = valid;
+  }
+  return journeys;
 }
 
 function validRosarySession(s: unknown): RosarySession | null {
@@ -543,6 +558,20 @@ export function useProgress() {
     );
   }, []);
 
+  /** Marque un jour d'un parcours comme vécu, ou retire la marque. */
+  const toggleJourneyDay = useCallback((journey: string, date: string) => {
+    setProgress((p) => {
+      const days = p.journeys[journey] ?? [];
+      const next = days.includes(date) ? days.filter((d) => d !== date) : [...days, date].sort();
+      const { [journey]: _, ...others } = p.journeys;
+      return {
+        ...p,
+        journeys: next.length ? { ...others, [journey]: next } : others,
+        stamps: stamped(p, `journey:${journey}:${date}`),
+      };
+    });
+  }, []);
+
   const markGospel = useCallback(() => {
     setProgress((p) => touchDay(p, { gospel: true }));
   }, []);
@@ -702,6 +731,7 @@ export function useProgress() {
     setAdorationSession,
     completeAdoration,
     setAdorationPrefs,
+    toggleJourneyDay,
     markGospel,
     markOffice,
     setDisplayName,

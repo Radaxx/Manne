@@ -1,8 +1,10 @@
 import { currentOffice } from './aelf';
 import { BOOK_ORDER, bookMeta, clampChapter, TOTAL_CHAPTERS, type TranslationId } from './bible';
-import { longDate } from './dates';
-import { daysSince, formatRange, planById, planStatus } from './plans';
+import { daysSince, longDate, shiftDay } from './dates';
+import { formatRange, planById, planStatus } from './plans';
 import type { Progress } from './storage';
+
+export { shiftDay };
 
 /** Objectif quotidien, en versets lus (un chapitre en compte souvent 20 à 40). */
 export const DAILY_GOAL = 30;
@@ -31,13 +33,6 @@ export type Step = { id: string; title: string; next: string; href: string; book
 export type WeekCell = { date: string; letter: string; complete: boolean; isToday: boolean };
 
 export type BookShare = { n: number; name: string; read: number; total: number };
-
-/** Décale une date AAAA-MM-JJ d'un nombre de jours, en calendrier UTC pour éviter les changements d'heure. */
-export function shiftDay(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d + days));
-  return date.toISOString().slice(0, 10);
-}
 
 export function readingDone(plans: Progress['plans'], verses: number, date: string, t: TranslationId): boolean {
   const active = activePlans(plans, date, t);
