@@ -192,11 +192,18 @@ export default function CompteScreen() {
         </>
       )}
 
-      <Text style={styles.section}>Passages gardés</Text>
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>Passages gardés</Text>
+        {progress.saved.length > 3 && (
+          <Pressable onPress={() => open('/passages')} hitSlop={8}>
+            <Text style={styles.link}>Tout voir</Text>
+          </Pressable>
+        )}
+      </View>
       {progress.saved.length === 0 ? (
         <Text style={styles.muted}>Garde un verset pendant la lecture : il reviendra ici.</Text>
       ) : (
-        progress.saved.slice(0, 8).map((passage) => (
+        progress.saved.slice(0, 3).map((passage) => (
           <Pressable
             key={passage.id}
             onPress={() => {
@@ -313,6 +320,15 @@ const styles = StyleSheet.create({
   resumeKicker: { color: C.bg, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7 },
   resumeLabel: { color: C.bg, fontSize: 18, fontWeight: '800', marginTop: 2 },
   section: { color: C.text, fontSize: 19, fontWeight: '800', marginTop: 28, marginBottom: 10 },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 28,
+    marginBottom: 10,
+  },
+  sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800', flexShrink: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 8 },
   rowLabel: { color: C.text, fontSize: 16, fontWeight: '600', flex: 1 },
   rowDone: { color: C.muted },

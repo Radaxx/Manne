@@ -86,6 +86,7 @@ export default function RootLayout() {
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
           <Stack.Screen name="compte" options={{ title: 'Compte' }} />
+          <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>
       </ProgressProvider>
     </ThemeProvider>
