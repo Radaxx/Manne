@@ -91,6 +91,8 @@ function ThemedShell() {
           <Stack.Screen name="messe" options={{ title: 'Messe du jour' }} />
           <Stack.Screen name="suivre-messe" options={{ title: 'Suivre la messe' }} />
           <Stack.Screen name="genealogie" options={{ title: 'D’Adam à Jésus' }} />
+          <Stack.Screen name="annee-liturgique" options={{ title: 'Année liturgique' }} />
+          <Stack.Screen name="avent" options={{ title: 'Parcours de l’Avent' }} />
           <Stack.Screen name="plan/[id]" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />

@@ -26,3 +26,36 @@ export function longDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
+
+/** Décale une date AAAA-MM-JJ d'un nombre de jours, en calendrier UTC pour éviter les changements d'heure. */
+export function shiftDay(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Nombre de jours de `start` à `end` (négatif si `end` est avant). */
+export function daysSince(start: string, end: string) {
+  const [y1, m1, d1] = start.split('-').map(Number);
+  const [y2, m2, d2] = end.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}
+
+/** Jour de la semaine d'une date AAAA-MM-JJ (0 = dimanche). */
+export function weekday(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** « dimanche 29 novembre » */
+export function dayLabel(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${WEEKDAYS[weekday(iso)]} ${d === 1 ? '1er' : d} ${MONTHS[m - 1]}`;
+}
+
+const SHORT_MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+/** « 29 nov. » */
+export function shortDate(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d === 1 ? '1er' : d} ${SHORT_MONTHS[m - 1]}`;
+}

@@ -1,4 +1,5 @@
 import { BOOK_ORDER, bookMeta, hebrewChapters, type TranslationId } from './bible';
+import { daysSince } from './dates';
 
 export type Plan = {
   id: string;
@@ -88,12 +89,6 @@ export function planChapters(plan: Plan, t: TranslationId): ChapterRef[] {
     chaptersCache.set(cacheKey, chapters);
   }
   return chapters;
-}
-
-export function daysSince(start: string, today: string) {
-  const [y1, m1, d1] = start.split('-').map(Number);
-  const [y2, m2, d2] = today.split('-').map(Number);
-  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
 }
 
 export const planById = (id: string) => PLANS.find((p) => p.id === id);
