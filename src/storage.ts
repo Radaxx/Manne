@@ -37,6 +37,13 @@ export type Progress = {
   confessionLock: boolean; // protéger la confession par empreinte / Face ID
   rosary: RosaryProgress; // chapelet guidé
   adoration: AdorationProgress; // adoration guidée
+  /**
+   * Date (ms) du dernier geste explicite sur un élément : retrait, remise, déplacement en arrière,
+   * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
+   * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
+   * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration.
+   */
+  stamps: Record<string, number>;
 };
 
 /** Un chapelet commencé : on peut le quitter et le reprendre là où on s'était arrêté. */
@@ -100,7 +107,16 @@ const initial = (): Progress => ({
   confessionLock: true,
   rosary: { session: null, last: null, count: 0, fatima: true, texts: true, view3d: true },
   adoration: { session: null, last: null, count: 0, mode: 'guided', minutes: 30, intentions: [] },
+  stamps: {},
 });
+
+/** Les stamps d'une progression, avec ces clés remises à maintenant. */
+function stamped(p: Progress, ...keys: string[]): Progress['stamps'] {
+  const at = Date.now();
+  const stamps = { ...p.stamps };
+  for (const key of keys) stamps[key] = at;
+  return stamps;
+}
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
 
@@ -183,6 +199,7 @@ export function prepareStored(raw: unknown): Progress {
   stored.confession = { ...initial().confession, ...(stored.confession ?? {}) };
   stored.reminder = { ...initial().reminder, ...(stored.reminder ?? {}) };
   stored.days = stored.days && typeof stored.days === 'object' && !Array.isArray(stored.days) ? stored.days : {};
+  stored.stamps = stored.stamps && typeof stored.stamps === 'object' && !Array.isArray(stored.stamps) ? stored.stamps : {};
   stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
   stored.displayName = typeof stored.displayName === 'string' ? stored.displayName : '';
   stored.lastOffice = typeof stored.lastOffice === 'string' ? stored.lastOffice : null;
@@ -286,30 +303,42 @@ export function useProgress() {
       ...p,
       currentBook: book,
       positions: restart ? { ...p.positions, [book]: { chapter: 1, verse: 1 } } : p.positions,
+      stamps: restart ? stamped(p, `pos:${book}`) : p.stamps,
     }));
   }, []);
 
   /** Place le marque-page d'un plan à une position précise, en avant comme en arrière (« Marquer ici »). */
   const setPlanPosition = useCallback((id: string, pos: number, verse: number) => {
-    setProgress((p) => (p.plans[id] ? { ...p, plans: { ...p.plans, [id]: { ...p.plans[id], pos, verse } } } : p));
+    setProgress((p) =>
+      p.plans[id] ? { ...p, plans: { ...p.plans, [id]: { ...p.plans[id], pos, verse } }, stamps: stamped(p, `plan:${id}`) } : p,
+    );
   }, []);
 
   /** Lecture libre : place le marque-page au début d'un chapitre choisi. */
   const goTo = useCallback((book: number, chapter: number) => {
-    setProgress((p) => ({ ...p, currentBook: book, positions: { ...p.positions, [book]: { chapter, verse: 1 } } }));
+    setProgress((p) => ({
+      ...p,
+      currentBook: book,
+      positions: { ...p.positions, [book]: { chapter, verse: 1 } },
+      stamps: stamped(p, `pos:${book}`),
+    }));
   }, []);
 
   const startPlan = useCallback((id: string) => {
     setProgress((p) => {
       const base = p.day === today() ? p : touchDay(p);
-      return touchDay({ ...base, plans: { ...base.plans, [id]: { start: today(), pos: 0, verse: 1 } } });
+      return touchDay({
+        ...base,
+        plans: { ...base.plans, [id]: { start: today(), pos: 0, verse: 1 } },
+        stamps: stamped(base, `plan:${id}`),
+      });
     });
   }, []);
 
   const stopPlan = useCallback((id: string) => {
     setProgress((p) => {
       const { [id]: _, ...plans } = p.plans;
-      return touchDay({ ...p, plans });
+      return touchDay({ ...p, plans, stamps: stamped(p, `plan:${id}`) });
     });
   }, []);
 
@@ -317,6 +346,7 @@ export function useProgress() {
     setProgress((p) => ({
       ...p,
       pinnedPrayers: p.pinnedPrayers.includes(id) ? p.pinnedPrayers.filter((x) => x !== id) : [...p.pinnedPrayers, id],
+      stamps: stamped(p, `pin:${id}`),
     }));
   }, []);
 
@@ -329,6 +359,7 @@ export function useProgress() {
       customPrayers: p.customPrayers.some((c) => c.id === id)
         ? p.customPrayers.map((c) => (c.id === id ? entry : c))
         : [entry, ...p.customPrayers],
+      stamps: stamped(p, `prayer:${id}`),
     }));
     return id;
   }, []);
@@ -338,6 +369,7 @@ export function useProgress() {
       ...p,
       customPrayers: p.customPrayers.filter((c) => c.id !== id),
       pinnedPrayers: p.pinnedPrayers.filter((x) => x !== id),
+      stamps: stamped(p, `prayer:${id}`, `pin:${id}`),
     }));
   }, []);
 
@@ -360,13 +392,16 @@ export function useProgress() {
   }, []);
 
   const setRosarySession = useCallback((session: RosarySession | null) => {
-    setProgress((p) => ({ ...p, rosary: { ...p.rosary, session } }));
+    setProgress((p) => ({ ...p, rosary: { ...p.rosary, session }, stamps: stamped(p, 'rosary') }));
   }, []);
 
   /** Chapelet terminé : on garde seulement la date et le compte. Une dizaine suffit pour la prière du jour. */
   const completeRosary = useCallback(() => {
     setProgress((p) =>
-      touchDay({ ...p, rosary: { ...p.rosary, session: null, last: today(), count: p.rosary.count + 1 } }, { rosary: true }),
+      touchDay(
+        { ...p, rosary: { ...p.rosary, session: null, last: today(), count: p.rosary.count + 1 }, stamps: stamped(p, 'rosary') },
+        { rosary: true },
+      ),
     );
   }, []);
 
@@ -375,13 +410,20 @@ export function useProgress() {
   }, []);
 
   const setAdorationSession = useCallback((session: AdorationSession | null) => {
-    setProgress((p) => ({ ...p, adoration: { ...p.adoration, session } }));
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, session }, stamps: stamped(p, 'adoration') }));
   }, []);
 
   /** Adoration terminée : on garde seulement la date et le compte (les intentions restent). */
   const completeAdoration = useCallback(() => {
     setProgress((p) =>
-      touchDay({ ...p, adoration: { ...p.adoration, session: null, last: today(), count: p.adoration.count + 1 } }, { adoration: true }),
+      touchDay(
+        {
+          ...p,
+          adoration: { ...p.adoration, session: null, last: today(), count: p.adoration.count + 1 },
+          stamps: stamped(p, 'adoration'),
+        },
+        { adoration: true },
+      ),
     );
   }, []);
 
@@ -402,15 +444,25 @@ export function useProgress() {
     setProgress((p) => (p.seenMilestones.includes(id) ? p : { ...p, seenMilestones: [...p.seenMilestones, id] }));
   }, []);
 
-  /** Applique une progression fusionnée. La confession de cet appareil reste en place. */
-  const hydrate = useCallback((incoming: Progress) => {
-    setProgress((local) =>
-      touchDay({
-        ...incoming,
-        confession: { ...incoming.confession, items: local.confession.items },
-        confessionLock: local.confessionLock,
-      }),
-    );
+  /**
+   * Applique le résultat d'une synchro. La mise à jour reçoit l'état le plus récent, pas celui que la
+   * synchro avait vu avant son aller-retour réseau : ce qui a été fait entre-temps ne se perd pas.
+   */
+  const hydrate = useCallback((update: (local: Progress) => Progress) => {
+    setProgress((local) => touchDay(update(local)));
+  }, []);
+
+  /**
+   * Après une déconnexion, le chemin du compte quitte l'appareil. Reste la confession, qui n'a jamais
+   * quitté ce téléphone, et le rappel.
+   */
+  const resetAccountData = useCallback(() => {
+    setProgress((p) => ({
+      ...initial(),
+      reminder: p.reminder,
+      confession: { ...initial().confession, items: p.confession.items },
+      confessionLock: p.confessionLock,
+    }));
   }, []);
 
   const setAdorationPrefs = useCallback((prefs: Partial<Pick<AdorationProgress, 'mode' | 'minutes'>>) => {
@@ -419,11 +471,19 @@ export function useProgress() {
 
   const addAdorationIntention = useCallback((text: string) => {
     const intention: AdorationIntention = { id: `i-${Date.now().toString(36)}`, text, at: Date.now() };
-    setProgress((p) => ({ ...p, adoration: { ...p.adoration, intentions: [...p.adoration.intentions, intention] } }));
+    setProgress((p) => ({
+      ...p,
+      adoration: { ...p.adoration, intentions: [...p.adoration.intentions, intention] },
+      stamps: stamped(p, `intent:${intention.id}`),
+    }));
   }, []);
 
   const removeAdorationIntention = useCallback((id: string) => {
-    setProgress((p) => ({ ...p, adoration: { ...p.adoration, intentions: p.adoration.intentions.filter((i) => i.id !== id) } }));
+    setProgress((p) => ({
+      ...p,
+      adoration: { ...p.adoration, intentions: p.adoration.intentions.filter((i) => i.id !== id) },
+      stamps: stamped(p, `intent:${id}`),
+    }));
   }, []);
 
   const setReminder = useCallback((reminder: ReminderSettings) => {
@@ -446,6 +506,7 @@ export function useProgress() {
         ...p,
         liked: liked ? [...p.liked, id] : p.liked.filter((x) => x !== id),
         themeScores: theme ? { ...p.themeScores, [theme]: Math.max(0, (p.themeScores[theme] ?? 0) + delta) } : p.themeScores,
+        stamps: stamped(p, `liked:${id}`, ...(theme ? ['scores'] : [])),
       };
     });
     if (target) void queueLike(target, liked);
@@ -459,6 +520,7 @@ export function useProgress() {
       return {
         ...p,
         saved: has ? p.saved.filter((s) => s.id !== id) : [{ id, book, bookName, chapter, from, to, reference, text }, ...p.saved],
+        stamps: stamped(p, `saved:${id}`),
       };
     });
   }, []);
@@ -500,6 +562,7 @@ export function useProgress() {
     setDisplayName,
     seeMilestone,
     hydrate,
+    resetAccountData,
     addAdorationIntention,
     removeAdorationIntention,
     toggleLike,

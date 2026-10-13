@@ -8,12 +8,14 @@ import { C } from '../liturgy';
 import { planById, planStatus } from '../plans';
 import { TOTAL_CHAPTERS } from '../reading';
 import { today, useApp } from '../storage';
+import { syncProgress } from '../sync';
 import { agoPhrase, bibleShare, bookShares, reachedSteps, resumeTarget, todayTasks, weekStrip } from '../today';
 
 export default function CompteScreen() {
-  const { progress, setDisplayName, seeMilestone, selectBook, goTo } = useApp();
+  const { progress, setDisplayName, seeMilestone, selectBook, goTo, hydrate, resetAccountData } = useApp();
   const account = useAccount();
-  const [name, setName] = useState(progress.displayName);
+  // Le texte en cours de frappe ; hors saisie, le champ suit toujours le prénom de la progression.
+  const [draft, setDraft] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [keyboard, setKeyboard] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -75,9 +77,12 @@ export default function CompteScreen() {
     >
       <Text style={styles.kicker}>Mon chemin</Text>
       <TextInput
-        value={name}
-        onChangeText={setName}
-        onEndEditing={() => setDisplayName(name)}
+        value={draft ?? progress.displayName}
+        onChangeText={setDraft}
+        onEndEditing={() => {
+          if (draft !== null) setDisplayName(draft);
+          setDraft(null);
+        }}
         placeholder="Ton prénom"
         placeholderTextColor={C.faint}
         style={styles.name}
@@ -265,10 +270,7 @@ export default function CompteScreen() {
               <Pressable
                 onPress={async () => {
                   const given = await account.linkApple();
-                  if (given && !progress.displayName) {
-                    setName(given);
-                    setDisplayName(given);
-                  }
+                  if (given && !progress.displayName) setDisplayName(given);
                 }}
                 disabled={account.busy}
                 style={styles.secondary}
@@ -286,7 +288,11 @@ export default function CompteScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{account.email ?? 'Compte relié'}</Text>
             <Text style={styles.muted}>Ton chemin est gardé avec ce compte.</Text>
-            <Pressable onPress={() => account.signOut()} style={styles.secondary}>
+            <Pressable
+              onPress={() => account.signOut({ flush: () => syncProgress(() => progress, hydrate), reset: resetAccountData })}
+              disabled={account.busy}
+              style={styles.secondary}
+            >
               <Text style={styles.secondaryText}>Se déconnecter</Text>
             </Pressable>
             {account.error ? <Text style={styles.error}>{account.error}</Text> : null}

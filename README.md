@@ -63,7 +63,7 @@ npx expo start
 
 Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la version web.
 
-Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer `supabase/migrations/001_community.sql` puis `002_account.sql`. Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app. La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
+Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer `supabase/migrations/001_community.sql` puis `002_account.sql`. Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app ; il doit s’ouvrir sur le téléphone qui l’a demandé (flux PKCE : un lien forgé n’ouvre aucune session). La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
 
 ## Structure
 

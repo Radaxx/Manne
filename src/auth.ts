@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,6 +15,21 @@ const REDIRECT = 'manne://auth/callback';
 export type AccountPhase = { kind: 'ready' } | { kind: 'link'; email: string };
 
 const NONCE_KEY = 'manne/auth/pending-nonce';
+
+/**
+ * Le nonce déposé vaut aussi longtemps que le lien du mail (une heure par défaut chez Supabase). Plus court,
+ * le lien marcherait mais ce que l'anonyme avait fait ne pourrait plus être repris.
+ */
+const NONCE_TTL = 60 * 60 * 1000;
+let pendingNonce: string | null = null;
+
+/** Ce que l'écran fournit pour se déconnecter sans rien perdre ni rien laisser sur l'appareil. */
+export type SignOutHooks = {
+  /** Envoie une dernière fois la progression ; faux si le cloud ne l'a pas reçue. */
+  flush: () => Promise<boolean>;
+  /** Efface de l'appareil le chemin du compte quitté. */
+  reset: () => void;
+};
 
 type AuthErrorLike = { code?: string; message?: string } | null;
 
@@ -81,40 +97,82 @@ export function useAccount() {
       }),
     linkApple: () => run(() => linkApple()),
     linkGoogle: () => run(() => linkGoogle()),
-    signOut: () =>
+    signOut: (hooks: SignOutHooks) =>
       run(async () => {
-        await signOut();
+        if (!(await hooks.flush())) return { error: 'Ton chemin n’a pas pu être enregistré. Réessaie avec du réseau.' };
+        await signOut(hooks.reset);
         setPhase({ kind: 'ready' });
         return { error: null };
       }),
   };
 }
 
-async function sendEmail(email: string): Promise<{ error: string | null; existing: boolean }> {
+/** Le service d'e-mail intégré de Supabase n'en envoie que deux par heure pour tout le projet. */
+let mailBlockedUntil = 0;
+
+async function sendEmail(email: string): Promise<{ error: string | null }> {
   const client = supabase;
-  if (!client) return { error: 'Supabase n’est pas configuré.', existing: false };
-  if (!email.includes('@')) return { error: 'Cette adresse ne convient pas.', existing: false };
-  if (!(await ensureSession())) return { error: 'La session n’a pas pu être ouverte. Réessaie.', existing: false };
+  if (!client) return { error: 'Supabase n’est pas configuré.' };
+  if (!email.includes('@')) return { error: 'Cette adresse ne convient pas.' };
+  if (Date.now() < mailBlockedUntil) return { error: MAIL_LIMIT };
+  if (!(await ensureSession())) return { error: 'La session n’a pas pu être ouverte. Réessaie.' };
   let { error } = await client.auth.updateUser({ email }, { emailRedirectTo: REDIRECT });
   if (error && userGone(error)) {
     await client.auth.signOut({ scope: 'local' });
-    if (!(await ensureSession())) return { error: 'La session n’a pas pu être ouverte. Réessaie.', existing: false };
+    if (!(await ensureSession())) return { error: 'La session n’a pas pu être ouverte. Réessaie.' };
     ({ error } = await client.auth.updateUser({ email }, { emailRedirectTo: REDIRECT }));
   }
-  if (!error) return { error: null, existing: false };
+  if (limited(error)) return blockMail();
+  if (!error) {
+    // Ce lien-ci n'adopte rien : un nonce resté d'un essai précédent ne doit pas s'y accrocher.
+    await clearNonce();
+    return { error: null };
+  }
   if (error.code === 'email_exists' || error.code === 'user_already_exists') {
     const nonce = await depositNonce();
-    if (!nonce) return { error: 'Impossible de préparer la connexion.', existing: true };
+    if (!nonce) return { error: 'Impossible de préparer la connexion.' };
     pendingNonce = nonce;
     await AsyncStorage.setItem(NONCE_KEY, nonce);
     const { error: otpError } = await client.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false, emailRedirectTo: REDIRECT },
     });
-    if (otpError) return { error: otpError.message, existing: true };
-    return { error: null, existing: true };
+    if (limited(otpError)) return blockMail();
+    if (otpError) {
+      await clearNonce();
+      return { error: otpError.message };
+    }
+    return { error: null };
   }
-  return { error: error.message, existing: false };
+  return { error: error.message ?? 'L’envoi a échoué.' };
+}
+
+const MAIL_LIMIT =
+  'Supabase n’envoie que deux e-mails par heure. Le lien déjà reçu reste valable. Sinon, réessaie dans une heure, ou ajoute un serveur SMTP dans le projet.';
+
+function limited(error: AuthErrorLike): boolean {
+  if (!error) return false;
+  return error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message ?? '');
+}
+
+function blockMail(): { error: string } {
+  mailBlockedUntil = Date.now() + 60 * 60 * 1000;
+  return { error: MAIL_LIMIT };
+}
+
+async function clearNonce() {
+  pendingNonce = null;
+  await AsyncStorage.removeItem(NONCE_KEY);
+}
+
+/** Reprend ce que l'anonyme avait fait. Les messages du serveur ('nonce', 'auth') ne sont pas faits pour l'écran. */
+async function adopt(client: SupabaseClient, nonce: string): Promise<string | null> {
+  const { error } = await client.rpc('adopt_account', { p_nonce: nonce });
+  if (!error) return null;
+  if (error.message.includes('nonce'))
+    return 'Te voilà connecté, mais ce que tu avais fait avant n’a pas pu être repris : le lien est trop ancien.';
+  if (error.message.includes('auth')) return 'La session a expiré. Réessaie.';
+  return error.message;
 }
 
 const openingUrls = new Map<string, Promise<string | null>>();
@@ -135,11 +193,9 @@ async function finishEmailLink(url: string): Promise<string | null> {
   const outcome = await finishRedirect(url);
   if (outcome !== 'linked') return outcome === 'exists' ? 'Ce lien ne correspond pas à une connexion.' : outcome;
   const nonce = pendingNonce ?? (await AsyncStorage.getItem(NONCE_KEY));
-  pendingNonce = null;
-  await AsyncStorage.removeItem(NONCE_KEY);
+  await clearNonce();
   if (!nonce || !supabase) return null;
-  const { error } = await supabase.rpc('adopt_account', { p_nonce: nonce });
-  return error?.message ?? null;
+  return adopt(supabase, nonce);
 }
 
 async function linkApple(): Promise<{ error: string | null; name?: string | null }> {
@@ -168,8 +224,7 @@ async function linkApple(): Promise<{ error: string | null; name?: string | null
   if (!nonce) return { error: 'Impossible de rattacher ce compte Apple.' };
   const signed = await client.auth.signInWithIdToken({ provider: 'apple', token: credential.identityToken, nonce: rawNonce });
   if (signed.error) return { error: signed.error.message };
-  const { error } = await client.rpc('adopt_account', { p_nonce: nonce });
-  return { error: error?.message ?? null, name: name || null };
+  return { error: await adopt(client, nonce), name: name || null };
 }
 
 async function linkGoogle(): Promise<{ error: string | null }> {
@@ -203,11 +258,14 @@ async function signInGoogle(): Promise<{ error: string | null }> {
   if (result.type !== 'success') return { error: result.type === 'cancel' ? null : 'La connexion Google a été interrompue.' };
   const outcome = await finishRedirect(result.url);
   if (outcome !== 'linked') return { error: outcome === 'exists' ? 'Ce compte Google est déjà utilisé.' : outcome };
-  const { error: adoptError } = await client.rpc('adopt_account', { p_nonce: nonce });
-  return { error: adoptError?.message ?? null };
+  return { error: await adopt(client, nonce) };
 }
 
-/** `linked` si la session est en place, `exists` si l'identité appartient déjà à quelqu'un. */
+/**
+ * `linked` si la session est en place, `exists` si l'identité appartient déjà à quelqu'un.
+ * Seul un code est accepté : il ne s'échange que contre le secret PKCE gardé par ce téléphone. Un lien
+ * porteur de jetons (access_token) ou d'un token_hash ouvrirait la session de qui l'a forgé.
+ */
 async function finishRedirect(url: string): Promise<'linked' | 'exists' | string> {
   const client = supabase;
   if (!client) return 'Supabase n’est pas configuré.';
@@ -215,22 +273,13 @@ async function finishRedirect(url: string): Promise<'linked' | 'exists' | string
   const code = String(params.error_code ?? '');
   if (code === 'identity_already_exists' || code === 'email_exists') return 'exists';
   if (params.error_description) return String(params.error_description);
-  if (typeof params.token_hash === 'string' && typeof params.type === 'string') {
-    const { error } = await client.auth.verifyOtp({ token_hash: params.token_hash, type: params.type as 'email_change' });
-    return error ? error.message : 'linked';
-  }
   if (typeof params.code === 'string') {
-    const { error } = await client.auth.exchangeCodeForSession(params.code);
+    const flowId = params.sb_flow_id;
+    const { error } = await client.auth.exchangeCodeForSession(params.code, flowId ? { flowId } : undefined);
     return error ? error.message : 'linked';
   }
-  if (typeof params.access_token === 'string' && typeof params.refresh_token === 'string') {
-    const { error } = await client.auth.setSession({ access_token: params.access_token, refresh_token: params.refresh_token });
-    return error ? error.message : 'linked';
-  }
-  return 'La redirection n’a pas renvoyé de session.';
+  return 'Ce lien ne correspond à aucune connexion démarrée depuis ce téléphone.';
 }
-
-let pendingNonce: string | null = null;
 
 function readParams(url: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -257,16 +306,23 @@ async function depositNonce(): Promise<string | null> {
   const { error } = await client.from('account_adoptions').insert({
     nonce,
     from_user: fromUser,
-    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    expires_at: new Date(Date.now() + NONCE_TTL).toISOString(),
   });
   return error ? null : nonce;
 }
 
-async function signOut() {
+/**
+ * Ferme la session de ce téléphone seulement : les autres appareils du compte restent connectés. Le chemin
+ * local est effacé avant la nouvelle session anonyme, pour qu'elle ne l'emporte pas avec elle.
+ */
+async function signOut(reset: () => void) {
   const client = supabase;
   if (!client) return;
-  await client.auth.signOut();
-  await client.auth.signInAnonymously();
+  await client.auth.signOut({ scope: 'local' });
+  reset();
+  // Laisse l'état effacé arriver jusqu'à la synchro avant que la nouvelle session ne la déclenche.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await ensureSession();
 }
 
 function userGone(error: AuthErrorLike): boolean {

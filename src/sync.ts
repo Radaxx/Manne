@@ -11,7 +11,51 @@ export function cloudState(p: Progress): Progress {
   };
 }
 
-/** Union des deux téléphones. La position la plus avancée gagne, les listes s'ajoutent. */
+/** Les stamps sont gardés six mois : au-delà, un appareil resté éteint aussi longtemps repart de zéro. */
+const STAMP_TTL = 180 * 24 * 60 * 60 * 1000;
+
+const stampAt = (p: Progress, key: string) => p.stamps[key] ?? 0;
+
+/**
+ * Fusionne une liste d'éléments identifiés. Un élément présent des deux côtés reste. Présent d'un seul
+ * côté, il reste sauf si l'autre côté l'a retiré après : c'est le stamp le plus récent qui décide.
+ */
+function mergeItems<T>(
+  here: Progress,
+  there: Progress,
+  items: (p: Progress) => T[],
+  id: (item: T) => string,
+  stampKey: (id: string) => string,
+  newer: (mine: T, theirs: T) => T = (mine) => mine,
+): T[] {
+  const mine = items(here);
+  const theirs = items(there);
+  const theirById = new Map(theirs.map((item) => [id(item), item]));
+  const mineIds = new Set(mine.map(id));
+  const out: T[] = [];
+  for (const item of mine) {
+    const other = theirById.get(id(item));
+    const key = stampKey(id(item));
+    if (other) out.push(newer(item, other));
+    else if (stampAt(here, key) >= stampAt(there, key)) out.push(item);
+  }
+  for (const item of theirs) {
+    if (mineIds.has(id(item))) continue;
+    const key = stampKey(id(item));
+    if (stampAt(there, key) >= stampAt(here, key)) out.push(item);
+  }
+  return out;
+}
+
+/** Un geste explicite plus récent d'un côté l'emporte en bloc ; à égalité, on garde le plus avancé. */
+function byStamp<T>(here: Progress, there: Progress, key: string, mine: T, theirs: T, tie: (a: T, b: T) => T): T {
+  const a = stampAt(here, key);
+  const b = stampAt(there, key);
+  if (a === b) return tie(mine, theirs);
+  return a > b ? mine : theirs;
+}
+
+/** Union des deux téléphones. Le geste le plus récent gagne, sinon la position la plus avancée ; les listes s'ajoutent. */
 export function mergeProgress(local: Progress, remote: Progress): Progress {
   const here = prepareStored(local);
   const there = prepareStored(remote);
@@ -22,36 +66,55 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
   for (const date of new Set([...Object.keys(here.days), ...Object.keys(there.days)])) {
     days[date] = mergeDay(here.days[date], there.days[date]);
   }
-  const positions = { ...there.positions };
-  for (const [book, pos] of Object.entries(here.positions)) {
+  const positions: Progress['positions'] = {};
+  for (const book of new Set([...Object.keys(here.positions), ...Object.keys(there.positions)])) {
     const n = Number(book);
-    positions[n] = positions[n] ? furtherPoint(positions[n], pos) : pos;
+    const a = here.positions[n];
+    const b = there.positions[n];
+    const pos = a && b ? byStamp(here, there, `pos:${n}`, a, b, furtherPoint) : (a ?? b);
+    if (pos) positions[n] = pos;
   }
-  const plans = { ...there.plans };
-  for (const [id, state] of Object.entries(here.plans)) {
-    plans[id] = plans[id] ? furtherPlan(plans[id], state) : state;
+  const plans: Progress['plans'] = {};
+  for (const id of new Set([...Object.keys(here.plans), ...Object.keys(there.plans)])) {
+    const a = here.plans[id];
+    const b = there.plans[id];
+    const key = `plan:${id}`;
+    // Arrêter un plan est un geste : le plan absent d'un côté et plus récent que l'autre disparaît.
+    const sa = stampAt(here, key);
+    const sb = stampAt(there, key);
+    const plan = sa === sb ? (a && b ? furtherPlan(a, b) : (a ?? b)) : sa > sb ? a : b;
+    if (plan) plans[id] = plan;
   }
-  const saved = [...here.saved];
-  for (const passage of there.saved) if (!saved.some((s) => s.id === passage.id)) saved.push(passage);
-  const prayers = new Map(there.customPrayers.map((prayer) => [prayer.id, prayer]));
-  for (const prayer of here.customPrayers) {
-    const prev = prayers.get(prayer.id);
-    if (!prev || prayer.updatedAt >= prev.updatedAt) prayers.set(prayer.id, prayer);
-  }
-  const pinned = [...here.pinnedPrayers];
-  for (const id of there.pinnedPrayers) if (!pinned.includes(id)) pinned.push(id);
-  const intentions = [...here.adoration.intentions];
-  for (const item of there.adoration.intentions) if (!intentions.some((i) => i.id === item.id)) intentions.push(item);
-  const themeScores = { ...there.themeScores };
-  for (const [theme, score] of Object.entries(here.themeScores)) {
-    const key = theme as keyof typeof themeScores;
-    themeScores[key] = Math.max(themeScores[key] ?? 0, score ?? 0);
+  const themeScores = byStamp(here, there, 'scores', here.themeScores, there.themeScores, (mine, theirs) => {
+    const best = { ...theirs };
+    for (const [theme, score] of Object.entries(mine)) {
+      const key = theme as keyof typeof best;
+      best[key] = Math.max(best[key] ?? 0, score ?? 0);
+    }
+    return best;
+  });
+  const cutoff = Date.now() - STAMP_TTL;
+  const stamps: Progress['stamps'] = {};
+  for (const [key, at] of [...Object.entries(there.stamps), ...Object.entries(here.stamps)]) {
+    if (at >= cutoff) stamps[key] = Math.max(stamps[key] ?? 0, at);
   }
   const merged = prepareStored({
     ...there,
     ...here,
-    liked: [...new Set([...here.liked, ...there.liked])],
-    saved,
+    liked: mergeItems(
+      here,
+      there,
+      (p) => p.liked,
+      (id) => id,
+      (id) => `liked:${id}`,
+    ),
+    saved: mergeItems(
+      here,
+      there,
+      (p) => p.saved,
+      (item) => item.id,
+      (id) => `saved:${id}`,
+    ),
     themeScores,
     day: d,
     readToday,
@@ -66,66 +129,115 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     chaptersRead: [...new Set([...here.chaptersRead, ...there.chaptersRead])],
     plans,
     reminder: here.reminder,
-    pinnedPrayers: pinned,
-    customPrayers: [...prayers.values()],
+    pinnedPrayers: mergeItems(
+      here,
+      there,
+      (p) => p.pinnedPrayers,
+      (id) => id,
+      (id) => `pin:${id}`,
+    ),
+    customPrayers: mergeItems(
+      here,
+      there,
+      (p) => p.customPrayers,
+      (prayer) => prayer.id,
+      (id) => `prayer:${id}`,
+      (mine, theirs) => (mine.updatedAt >= theirs.updatedAt ? mine : theirs),
+    ),
     confession: { items: here.confession.items, lastConfession: later(here.confession.lastConfession, there.confession.lastConfession) },
     confessionLock: here.confessionLock,
     rosary: {
       ...here.rosary,
-      session: furtherStep(here.rosary.session, there.rosary.session),
+      session: byStamp(here, there, 'rosary', here.rosary.session, there.rosary.session, furtherStep),
       last: later(here.rosary.last, there.rosary.last),
       count: Math.max(here.rosary.count, there.rosary.count),
     },
     adoration: {
       ...here.adoration,
-      session: furtherStep(here.adoration.session, there.adoration.session),
+      session: byStamp(here, there, 'adoration', here.adoration.session, there.adoration.session, furtherStep),
       last: later(here.adoration.last, there.adoration.last),
       count: Math.max(here.adoration.count, there.adoration.count),
-      intentions,
+      intentions: mergeItems(
+        here,
+        there,
+        (p) => p.adoration.intentions,
+        (item) => item.id,
+        (id) => `intent:${id}`,
+      ),
     },
+    stamps,
   });
   return { ...merged, streak: currentStreak(merged) };
 }
 
-let running = false;
-let again = false;
+type Apply = (update: (local: Progress) => Progress) => void;
 
-/** Pousse la progression, en la fusionnant avec celle du cloud. Sans projet Supabase, ne fait rien. */
-export async function syncProgress(getLocal: () => Progress, hydrate: (next: Progress) => void) {
-  if (!supabase) return;
-  if (running) {
-    again = true;
-    return;
-  }
-  running = true;
-  try {
-    do {
-      again = false;
-      const next = await once(getLocal());
-      if (next) hydrate(next);
-    } while (again);
-  } finally {
-    running = false;
-  }
+let inflight: Promise<boolean> | null = null;
+let again = false;
+/** Dernier état que le cloud est connu pour contenir : inutile de le relire ni de le renvoyer s'il n'a pas bougé. */
+let lastPushed: { userId: string; json: string } | null = null;
+
+/** Tri des clés : jsonb ne garde pas l'ordre, et l'ordre ne doit pas compter pour comparer deux états. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : v,
+  );
 }
 
-async function once(local: Progress): Promise<Progress | null> {
+/**
+ * Pousse la progression, en la fusionnant avec celle du cloud. Sans projet Supabase, ne fait rien.
+ * Le résultat est fusionné dans l'état courant au retour, pas collé par-dessus. Résout à vrai quand
+ * le cloud contient bien l'état local.
+ */
+export function syncProgress(getLocal: () => Progress, apply: Apply): Promise<boolean> {
+  if (!supabase) return Promise.resolve(false);
+  if (inflight) {
+    again = true;
+    return inflight;
+  }
+  inflight = (async () => {
+    let ok = false;
+    try {
+      do {
+        again = false;
+        const result = await once(getLocal());
+        ok = result.ok;
+        const merged = result.merged;
+        if (merged) apply((local) => mergeProgress(local, merged));
+      } while (again);
+      return ok;
+    } finally {
+      inflight = null;
+    }
+  })();
+  return inflight;
+}
+
+async function once(local: Progress): Promise<{ ok: boolean; merged: Progress | null }> {
   const client = supabase;
-  if (!client) return null;
+  if (!client) return { ok: false, merged: null };
   const userId = await currentUserId();
-  if (!userId) return null;
+  if (!userId) return { ok: false, merged: null };
+  const localJson = canonical(cloudState(local));
+  if (lastPushed?.userId === userId && lastPushed.json === localJson) return { ok: true, merged: null };
   const { data, error } = await client.from('user_state').select('state').eq('user_id', userId).maybeSingle();
-  if (error) return null;
+  if (error) return { ok: false, merged: null };
   const remote = data?.state ? prepareStored(data.state) : null;
   const merged = remote ? mergeProgress(local, remote) : local;
-  const payload = cloudState(merged);
-  const { error: writeError } = await client.from('user_state').upsert({
-    user_id: userId,
-    state: payload,
-    updated_at: new Date().toISOString(),
-  });
-  if (writeError || !remote) return null;
-  return JSON.stringify(cloudState(local)) === JSON.stringify(payload) ? null : merged;
+  const json = canonical(cloudState(merged));
+  let ok = true;
+  if (!data?.state || canonical(data.state) !== json) {
+    const { error: writeError } = await client.from('user_state').upsert({
+      user_id: userId,
+      state: cloudState(merged),
+      updated_at: new Date().toISOString(),
+    });
+    ok = !writeError;
+  }
+  if (ok) lastPushed = { userId, json };
+  return { ok, merged: remote && json !== localJson ? merged : null };
 }
 
 function mergeDay(a: DayLog | undefined, b: DayLog | undefined): DayLog {
