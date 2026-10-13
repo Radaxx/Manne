@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { type ReactNode, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,8 +9,8 @@ import { BOOKS } from './data/bible';
 import { C } from './liturgy';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
-import { TOTAL_CHAPTERS } from './reading';
-import { DAILY_GOAL, today, useApp } from './storage';
+import { today, useApp } from './storage';
+import { todayLine, unseenSteps } from './today';
 
 const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -129,13 +129,18 @@ export function HomeScreen() {
 
   // Chaque plan a son propre fil de lecture : il n'interfère pas avec la lecture libre.
   const readPlan = (s: PlanStatus) => router.push(`/plan/${s.plan.id}`);
+  const step = unseenSteps(progress)[0];
+  const greet = hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour';
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* En-tête : salutation, date et jour liturgique */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>{hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour'}</Text>
+          <Text style={styles.greeting}>
+            {greet}
+            {progress.displayName ? `, ${progress.displayName}` : ''}
+          </Text>
           <View style={styles.headerRight}>
             <Pressable onPress={() => router.push('/rappel')} hitSlop={10} accessibilityLabel="Rappel quotidien" style={styles.bell}>
               <Ionicons
@@ -144,15 +149,32 @@ export function HomeScreen() {
                 color={progress.reminder.enabled ? C.gold : C.muted}
               />
             </Pressable>
-            <View style={styles.streak}>
+            <Pressable onPress={() => router.push('/compte')} hitSlop={10} accessibilityLabel="Mon compte" style={styles.streak}>
               <Ionicons name="flame" size={16} color="#ffb703" />
               <Text style={styles.streakText}>{progress.streak}</Text>
-            </View>
+            </Pressable>
           </View>
         </View>
         <Text style={styles.date}>
           {capitalize(DAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
         </Text>
+        <Pressable onPress={() => router.push('/compte')} style={({ pressed }) => [styles.todayLine, pressed && styles.pressed]}>
+          <Text style={styles.todayText}>{todayLine(progress)}</Text>
+          <Ionicons name="chevron-forward" size={16} color={C.gold} />
+        </Pressable>
+        {step ? (
+          <Pressable
+            onPress={() => {
+              api.seeMilestone(step.id);
+              if (step.book) api.selectBook(step.book);
+              router.push(step.href as Href);
+            }}
+            style={({ pressed }) => [styles.step, pressed && styles.pressed]}
+          >
+            <Text style={styles.stepTitle}>{step.title}</Text>
+            <Text style={styles.stepNext}>{step.next}</Text>
+          </Pressable>
+        ) : null}
         {info && (
           <View style={styles.liturgy}>
             <View style={[styles.colorDot, { backgroundColor: LITURGICAL_COLORS[info.couleur] ?? C.muted }]} />
@@ -287,25 +309,6 @@ export function HomeScreen() {
           <Ionicons name="chevron-forward" size={20} color={C.muted} />
         </Card>
 
-        {/* Statistiques */}
-        <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {progress.readToday.length}
-              <Text style={styles.statUnit}>/{DAILY_GOAL}</Text>
-            </Text>
-            <Text style={styles.statLabel}>versets aujourd’hui</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{progress.chaptersRead.length}</Text>
-            <Text style={styles.statLabel}>chapitres sur {TOTAL_CHAPTERS}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{progress.streak}</Text>
-            <Text style={styles.statLabel}>jour{progress.streak > 1 ? 's' : ''} d’affilée</Text>
-          </View>
-        </View>
-
         <Text style={styles.credits}>Textes liturgiques © AELF · Bible Louis Segond 1910</Text>
       </ScrollView>
     </SafeAreaView>
@@ -318,6 +321,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   greeting: { color: C.muted, fontSize: 15, fontWeight: '600' },
   date: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40 },
+  todayLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  todayText: { color: C.gold, fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  step: { backgroundColor: C.cardHi, borderRadius: 14, padding: 14, marginTop: 14, borderWidth: 1, borderColor: 'rgba(255,209,102,0.25)' },
+  stepTitle: { color: C.text, fontSize: 16, fontWeight: '800' },
+  stepNext: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 4 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   streak: {
@@ -401,10 +409,5 @@ const styles = StyleSheet.create({
   readBtnText: { color: C.bg, fontWeight: '800', fontSize: 14 },
   track: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
   fill: { height: '100%' },
-  stats: { flexDirection: 'row', gap: 10, marginTop: 30 },
-  stat: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14 },
-  statValue: { color: C.text, fontSize: 24, fontWeight: '800' },
-  statUnit: { color: C.muted, fontSize: 14, fontWeight: '600' },
-  statLabel: { color: C.muted, fontSize: 12, marginTop: 2 },
   credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 30 },
 });

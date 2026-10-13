@@ -2,10 +2,9 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { VERSES } from './data/content';
 
-// Rappel quotidien : une notification par jour à l'heure choisie, mais seulement les jours où
-// l'app n'a pas encore été ouverte. Les notifications locales ne peuvent pas être annulées « à la
-// volée » ; on programme donc un rappel daté pour chacun des prochains jours, et chaque ouverture
-// de l'app les reprogramme à partir de demain.
+// Rappel quotidien à l'heure choisie. Ouvrir l'app ne suffit plus : le rappel d'aujourd'hui part
+// encore si la journée (Évangile, lecture, prière) n'est pas faite et que l'heure est devant nous.
+// Les notifications locales ne s'annulent pas toutes seules ; chaque ouverture reprogramme la suite.
 
 export type ReminderSettings = { enabled: boolean; hour: number; minute: number };
 
@@ -75,14 +74,16 @@ export async function reminderPermissionGranted(): Promise<boolean> {
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
-/** (Re)programme les rappels à partir de demain : l'app est ouverte, inutile de rappeler aujourd'hui. */
-export async function scheduleReminders(settings: ReminderSettings) {
+/** Reprogramme les rappels. Aujourd'hui est inclus tant que la journée est incomplète et l'heure à venir. */
+export async function scheduleReminders(settings: ReminderSettings, todayDone = false) {
   if (!notificationsSupported) return;
   await configure();
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!settings.enabled || !(await reminderPermissionGranted())) return;
   const now = new Date();
-  for (let d = 1; d <= DAYS_AHEAD; d++) {
+  const todayAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute);
+  const first = !todayDone && todayAt.getTime() > now.getTime() ? 0 : 1;
+  for (let d = first; d <= DAYS_AHEAD; d++) {
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, settings.hour, settings.minute);
     await Notifications.scheduleNotificationAsync({
       content: reminderContent(date),

@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Mass, parseHtml, plainText } from './aelf';
 import { SERIF } from './cards';
 
@@ -281,8 +281,8 @@ const READING_LABELS: Record<string, string> = {
 export const readingLabel = (type: string) =>
   READING_LABELS[type] ?? (type.startsWith('lecture_') ? `Lecture ${type.slice(8)}` : type.charAt(0).toUpperCase() + type.slice(1));
 
-/** Les lectures d'une messe. */
-export function MassBody({ mass }: { mass: Mass }) {
+/** Les lectures d'une messe. L'Évangile se marque à la main : l'avoir affiché ne veut pas dire l'avoir lu. */
+export function MassBody({ mass, gospelRead, onGospelRead }: { mass: Mass; gospelRead?: boolean; onGospelRead?: () => void }) {
   return (
     <>
       {mass.lectures.map((l, i) => (
@@ -301,6 +301,17 @@ export function MassBody({ mass }: { mass: Mass }) {
             </View>
           ) : null}
           <LiturgyText html={l.contenu} />
+          {l.type === 'evangile' && onGospelRead ? (
+            <Pressable
+              onPress={onGospelRead}
+              disabled={gospelRead}
+              style={({ pressed }) => [styles.doneBtn, gospelRead && styles.doneBtnOn, pressed && !gospelRead && styles.pressed]}
+            >
+              <Text style={[styles.doneBtnText, gospelRead && styles.doneBtnTextOn]}>
+                {gospelRead ? 'Évangile lu' : 'J’ai lu l’Évangile'}
+              </Text>
+            </Pressable>
+          ) : null}
         </Section>
       ))}
     </>
@@ -323,4 +334,16 @@ const styles = StyleSheet.create({
   introLue: { color: C.muted, fontStyle: 'italic', fontSize: 15, marginBottom: 12 },
   refrain: { backgroundColor: 'rgba(224,122,107,0.08)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
   acclamation: { backgroundColor: 'rgba(255,209,102,0.06)', borderRadius: 10, padding: 12, paddingBottom: 0, marginBottom: 14 },
+  doneBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: C.gold,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  doneBtnOn: { backgroundColor: 'rgba(255,209,102,0.12)' },
+  doneBtnText: { color: C.bg, fontWeight: '800', fontSize: 15 },
+  doneBtnTextOn: { color: C.gold },
+  pressed: { opacity: 0.7 },
 });

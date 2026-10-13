@@ -63,11 +63,11 @@ npx expo start
 
 Puis scanner le QR code avec Expo Go (iOS / Android), ou appuyer sur `w` pour la version web.
 
-Pour les j’aime, les échos et les intentions : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes dans le projet Supabase, et appliquer `supabase/migrations/001_community.sql`. La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
+Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer `supabase/migrations/001_community.sql` puis `002_account.sql`. Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app. La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
 
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration, intentions confiées
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, plans, confession, chapelet, adoration, intentions confiées, compte
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager
@@ -82,7 +82,8 @@ Pour les j’aime, les échos et les intentions : copier `.env.example` vers `.e
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes
 - `src/sheets.tsx` : chapitre complet, favoris, liste des livres
-- `src/storage.ts` : progression (marque-page, série, favoris), stockée sur l’appareil
-- `src/supabase.ts` / `src/community.ts` / `src/echoes.tsx` : session anonyme, j’aime, échos et intentions (Supabase)
-- `supabase/migrations/` : schéma communautaire (compteurs, échos, intentions, signalements)
+- `src/storage.ts` : progression (marque-page, journal du jour, série, favoris), stockée sur l’appareil
+- `src/today.ts` : journée faite (Évangile, lecture, prière), série, reprise, étapes
+- `src/supabase.ts` / `src/auth.ts` / `src/sync.ts` / `src/community.ts` / `src/echoes.tsx` : session anonyme, rattachement du compte, synchro, j’aime, échos et intentions
+- `supabase/migrations/` : schéma communautaire et progression du compte
 - `src/data/` : Bible, présentations des livres, anecdotes, quiz

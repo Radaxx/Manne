@@ -2,9 +2,13 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { LITURGICAL_COLORS, plainText, useMass } from '../aelf';
 import { SERIF } from '../cards';
 import { C, MassBody } from '../liturgy';
+import { useApp } from '../storage';
+import { liveLog } from '../today';
 
 export default function MassScreen() {
   const { data, error } = useMass();
+  const { progress, markGospel } = useApp();
+  const gospelRead = liveLog(progress).gospel;
   const info = data?.informations;
   const masses = data?.messes ?? [];
 
@@ -23,7 +27,7 @@ export default function MassScreen() {
         <View key={i}>
           {/* Certains jours (Noël, Pâques…) ont plusieurs messes. */}
           {masses.length > 1 && <Text style={styles.massName}>{m.nom}</Text>}
-          <MassBody mass={m} />
+          <MassBody mass={m} gospelRead={gospelRead} onGospelRead={markGospel} />
         </View>
       ))}
       {!data && !error && <ActivityIndicator color={C.muted} style={{ marginTop: 40 }} />}

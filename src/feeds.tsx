@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import type { Passage, Theme } from './data/content';
 import { type Card, FeedGenerator } from './feed';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
+import { goalCaption, goalToast } from './today';
 
 const haptic = () => {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -153,6 +155,7 @@ function FeedScreen({
   const celebrate = useRef(new Animated.Value(0)).current;
   const readCount = progress.readToday.length;
   const prevCount = useRef(readCount);
+  const toast = goalToast(progress);
 
   // On ne célèbre que le passage de l'objectif en direct, pas au rechargement.
   useEffect(() => {
@@ -176,10 +179,10 @@ function FeedScreen({
           <View style={styles.side}>{left}</View>
           <Text style={styles.title}>{title}</Text>
           <View style={[styles.side, styles.topRight]}>
-            <View style={styles.streak}>
+            <Pressable onPress={() => router.push('/compte')} hitSlop={8} accessibilityLabel="Mon compte" style={styles.streak}>
               <Ionicons name="flame" size={15} color="#ffb703" />
               <Text style={styles.streakText}>{progress.streak}</Text>
-            </View>
+            </Pressable>
             <Pressable onPress={() => setShowSaved(true)} hitSlop={10} accessibilityLabel="Mes versets">
               <Ionicons name="bookmarks-outline" size={21} color="#fff" />
             </Pressable>
@@ -188,11 +191,7 @@ function FeedScreen({
         <View style={styles.goalTrack}>
           <View style={[styles.goalFill, { width: `${Math.min(1, readCount / DAILY_GOAL) * 100}%` }]} />
         </View>
-        <Text style={styles.goalText}>
-          {readCount >= DAILY_GOAL
-            ? `Objectif atteint · ${readCount} versets aujourd’hui`
-            : `${readCount}/${DAILY_GOAL} versets aujourd’hui`}
-        </Text>
+        <Text style={styles.goalText}>{goalCaption(progress)}</Text>
       </View>
 
       <Animated.View
@@ -206,8 +205,8 @@ function FeedScreen({
           },
         ]}
       >
-        <Text style={styles.toastTitle}>Ta manne du jour est récoltée ✨</Text>
-        <Text style={styles.toastBody}>{DAILY_GOAL} versets lus. Tu peux continuer… ou garder une parole en tête pour la journée.</Text>
+        <Text style={styles.toastTitle}>{toast.title}</Text>
+        <Text style={styles.toastBody}>{toast.body}</Text>
       </Animated.View>
 
       {chapter && <ChapterSheet passage={chapter} onClose={() => setChapter(null)} />}

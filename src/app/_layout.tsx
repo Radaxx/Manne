@@ -1,29 +1,58 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { EchoHost } from '../echoes';
 import { C } from '../liturgy';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
+import { supabase } from '../supabase';
+import { syncProgress } from '../sync';
+import { dayComplete, liveLog } from '../today';
 
 const theme = {
   ...DarkTheme,
   colors: { ...DarkTheme.colors, background: C.bg, card: C.bg, primary: C.gold, text: C.text, border: C.line },
 };
 
-/** Chaque ouverture de l'app reporte le rappel quotidien à demain. */
+/** Envoie la progression dès qu'une session existe, et la fusionne au retour du cloud. */
+function ProgressSync() {
+  const { loaded, progress, hydrate } = useApp();
+  const ref = useRef(progress);
+  ref.current = progress;
+  useEffect(() => {
+    if (!loaded || !supabase) return;
+    ref.current = progress;
+    const timer = setTimeout(() => {
+      syncProgress(() => ref.current, hydrate).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [loaded, progress, hydrate]);
+  useEffect(() => {
+    const client = supabase;
+    if (!loaded || !client) return;
+    syncProgress(() => ref.current, hydrate).catch(() => {});
+    const { data } = client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') syncProgress(() => ref.current, hydrate).catch(() => {});
+    });
+    return () => data.subscription.unsubscribe();
+  }, [loaded, hydrate]);
+  return null;
+}
+
+/** Le rappel part aujourd'hui tant que la journée n'est pas faite et que l'heure est encore devant. */
 function ReminderSync() {
   const { loaded, progress } = useApp();
   const { reminder } = progress;
+  const todayDone = dayComplete(liveLog(progress));
   useEffect(() => {
     if (!loaded) return;
-    scheduleReminders(reminder).catch(() => {});
+    scheduleReminders(reminder, todayDone).catch(() => {});
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') scheduleReminders(reminder).catch(() => {});
+      if (state === 'active') scheduleReminders(reminder, todayDone).catch(() => {});
     });
     return () => sub.remove();
-  }, [loaded, reminder]);
+  }, [loaded, reminder, todayDone]);
   return null;
 }
 
@@ -33,6 +62,7 @@ export default function RootLayout() {
       <ProgressProvider>
         <StatusBar style="light" />
         <ReminderSync />
+        <ProgressSync />
         <EchoHost />
         <Stack
           screenOptions={{
@@ -55,6 +85,7 @@ export default function RootLayout() {
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
+          <Stack.Screen name="compte" options={{ title: 'Compte' }} />
         </Stack>
       </ProgressProvider>
     </ThemeProvider>

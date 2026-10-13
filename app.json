@@ -8,6 +8,7 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.radaxx.manne",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -51,7 +52,9 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-apple-authentication",
+      "expo-web-browser"
     ],
     "scheme": "manne",
     "backgroundColor": "#0d0e12",
@@ -61,6 +64,12 @@
         "projectId": "1a3616ef-4d23-47ea-99bb-7ddf71f8344d"
       }
     },
-    "owner": "radaxx-studio"
+    "owner": "radaxx-studio",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1a3616ef-4d23-47ea-99bb-7ddf71f8344d"
+    }
   }
 }
