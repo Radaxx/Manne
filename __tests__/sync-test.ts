@@ -118,6 +118,12 @@ describe('prepareStored', () => {
     expect(p.journeys).toEqual({ 'avent-2026': ['2026-12-01', '2026-12-02'] });
   });
 
+  it('met l’accent liturgique par défaut et écarte une valeur inconnue', () => {
+    expect(prepareStored({}).appearance.accent).toBe('liturgique');
+    expect(prepareStored({ appearance: { ...progress().appearance, accent: 'or' } }).appearance.accent).toBe('or');
+    expect(prepareStored({ appearance: { ...progress().appearance, accent: 'fluo' as never } }).appearance.accent).toBe('liturgique');
+  });
+
   it('lit la Louis Segond quand la traduction est absente ou inconnue', () => {
     expect(prepareStored({}).translation).toBe('lsg');
     expect(prepareStored({ translation: 'tob' as never }).translation).toBe('lsg');

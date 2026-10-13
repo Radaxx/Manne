@@ -1,21 +1,32 @@
-// Préférences d'affichage : le thème de l'app, la matière du chapelet, le fond de la lecture.
+// Préférences d'affichage : le thème de l'app, sa couleur d'accent, la matière du chapelet, le fond de la lecture.
 // Le sombre actuel reste le point de départ ; « système » suit le téléphone.
+
+import type { LiturgicalColor } from './liturgical-year';
 
 export type SchemePreference = 'light' | 'dark' | 'system';
 export type RosaryColorId = 'olive' | 'or' | 'rose' | 'nacre' | 'ebene' | 'lapis';
 export type ReadingThemeId = 'livre' | 'nuit' | 'parchemin' | 'sepia' | 'aube' | 'encre';
+/** L'accent suit la couleur liturgique du jour, ou reste doré. */
+export type AccentPreference = 'liturgique' | 'or';
 
 export type AppearanceSettings = {
   scheme: SchemePreference;
+  accent: AccentPreference;
   rosary: RosaryColorId;
   reading: ReadingThemeId;
 };
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
   scheme: 'dark',
+  accent: 'liturgique',
   rosary: 'olive',
   reading: 'livre',
 };
+
+export const ACCENT_OPTIONS: { id: AccentPreference; label: string }[] = [
+  { id: 'liturgique', label: 'Couleur liturgique' },
+  { id: 'or', label: 'Doré' },
+];
 
 export const SCHEME_OPTIONS: { id: SchemePreference; label: string }[] = [
   { id: 'light', label: 'Clair' },
@@ -85,9 +96,24 @@ export const LIGHT: Palette = {
   statusBar: 'dark',
 };
 
-export function paletteFor(pref: SchemePreference, system: string | null | undefined): Palette {
+/**
+ * L'accent aux couleurs du temps liturgique, à la place du doré : une teinte claire sur le thème sombre,
+ * foncée sur le thème clair (contraste AA sur le fond et les cartes). Le blanc des fêtes garde le doré,
+ * comme les ornements dorés de Noël et de Pâques.
+ */
+const LITURGICAL_ACCENTS: Partial<Record<LiturgicalColor, { dark: [string, string]; light: [string, string] }>> = {
+  violet: { dark: ['#b9a0f0', 'rgba(185,160,240,0.16)'], light: ['#5e3399', 'rgba(94,51,153,0.12)'] },
+  vert: { dark: ['#74cf95', 'rgba(116,207,149,0.16)'], light: ['#1e6b3c', 'rgba(30,107,60,0.12)'] },
+  rouge: { dark: ['#f08a84', 'rgba(240,138,132,0.16)'], light: ['#a3202e', 'rgba(163,32,46,0.12)'] },
+  rose: { dark: ['#f2a7c6', 'rgba(242,167,198,0.16)'], light: ['#a33a68', 'rgba(163,58,104,0.12)'] },
+};
+
+/** La palette du thème choisi ; `liturgical` (la couleur du jour) remplace l'accent doré quand c'est réglé ainsi. */
+export function paletteFor(pref: SchemePreference, system: string | null | undefined, liturgical?: LiturgicalColor | null): Palette {
   const scheme = pref === 'system' ? (system === 'light' ? 'light' : 'dark') : pref;
-  return scheme === 'light' ? LIGHT : DARK;
+  const base = scheme === 'light' ? LIGHT : DARK;
+  const accent = liturgical ? LITURGICAL_ACCENTS[liturgical]?.[scheme] : undefined;
+  return accent ? { ...base, gold: accent[0], highlight: accent[1] } : base;
 }
 
 type Rgb = readonly [number, number, number];
@@ -308,6 +334,7 @@ export function readingTheme(id: ReadingThemeId): ReadingChrome {
 }
 
 const SCHEMES: SchemePreference[] = ['light', 'dark', 'system'];
+const ACCENTS: AccentPreference[] = ACCENT_OPTIONS.map((a) => a.id);
 const ROSARY_IDS: RosaryColorId[] = ROSARY_COLORS.map((c) => c.id);
 const READING_IDS: ReadingThemeId[] = READING_THEMES.map((t) => t.id);
 
@@ -320,6 +347,7 @@ export function normalizeAppearance(raw: unknown): AppearanceSettings {
   const o = raw && typeof raw === 'object' ? (raw as Partial<AppearanceSettings>) : {};
   return {
     scheme: oneOf(o.scheme, SCHEMES, DEFAULT_APPEARANCE.scheme),
+    accent: oneOf(o.accent, ACCENTS, DEFAULT_APPEARANCE.accent),
     rosary: oneOf(o.rosary, ROSARY_IDS, DEFAULT_APPEARANCE.rosary),
     reading: oneOf(o.reading, READING_IDS, DEFAULT_APPEARANCE.reading),
   };

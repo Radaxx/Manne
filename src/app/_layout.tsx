@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { type Palette, paletteFor } from '../appearance';
 import { EchoHost } from '../echoes';
+import { liturgicalDay } from '../liturgical-year';
 import { scheduleReminders } from '../reminder';
 import { ProgressProvider, useApp } from '../storage';
 import { supabase } from '../supabase';
@@ -63,7 +64,10 @@ function ReminderSync() {
 function ThemedShell() {
   const { progress } = useApp();
   const system = useColorScheme();
-  const palette = useMemo(() => paletteFor(progress.appearance.scheme, system), [progress.appearance.scheme, system]);
+  const { scheme, accent } = progress.appearance;
+  // La couleur du jour vient du calendrier calculé sur le téléphone : elle ne dépend pas du réseau.
+  const liturgical = accent === 'liturgique' ? liturgicalDay(progress.day).color : null;
+  const palette = useMemo(() => paletteFor(scheme, system, liturgical), [scheme, system, liturgical]);
   const theme = useMemo(() => navigationTheme(palette), [palette]);
   return (
     <PaletteProvider value={palette}>

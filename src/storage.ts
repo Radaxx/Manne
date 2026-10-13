@@ -36,7 +36,7 @@ export type Progress = {
   chaptersRead: string[]; // clés « livre:chapitre »
   plans: Record<string, PlanState>; // plans de lecture en cours, chacun avec son marque-page
   reminder: ReminderSettings;
-  appearance: AppearanceSettings; // thème, chapelet, fond de lecture
+  appearance: AppearanceSettings; // thème, accent, chapelet, fond de lecture
   translation: TranslationId; // traduction de la Bible pour la lecture, les plans et les prières bibliques
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
   customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
@@ -655,6 +655,7 @@ export function useProgress() {
       const appearance = normalizeAppearance({ ...p.appearance, ...patch });
       if (
         appearance.scheme === p.appearance.scheme &&
+        appearance.accent === p.appearance.accent &&
         appearance.rosary === p.appearance.rosary &&
         appearance.reading === p.appearance.reading
       )

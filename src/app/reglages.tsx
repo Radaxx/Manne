@@ -2,12 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
+import { ACCENT_OPTIONS, type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
 import { SERIF } from '../cards';
+import { liturgicalDay, SEASONS } from '../liturgical-year';
 import { formatTime } from '../reminder';
 import { TranslationPicker } from '../sheets';
-import { useApp } from '../storage';
+import { today, useApp } from '../storage';
 import { useThemed } from '../theme';
+
+/** La couleur du jour, et ce qu'elle donne pour l'accent. */
+function accentHint() {
+  const day = liturgicalDay(today());
+  const season = SEASONS[day.season].name.toLowerCase();
+  if (day.color === 'blanc') return `Aujourd’hui, le blanc des fêtes (${season}) : l’accent reste doré.`;
+  return `Aujourd’hui : ${day.color}, ${day.feast ? day.feast.name : season}. L’accent change avec les temps de l’année.`;
+}
 
 export default function ReglagesScreen() {
   const { progress, setAppearance, setTranslation } = useApp();
@@ -17,7 +26,7 @@ export default function ReglagesScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
-        Le thème du téléphone, la matière du chapelet, la traduction et le fond de la lecture, et le rappel du jour.
+        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, et le rappel du jour.
       </Text>
 
       <Text style={styles.section}>Apparence</Text>
@@ -37,6 +46,25 @@ export default function ReglagesScreen() {
           );
         })}
       </View>
+
+      <Text style={styles.section}>Couleur d’accent</Text>
+      <View style={styles.segment}>
+        {ACCENT_OPTIONS.map((option) => {
+          const on = appearance.accent === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => setAppearance({ accent: option.id })}
+              style={[styles.segmentItem, on && styles.segmentOn]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+            >
+              <Text style={[styles.segmentText, on && styles.segmentTextOn]}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={styles.hint}>{accentHint()}</Text>
 
       <Text style={styles.section}>Couleur du chapelet</Text>
       <View style={styles.swatches}>
@@ -111,6 +139,7 @@ const stylesFor = (C: Palette) =>
     root: { flex: 1, backgroundColor: C.bg },
     scroll: { padding: 20, paddingBottom: 48 },
     intro: { color: C.muted, fontSize: 15, lineHeight: 22 },
+    hint: { color: C.faint, fontSize: 13, lineHeight: 18, marginTop: 8 },
     section: { color: C.text, fontSize: 19, fontWeight: '800', marginTop: 28, marginBottom: 12 },
     segment: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 14, padding: 4, gap: 4 },
     segmentItem: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 11 },

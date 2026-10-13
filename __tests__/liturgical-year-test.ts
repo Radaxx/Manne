@@ -1,3 +1,4 @@
+import { paletteFor } from '../src/appearance';
 import { adventStart, baptism, easter, epiphany, liturgicalDay, liturgicalYear, upcomingFeasts } from '../src/liturgical-year';
 
 describe('dates de l’année liturgique', () => {
@@ -78,5 +79,15 @@ describe('liturgicalYear', () => {
       'Commémoraison des fidèles défunts',
       'Le Christ, Roi de l’univers',
     ]);
+  });
+});
+
+describe('accent liturgique', () => {
+  it('remplace le doré par la couleur du temps, et garde le doré pour le blanc', () => {
+    const gold = paletteFor('dark', null).gold;
+    expect(paletteFor('dark', null, 'violet').gold).not.toBe(gold);
+    expect(paletteFor('light', null, 'vert').gold).not.toBe(paletteFor('light', null).gold);
+    expect(paletteFor('dark', null, 'blanc').gold).toBe(gold);
+    expect(paletteFor('dark', null, null).gold).toBe(gold);
   });
 });

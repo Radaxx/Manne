@@ -34,7 +34,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 **Mon chemin** (la flamme de la série) : la journée en cours, la semaine, la part de la Bible lue, les plans, le chapelet, l’adoration et les étapes atteintes. On peut y relier une adresse e-mail, Apple ou Google pour retrouver son chemin sur un autre téléphone.
 
-**Réglages** : le thème de l’app (clair, sombre ou celui du téléphone), la matière du chapelet (olivier, or, bois de rose, nacre, ébène, lapis), le fond de la lecture (le livre, nuit, parchemin, sépia, aube, encre) et le rappel quotidien.
+**Réglages** : le thème de l’app (clair, sombre ou celui du téléphone), sa couleur d’accent (la couleur liturgique du jour, calculée sur le téléphone : violet, vert, rouge ou rose, et doré pour le blanc des fêtes ; ou toujours doré), la matière du chapelet (olivier, or, bois de rose, nacre, ébène, lapis), le fond de la lecture (le livre, nuit, parchemin, sépia, aube, encre) et le rappel quotidien.
 
 ## Deux fils
 
