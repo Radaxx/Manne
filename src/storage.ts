@@ -30,6 +30,7 @@ export type Progress = {
   confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
   confessionLock: boolean; // protéger la confession par empreinte / Face ID
   rosary: RosaryProgress; // chapelet guidé
+  adoration: AdorationProgress; // adoration guidée
 };
 
 /** Un chapelet commencé : on peut le quitter et le reprendre là où on s'était arrêté. */
@@ -41,6 +42,22 @@ export type RosaryProgress = {
   count: number; // chapelets et dizaines terminés
   fatima: boolean; // « Ô mon Jésus » après chaque dizaine
   texts: boolean; // afficher le texte complet des prières
+};
+
+export type AdorationMode = 'contemplative' | 'guided';
+
+/** Une adoration commencée : on peut la quitter et la reprendre à l'étape où on s'était arrêté. */
+export type AdorationSession = { mode: AdorationMode; minutes: number; step: number; day: string };
+
+export type AdorationIntention = { id: string; text: string; at: number };
+
+export type AdorationProgress = {
+  session: AdorationSession | null;
+  last: string | null; // dernière adoration terminée (AAAA-MM-JJ)
+  count: number; // adorations terminées
+  mode: AdorationMode; // dernier choix, proposé par défaut
+  minutes: number; // dernière durée choisie
+  intentions: AdorationIntention[]; // à confier à chaque adoration, jusqu'à ce qu'on les retire
 };
 
 export type ConfessionItem = { id: string; text: string; at: number };
@@ -76,6 +93,7 @@ const initial = (): Progress => ({
   confession: { items: [], lastConfession: null },
   confessionLock: true,
   rosary: { session: null, last: null, count: 0, fatima: true, texts: true },
+  adoration: { session: null, last: null, count: 0, mode: 'guided', minutes: 30, intentions: [] },
 });
 
 export const verseKeys = (p: Passage) => Array.from({ length: p.to - p.from + 1 }, (_, i) => `${p.book}:${p.chapter}:${p.from + i}`);
@@ -261,6 +279,28 @@ export function useProgress() {
     setProgress((p) => ({ ...p, rosary: { ...p.rosary, ...prefs } }));
   }, []);
 
+  const setAdorationSession = useCallback((session: AdorationSession | null) => {
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, session } }));
+  }, []);
+
+  /** Adoration terminée : on garde seulement la date et le compte (les intentions restent). */
+  const completeAdoration = useCallback(() => {
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, session: null, last: today(), count: p.adoration.count + 1 }, ...touch(p) }));
+  }, []);
+
+  const setAdorationPrefs = useCallback((prefs: Partial<Pick<AdorationProgress, 'mode' | 'minutes'>>) => {
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, ...prefs } }));
+  }, []);
+
+  const addAdorationIntention = useCallback((text: string) => {
+    const intention: AdorationIntention = { id: `i-${Date.now().toString(36)}`, text, at: Date.now() };
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, intentions: [...p.adoration.intentions, intention] } }));
+  }, []);
+
+  const removeAdorationIntention = useCallback((id: string) => {
+    setProgress((p) => ({ ...p, adoration: { ...p.adoration, intentions: p.adoration.intentions.filter((i) => i.id !== id) } }));
+  }, []);
+
   const setReminder = useCallback((reminder: ReminderSettings) => {
     setProgress((p) => ({ ...p, reminder }));
   }, []);
@@ -293,7 +333,7 @@ export function useProgress() {
   const [readingSession, setReadingSession] = useState(0);
   const restartReading = useCallback(() => setReadingSession((n) => n + 1), []);
 
-  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, setPlanPosition, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, toggleLike, toggleSave, getScores, readingSession, restartReading };
+  return { progress, loaded, markRead, markChapterRead, advanceReading, advancePlan, setPlanPosition, selectBook, goTo, startPlan, stopPlan, setReminder, togglePin, saveCustomPrayer, deleteCustomPrayer, addConfessionItem, removeConfessionItem, completeConfession, setConfessionLock, setRosarySession, completeRosary, setRosaryPrefs, setAdorationSession, completeAdoration, setAdorationPrefs, addAdorationIntention, removeAdorationIntention, toggleLike, toggleSave, getScores, readingSession, restartReading };
 }
 
 export type ProgressApi = ReturnType<typeof useProgress>;

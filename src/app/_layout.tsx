@@ -35,6 +35,7 @@ export default function RootLayout() {
           <Stack.Screen name="priere/[id]" options={{ title: '' }} />
           <Stack.Screen name="confession" options={{ title: 'Confession' }} />
           <Stack.Screen name="chapelet" options={{ title: 'Chapelet' }} />
+          <Stack.Screen name="adoration" options={{ title: 'Adoration' }} />
           <Stack.Screen name="priere-edition" options={{ title: 'Ma prière', presentation: 'modal' }} />
           <Stack.Screen name="messe" options={{ title: 'Messe du jour' }} />
           <Stack.Screen name="plan/[id]" options={{ headerShown: false, animation: 'slide_from_bottom' }} />

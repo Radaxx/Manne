@@ -8,6 +8,7 @@ import { BOOKS, loadBook } from './data/bible';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, ROSARY_STEPS, type Prayer, type PrayerCategory } from './data/prayers';
 import { C } from './liturgy';
 import { biometricName, lockSupported } from './lock';
+import { sessionLabel as adorationLabel } from './adoration';
 import { sessionLabel } from './rosary';
 import { useApp, type CustomPrayer } from './storage';
 
@@ -121,6 +122,19 @@ export function PrayersScreen() {
                 <Text style={styles.rowTitle}>{progress.rosary.session ? 'Reprendre mon chapelet' : 'Prier le chapelet'}</Text>
                 <Text style={styles.rowPreview}>
                   {progress.rosary.session ? sessionLabel(progress.rosary.session) : `Guidé grain après grain · ${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name.toLowerCase()}`}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
+
+            <Pressable onPress={() => router.push('/adoration')} style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}>
+              <View style={styles.confessionIcon}>
+                <Ionicons name="sunny-outline" size={20} color={C.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{progress.adoration.session ? 'Reprendre mon adoration' : 'Adorer le Saint-Sacrement'}</Text>
+                <Text style={styles.rowPreview}>
+                  {progress.adoration.session ? adorationLabel(progress.adoration.session) : 'Contemplatif ou guidé, au rythme que tu choisis'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
