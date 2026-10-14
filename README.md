@@ -6,6 +6,7 @@ Scroller, mais nourri. Une application mobile qui reprend les codes des réels (
 
 - **Prier maintenant** : l’office de la Liturgie des Heures qui correspond à l’heure (Laudes, Tierce, Sexte, None, Vêpres, Complies, et l’Office des lectures).
 - **Année liturgique** : le temps (Avent, Noël, temps ordinaire, Carême, Triduum, temps pascal), la semaine, la couleur, l’année A, B ou C des lectures et les prochaines grandes fêtes. Le calendrier romain pour la France est calculé sur le téléphone (Pâques, fêtes mobiles et déplacées), hors connexion ; les saints du jour viennent de l’AELF en ligne. La ligne du jour liturgique de l’accueil ouvre cet écran.
+- **Saint du jour** : chaque jour de l’année, un saint ou une fête avec quelques lignes de sa vie, sur l’accueil et dans un écran qui montre aussi les sept jours suivants. Les célébrations suivent le calendrier romain et le propre de la France (vérifiés sur celui de l’AELF), avec les mémoires mobiles ; les autres jours, un saint du martyrologe ou de la tradition. L’app dit quand le dimanche, le Carême ou la Semaine sainte passe avant la mémoire. Tout est sur le téléphone, hors connexion.
 - **Parcours de l’Avent** : chaque jour jusqu’à Noël, un passage de la Bible (dans la traduction choisie), une courte méditation et un geste à vivre. Les trois premières semaines ont un thème (veiller, préparer le chemin, se réjouir) ; du 17 au 24 décembre, les grandes antiennes « Ô ». Les jours s’ouvrent un à un ; on peut rattraper ceux qu’on a manqués et marquer chaque jour comme vécu. L’accueil l’annonce trois semaines avant.
 - **Parcours de Carême** : sur le même modèle, du mercredi des Cendres au Samedi saint (46 jours). Les premiers jours (revenir à Dieu par la prière, le jeûne et le partage), cinq semaines tirées des grands évangiles du Carême (au désert, écouter, la source, la lumière, la vie), puis la Semaine sainte. Les gestes rappellent l’abstinence des vendredis et le jeûne des Cendres et du Vendredi saint.
 - **Évangile du jour** et toutes les lectures de la messe.
@@ -103,7 +104,7 @@ Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS
 
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, compte, réglages, rappel
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, saint du jour, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, compte, réglages, rappel
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager
@@ -118,6 +119,7 @@ Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS
 - `src/bible.ts` : les deux traductions, l’ordre des livres, ce que la Segond emprunte à la Crampon
 - `src/reading.ts` : positions dans la Bible, question de méditation de fin de chapitre
 - `src/liturgical-year.ts` : l’année liturgique calculée (temps, semaines, cycles, grandes fêtes)
+- `src/saints.ts` / `src/data/saints.ts` : le saint du jour (366 notices) et la préséance des célébrations
 - `src/journeys.ts` / `src/journey-screen.tsx` : les parcours des temps forts et leur écran ; `src/data/advent.ts`, `src/data/lent.ts` : leurs jours
 - `src/feed.ts` : composition du fil Découvrir
 - `src/cards.tsx` : les cartes

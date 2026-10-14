@@ -12,6 +12,7 @@ import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys'
 import { liturgicalDay } from './liturgical-year';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
+import { saintKicker, saintOfDay } from './saints';
 import { readingPosition, today, useApp } from './storage';
 import { useThemed } from './theme';
 import { todayLine, unseenSteps } from './today';
@@ -115,6 +116,7 @@ export function HomeScreen() {
 
   const info = mass?.informations;
   const liturgy = liturgicalDay(day);
+  const saint = saintOfDay(day).saints[0];
   const journey = useMemo(() => {
     const j = featuredJourney(day);
     if (!j) return null;
@@ -242,6 +244,18 @@ export function HomeScreen() {
             </Text>
             <Text style={styles.muted}>
               Le {journey.start} : chaque jour jusqu’à {journey.feast}, un passage, une méditation et un geste.
+            </Text>
+          </Card>
+        ) : null}
+
+        {/* Le saint du jour, avec quelques lignes de sa vie */}
+        {saint ? (
+          <Card onPress={() => router.push('/saints')} style={styles.saintCard}>
+            <Text style={styles.journeyKicker}>{saintKicker(saint).toUpperCase()}</Text>
+            <Text style={styles.saintName}>{saint.name}</Text>
+            {saint.title ? <Text style={styles.muted}>{saint.title}</Text> : null}
+            <Text style={styles.saintLife} numberOfLines={3}>
+              {saint.life}
             </Text>
           </Card>
         ) : null}
@@ -423,6 +437,9 @@ const stylesFor = (C: Palette) =>
     colorDot: { width: 10, height: 10, borderRadius: 5 },
     liturgyText: { color: C.muted, fontSize: 14, flexShrink: 1 },
     journeyCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
+    saintCard: { marginTop: 12 },
+    saintName: { color: C.text, fontFamily: SERIF, fontSize: 21, lineHeight: 27, fontWeight: '700' },
+    saintLife: { color: C.text, fontSize: 15, lineHeight: 22 },
     journeyKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', marginBottom: 4 },
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 30, marginBottom: 10 },
     sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800' },

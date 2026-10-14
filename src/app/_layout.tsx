@@ -96,6 +96,7 @@ function ThemedShell() {
           <Stack.Screen name="suivre-messe" options={{ title: 'Suivre la messe' }} />
           <Stack.Screen name="genealogie" options={{ title: 'D’Adam à Jésus' }} />
           <Stack.Screen name="annee-liturgique" options={{ title: 'Année liturgique' }} />
+          <Stack.Screen name="saints" options={{ title: 'Saint du jour' }} />
           <Stack.Screen name="avent" options={{ title: 'Parcours de l’Avent' }} />
           <Stack.Screen name="careme" options={{ title: 'Parcours de Carême' }} />
           <Stack.Screen name="actualites" options={{ title: 'L’Église aujourd’hui' }} />
