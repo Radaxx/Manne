@@ -1,23 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type ReadingChrome, readingTheme } from './appearance';
-import { FactCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
+import { bookMeta, chapterSource, loadPassage, passageLabel, type TranslationId, translationName } from './bible';
+import { FactCard, NewsCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import { ChapterReader, TopScrim } from './chapter';
 import { communityKey, useCommunity } from './community';
-import type { Passage, Theme } from './data/content';
+import type { Passage, Theme, Verse } from './data/content';
 import { type Card, FeedGenerator } from './feed';
 import { haptic } from './haptics';
+import { headlines, useNews } from './news';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
+import { supabase } from './supabase';
 import { FocusedStatusBar } from './theme';
 import { goalCaption, goalToast } from './today';
 
-const share = (p: Passage) => {
-  Share.share({ message: `« ${p.text} »\n— ${p.reference} (Louis Segond 1910)\n\nLu sur Manne` }).catch(() => {});
+const share = (p: Passage, t: TranslationId) => {
+  const source = translationName(chapterSource(p.book, p.chapter, t));
+  Share.share({ message: `« ${p.text} »\n— ${p.reference} (${source})\n\nLu sur Manne` }).catch(() => {});
 };
+
+/** Un verset de Découvrir dans la traduction choisie (le fichier des versets garde la Louis Segond). */
+function inTranslation(v: Verse, t: TranslationId): Verse {
+  const verses = loadPassage(v.book, v.chapter, v.from, v.to, t);
+  if (verses.length !== v.to - v.from + 1) return v;
+  // Un extrait peut s'arrêter sur une virgule : « car nous marchons par la foi et non par la vue… »
+  const text = verses.join(' ').replace(/\s*[,;:]\s*$/, '…');
+  return { ...v, bookName: bookMeta(v.book, t).name, reference: passageLabel(v.book, v.chapter, v.from, v.to, t), text };
+}
 
 /** Les actions communes à toute carte de texte biblique. */
 export function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
@@ -32,7 +46,7 @@ export function actionsFor(p: Passage, api: ProgressApi, theme?: Theme) {
       haptic();
       api.toggleSave(p);
     },
-    onShare: () => share(p),
+    onShare: () => share(p, api.progress.translation),
   };
 }
 
@@ -80,10 +94,14 @@ export function Pager<T extends { key: string }>(props: {
 function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
   const community = useCommunity();
   const extraData = useMemo(() => ({ progress: api.progress, revision: community.revision }), [api.progress, community.revision]);
+  const news = useNews();
+  const todays = useRef(headlines(news.items));
+  todays.current = headlines(news.items);
   const [{ generator, initial }] = useState(() => {
-    const g = new FeedGenerator(api.getScores);
+    const g = new FeedGenerator(api.getScores, () => todays.current);
     return { generator: g, initial: g.next(12) };
   });
+  const t = api.progress.translation;
   const [cards, setCards] = useState<Card[]>(initial);
   const sessionStart = useRef(Date.now()).current;
 
@@ -104,14 +122,26 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
       }}
       renderItem={(card) => {
         switch (card.kind) {
-          case 'verse':
+          case 'verse': {
+            const verse = inTranslation(card.verse, t);
             return (
               <VerseCard
-                verse={card.verse}
+                verse={verse}
+                translation={translationName(chapterSource(verse.book, verse.chapter, t))}
                 height={height}
-                onRead={() => onContext(card.verse)}
-                {...actionsFor(card.verse, api, card.verse.theme)}
-                {...community.rail(card.verse)}
+                onRead={() => onContext(verse)}
+                {...actionsFor(verse, api, verse.theme)}
+                {...community.rail(verse)}
+              />
+            );
+          }
+          case 'news':
+            return (
+              <NewsCard
+                item={card.item}
+                height={height}
+                onOpen={() => WebBrowser.openBrowserAsync(card.item.link).catch(() => {})}
+                onAll={() => router.push('/actualites')}
               />
             );
           case 'fact':
@@ -280,7 +310,21 @@ export function DiscoverScreen() {
   return (
     <>
       <FocusedStatusBar style="light" />
-      <FeedScreen title="Découvrir">
+      <FeedScreen
+        title="Découvrir"
+        left={
+          supabase ? (
+            <Pressable
+              onPress={() => router.push('/actualites')}
+              hitSlop={10}
+              accessibilityLabel="L’Église aujourd’hui : les actualités"
+              style={styles.booksBtn}
+            >
+              <Ionicons name="newspaper-outline" size={21} color="#fff" />
+            </Pressable>
+          ) : undefined
+        }
+      >
         {(height, openContext) => <DiscoverPager api={api} height={height} onContext={openContext} />}
       </FeedScreen>
     </>

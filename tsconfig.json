@@ -3,5 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "types": ["jest"]
-  }
+  },
+  // Les fonctions Supabase tournent sous Deno : elles ont leurs propres types.
+  "exclude": ["supabase/functions"]
 }

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
+import { type NewsItem, publishedAgo } from './news';
 
 export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
 
@@ -121,7 +122,13 @@ function Rail({ liked, saved, onLike, onSave, onShare, likeCount, echoCount, onE
   );
 }
 
-export function VerseCard({ verse, height, onRead, ...actions }: Actions & { verse: Verse; height: number; onRead: () => void }) {
+export function VerseCard({
+  verse,
+  translation,
+  height,
+  onRead,
+  ...actions
+}: Actions & { verse: Verse /** Nom de la traduction du texte affiché. */; translation: string; height: number; onRead: () => void }) {
   const long = verse.text.length > 220;
   return (
     <Shell colors={THEME_GRADIENTS[verse.theme]} height={height}>
@@ -134,7 +141,7 @@ export function VerseCard({ verse, height, onRead, ...actions }: Actions & { ver
 
       <View style={styles.footer} pointerEvents="box-none">
         <Text style={styles.tag}>#{verse.theme}</Text>
-        <Text style={styles.footerHint}>Louis Segond 1910 · double-tap pour aimer</Text>
+        <Text style={styles.footerHint}>{translation} · double-tap pour aimer</Text>
       </View>
 
       <Rail {...actions} extra={<RailButton icon="book-outline" label="Contexte" onPress={onRead} />} />
@@ -241,6 +248,33 @@ export function ReflectionCard({ prompt, height }: { prompt: string; height: num
   );
 }
 
+/** Une actualité de l'Église : le titre et le début de l'article, qui se lit chez l'éditeur. */
+export function NewsCard({ item, height, onOpen, onAll }: { item: NewsItem; height: number; onOpen: () => void; onAll: () => void }) {
+  return (
+    <Shell colors={['#0b0f1a', '#18233a', '#2a3a5c']} height={height}>
+      <View style={styles.center}>
+        <Kicker icon="newspaper-outline" label="L’ÉGLISE AUJOURD’HUI" />
+        <Text style={styles.newsSource}>
+          {item.sourceName} · {publishedAgo(item.published)}
+        </Text>
+        <Text style={styles.title}>{item.title}</Text>
+        {item.summary ? (
+          <Text style={styles.body} numberOfLines={7}>
+            {item.summary}
+          </Text>
+        ) : null}
+        <Pressable onPress={onOpen} style={styles.newsBtn} accessibilityRole="link">
+          <Text style={styles.newsBtnText}>Lire sur {item.sourceName}</Text>
+          <Ionicons name="open-outline" size={16} color="#0b0f1a" />
+        </Pressable>
+        <Pressable onPress={onAll} hitSlop={8} accessibilityRole="button">
+          <Text style={styles.newsAll}>Toutes les actualités</Text>
+        </Pressable>
+      </View>
+    </Shell>
+  );
+}
+
 const BREATH_CYCLES = 4;
 
 export function PauseCard({ count, minutes, height }: { count: number; minutes: number; height: number }) {
@@ -313,6 +347,20 @@ const styles = StyleSheet.create({
   kickerText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, letterSpacing: 2.5, fontWeight: '700' },
   title: { color: '#fff', fontSize: 28, lineHeight: 36, fontWeight: '700', marginBottom: 16 },
   body: { color: 'rgba(255,255,255,0.88)', fontSize: 18, lineHeight: 28 },
+  newsSource: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', marginBottom: 10 },
+  newsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    marginTop: 24,
+  },
+  newsBtnText: { color: '#0b0f1a', fontSize: 15, fontWeight: '700' },
+  newsAll: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '600', marginTop: 16 },
   options: { gap: 12, marginTop: 8 },
   option: {
     flexDirection: 'row',

@@ -39,7 +39,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 ## Deux fils
 
 - **Lecture** : la Bible en lecture libre, un chapitre entier à la fois qu’on fait défiler (plus de cartes de 3-4 versets). On choisit la traduction (Louis Segond 1910 ou Bible Crampon 1923, aussi dans les réglages), puis un livre et un chapitre, avec « Précédent / Suivant » pour changer de chapitre. Les livres suivent l’ordre de la Bible catholique, deutérocanoniques compris. Les versets vus comptent dans l’objectif du jour ; arrivé en bas, le chapitre est lu et le marque-page passe au suivant (relire un chapitre déjà dépassé ne le fait pas reculer). On touche des versets pour les sélectionner (appui long : jusqu’à ce verset), puis une barre propose **J’aime**, **Garder** et **Partager**, pour un verset, une suite ou plusieurs passages à la fois ; les versets aimés ou gardés sont signalés dans le texte. Une présentation ouvre chaque livre, une question de méditation clôt chaque chapitre. Par défaut on commence par l’Évangile de Marc.
-- **Découvrir** : des versets choisis par thème (qui s’adaptent à ce que tu aimes), des anecdotes, des quiz et des personnages bibliques.
+- **Découvrir** : près de 300 versets choisis par thème (qui s’adaptent à ce que tu aimes), affichés dans la traduction choisie, des anecdotes, des quiz, des personnages bibliques et des questions pour méditer. **L’Église aujourd’hui** : quelques titres récents de Vatican News, de l’Église catholique en France et de cath.ch glissés dans le fil (cinq au plus, une source après l’autre), et une page qui les liste tous (icône journal en haut à gauche). On n’affiche que le titre, un court résumé et la date ; l’article s’ouvre sur le site de l’éditeur.
 
 Et pour ne pas reproduire le « doomscrolling » : un objectif quotidien de 30 versets, une série de jours, et une carte Pause toutes les 15 cartes dans Découvrir.
 
@@ -63,7 +63,7 @@ Deux traductions, embarquées dans l’app pour fonctionner hors connexion :
 La Louis Segond n’a pas les deutérocanoniques : quand on la lit, ces livres et les chapitres grecs d’Esther et de Daniel viennent de la Crampon, et l’écran le dit. Les deux traductions ont donc les mêmes 73 livres et 1 334 chapitres ; seuls Joël (3 ou 4 chapitres) et Malachie (4 ou 3) se découpent autrement. Les livres gardent leur numéro (1-66 comme la Segond, 67-73 pour les deutérocanoniques). Le choix vaut pour la lecture, les plans, les prières tirées de la Bible et le chapelet ; Découvrir et l’arbre généalogique restent dans la Segond, sur laquelle leurs références sont calées.
 
 - `scripts/build-bible.mjs` régénère `src/data/bible/lsg/` et `src/data/bible/crampon/` (un fichier JSON par livre et un index par traduction). `node scripts/build-bible.mjs crampon <dossier>` garde les pages Wikisource dans le dossier, pour ne pas les retélécharger.
-- `scripts/build-verses.mjs` régénère `src/data/verses.json` (versets du fil Découvrir).
+- `scripts/build-verses.mjs` régénère `src/data/verses.json` (versets du fil Découvrir) depuis la Bible embarquée, et vérifie que chaque passage est découpé pareil dans les deux traductions.
 
 ## Logo
 
@@ -98,6 +98,8 @@ npm test          # Jest (jest-expo) : synchro, validation de la progression, pl
 Les tests sont dans `__tests__/` (fichiers `*-test.ts`) ; `jest.setup.js` remplace AsyncStorage par un stockage en mémoire.
 
 Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer dans l’ordre les fichiers de `supabase/migrations/` (`001_community.sql`, `002_account.sql`, `003_adopt_cleanup.sql`). Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app ; il doit s’ouvrir sur le téléphone qui l’a demandé (flux PKCE : un lien forgé n’ouvre aucune session). La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
+
+Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS : `supabase functions deploy news --no-verify-jwt`. Elle relit les flux au plus toutes les 30 minutes ; l’app garde la dernière liste 30 minutes, et l’affiche encore hors connexion. Le téléphone ne contacte que Supabase : les sites d’actualité ne voient une requête que quand on ouvre un article.
 
 ## Structure
 
