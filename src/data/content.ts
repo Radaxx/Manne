@@ -134,6 +134,70 @@ export const FACTS: Fact[] = [
     title: 'Les cinq premiers livres',
     text: 'On les appelle Pentateuque, du grec « cinq rouleaux ». Les Juifs les nomment Torah, mot qui signifie « enseignement » plus que « loi ».',
   },
+  {
+    title: 'Les livres deutérocanoniques',
+    text: 'Tobie, Judith, les deux livres des Maccabées, la Sagesse, le Siracide et Baruch, ainsi que des passages grecs d’Esther et de Daniel, font partie de la Bible catholique et orthodoxe. Ils viennent de la Septante, la Bible grecque des premiers chrétiens.',
+  },
+  {
+    title: 'Le canon des 73 livres',
+    text: 'Le concile de Trente a confirmé en 1546 la liste des 73 livres de la Bible catholique, déjà reçue par les conciles d’Hippone (393) et de Carthage (397).',
+  },
+  {
+    title: 'La Bible Crampon',
+    text: 'Le chanoine Augustin Crampon (1826-1894) a traduit la Bible depuis l’hébreu et le grec. Achevée après sa mort, puis révisée en 1923, elle est l’une des deux traductions de Manne.',
+  },
+  {
+    title: 'Le Magnificat, chaque soir',
+    text: 'Le cantique de Marie (Luc 1:46-55) est chanté chaque soir aux Vêpres. Son nom vient du premier mot de la version latine : « Magnificat anima mea Dominum ».',
+  },
+  {
+    title: 'Le Benedictus, chaque matin',
+    text: 'Le cantique de Zacharie, le père de Jean-Baptiste (Luc 1:68-79), ouvre chaque matin l’office des Laudes. Le soir, aux Complies, c’est celui du vieillard Siméon (Luc 2:29-32).',
+  },
+  {
+    title: 'Pourquoi Pâques change de date',
+    text: 'Pâques tombe le dimanche qui suit la première pleine lune du printemps, entre le 22 mars et le 25 avril. Le concile de Nicée (325) a voulu que tous les chrétiens la fêtent le même dimanche.',
+  },
+  {
+    title: 'Les psaumes en quatre semaines',
+    text: 'La Liturgie des Heures répartit les psaumes sur quatre semaines : en un mois, on prie presque tout le psautier.',
+  },
+  {
+    title: 'Raphaël, « Dieu guérit »',
+    text: 'Michel, Gabriel et Raphaël sont les trois archanges nommés dans la Bible. Raphaël n’apparaît que dans le livre de Tobie ; son nom signifie « Dieu guérit ».',
+  },
+  {
+    title: 'Hanoukka dans la Bible',
+    text: 'La fête de la Dédicace rappelle la purification du Temple par Judas Maccabée (1 Maccabées 4). L’Évangile de Jean montre Jésus au Temple pendant cette fête (Jean 10:22).',
+  },
+  {
+    title: 'Le plus vieux texte biblique',
+    text: 'Deux minuscules rouleaux d’argent trouvés à Jérusalem, à Ketef Hinnom, portent la bénédiction d’Aaron (Nombres 6:24-26). Ils datent d’environ 600 ans avant Jésus-Christ.',
+  },
+  {
+    title: '« Amen »',
+    text: 'Amen est un mot hébreu qui veut dire « c’est solide, c’est vrai ». Quand Jésus dit « En vérité, je vous le dis », il commence souvent par « Amen, amen ».',
+  },
+  {
+    title: '« Alléluia »',
+    text: 'De l’hébreu Hallelou-Yah, « louez Yah », c’est-à-dire « louez le Seigneur ». La liturgie ne le chante plus pendant le Carême, pour le retrouver à Pâques.',
+  },
+  {
+    title: 'Les symboles des évangélistes',
+    text: 'L’homme pour Matthieu, le lion pour Marc, le taureau pour Luc, l’aigle pour Jean : ces symboles viennent des quatre vivants de la vision d’Ézéchiel (1:10) et de l’Apocalypse (4:7).',
+  },
+  {
+    title: 'La première Bible en français',
+    text: 'La première Bible complète imprimée en français est celle de Jacques Lefèvre d’Étaples, publiée à Anvers en 1530.',
+  },
+  {
+    title: 'Les antiennes « Ô »',
+    text: 'Du 17 au 23 décembre, les Vêpres appellent le Christ par sept noms : Sagesse, Adonaï, Rameau, Clé, Orient, Roi, Emmanuel. Lues à l’envers, leurs initiales latines forment « Ero cras » : « je serai là demain ».',
+  },
+  {
+    title: 'Quarante jours, plus six dimanches',
+    text: 'Du mercredi des Cendres à Pâques, il y a quarante-six jours : le Carême compte quarante jours de jeûne, car les dimanches, jours de la Résurrection, n’en font pas partie.',
+  },
 ];
 
 export type Quiz = { question: string; options: string[]; answer: number; explanation: string };
@@ -326,6 +390,77 @@ export const QUIZZES: Quiz[] = [
     answer: 2,
     explanation: 'Matthieu 4:18-19 — « Je vous ferai pêcheurs d’hommes. »',
   },
+  {
+    question: 'Quel archange accompagne le jeune Tobie dans son voyage ?',
+    options: ['Gabriel', 'Michel', 'Raphaël'],
+    answer: 2,
+    explanation: 'Tobie 5 et 12:15.',
+  },
+  {
+    question: 'Quelle héroïne sauve la ville de Béthulie ?',
+    options: ['Judith', 'Débora', 'Esther'],
+    answer: 0,
+    explanation: 'Judith 13.',
+  },
+  {
+    question: 'Quel surnom porte Judas, le fils de Mathathias qui mène la révolte juive ?',
+    options: ['Maccabée', 'le Zélote', 'l’Ancien'],
+    answer: 0,
+    explanation: '1 Maccabées 3:1.',
+  },
+  {
+    question: 'Quel cantique Marie chante-t-elle chez Élisabeth ?',
+    options: ['Le Benedictus', 'Le Magnificat', 'Le Nunc dimittis'],
+    answer: 1,
+    explanation: 'Luc 1:46-55.',
+  },
+  { question: 'Qui a baptisé Jésus ?', options: ['Pierre', 'Jean le Baptiste', 'André'], answer: 1, explanation: 'Matthieu 3:13-17.' },
+  { question: 'Combien de jours Jésus a-t-il jeûné au désert ?', options: ['7', '40', '12'], answer: 1, explanation: 'Matthieu 4:2.' },
+  {
+    question: 'Quelle fête célèbre le don de l’Esprit Saint aux apôtres ?',
+    options: ['L’Ascension', 'La Pentecôte', 'La Toussaint'],
+    answer: 1,
+    explanation: 'Actes 2:1-4, cinquante jours après Pâques.',
+  },
+  {
+    question: 'Quelle prière Jésus enseigne-t-il à ses disciples ?',
+    options: ['Le Notre Père', 'Le Je vous salue Marie', 'Le Credo'],
+    answer: 0,
+    explanation: 'Matthieu 6:9-13 et Luc 11:2-4.',
+  },
+  { question: 'Qui fut jeté dans la fosse aux lions ?', options: ['Daniel', 'Jérémie', 'Ézéchiel'], answer: 0, explanation: 'Daniel 6.' },
+  { question: 'Qui est la mère de Jean le Baptiste ?', options: ['Anne', 'Élisabeth', 'Marthe'], answer: 1, explanation: 'Luc 1:57-60.' },
+  {
+    question: 'Combien de temps dure le temps pascal ?',
+    options: ['40 jours', '50 jours', '7 jours'],
+    answer: 1,
+    explanation: 'De Pâques à la Pentecôte : cinquante jours.',
+  },
+  { question: 'Quel apôtre est le frère de Simon-Pierre ?', options: ['Jean', 'André', 'Jacques'], answer: 1, explanation: 'Jean 1:40.' },
+  {
+    question: 'Qui a écrit la plupart des lettres du Nouveau Testament ?',
+    options: ['Pierre', 'Paul', 'Jean'],
+    answer: 1,
+    explanation: 'Treize lettres portent le nom de Paul.',
+  },
+  {
+    question: 'Quelle est la couleur liturgique de l’Avent et du Carême ?',
+    options: ['Vert', 'Violet', 'Rouge'],
+    answer: 1,
+    explanation: 'Le violet dit l’attente et la conversion.',
+  },
+  {
+    question: 'Quel livre se termine par « Viens, Seigneur Jésus ! » ?',
+    options: ['L’Apocalypse', 'Les Actes des Apôtres', 'La lettre aux Hébreux'],
+    answer: 0,
+    explanation: 'Apocalypse 22:20.',
+  },
+  {
+    question: 'Combien de livres compte la Bible catholique ?',
+    options: ['66', '73', '80'],
+    answer: 1,
+    explanation: '46 pour l’Ancien Testament, 27 pour le Nouveau.',
+  },
 ];
 
 export type Person = { clues: string[]; name: string; reference: string };
@@ -460,6 +595,110 @@ export const PERSONS: Person[] = [
     name: 'Lydie',
     reference: 'Actes 16:13-15',
   },
+  {
+    clues: [
+      'Mon père, devenu aveugle, m’a envoyé chercher de l’argent au loin.',
+      'Mon compagnon de route était un ange.',
+      'J’ai épousé Sara et guéri les yeux de mon père.',
+    ],
+    name: 'Tobie',
+    reference: 'Tobie 5 à 11',
+  },
+  {
+    clues: [
+      'Je suis une veuve de Béthulie.',
+      'Ma ville était assiégée par l’armée d’Holoferne.',
+      'J’ai sauvé mon peuple par ma prière et mon courage.',
+    ],
+    name: 'Judith',
+    reference: 'Judith 8 à 16',
+  },
+  {
+    clues: [
+      'Mon père Mathathias a refusé de sacrifier aux idoles.',
+      'J’ai mené la résistance de mon peuple contre le roi Antiochus.',
+      'J’ai purifié le Temple de Jérusalem.',
+    ],
+    name: 'Judas Maccabée',
+    reference: '1 Maccabées 3 et 4',
+  },
+  {
+    clues: [
+      'J’habitais Béthanie avec ma sœur et mon frère.',
+      'Je m’affairais à servir pendant que ma sœur écoutait Jésus.',
+      'Devant le tombeau de mon frère, j’ai dit : « Je crois que tu es le Christ. »',
+    ],
+    name: 'Marthe',
+    reference: 'Luc 10:38-42 ; Jean 11',
+  },
+  {
+    clues: [
+      'Je me nourrissais de sauterelles et de miel sauvage.',
+      'Je baptisais dans le Jourdain.',
+      '« Voici l’Agneau de Dieu », ai-je dit en voyant passer Jésus.',
+    ],
+    name: 'Jean le Baptiste',
+    reference: 'Matthieu 3 ; Jean 1:29',
+  },
+  {
+    clues: [
+      'J’étais âgée, et l’on me disait stérile.',
+      'Mon mari, prêtre, est resté muet jusqu’à la naissance de notre fils.',
+      'Ma cousine Marie est venue me rendre visite.',
+    ],
+    name: 'Élisabeth',
+    reference: 'Luc 1',
+  },
+  {
+    clues: [
+      'Ma mère Anne m’avait demandé à Dieu dans sa prière.',
+      'Enfant, j’ai entendu Dieu m’appeler la nuit dans le sanctuaire.',
+      'J’ai donné l’onction à Saül, puis à David.',
+    ],
+    name: 'Samuel',
+    reference: '1 Samuel 1 à 16',
+  },
+  {
+    clues: [
+      'Je suis le fils de David et de Bethsabée.',
+      'J’ai demandé à Dieu un cœur intelligent plutôt que la richesse.',
+      'J’ai bâti le premier Temple.',
+    ],
+    name: 'Salomon',
+    reference: '1 Rois 3 à 8',
+  },
+  {
+    clues: [
+      'J’étais absent quand le Ressuscité est apparu aux disciples.',
+      'J’ai voulu toucher ses plaies pour croire.',
+      'J’ai dit : « Mon Seigneur et mon Dieu ! »',
+    ],
+    name: 'Thomas',
+    reference: 'Jean 20:24-29',
+  },
+  {
+    clues: [
+      'J’étais l’un des sept choisis pour servir aux tables.',
+      'Rempli de grâce, je faisais des prodiges parmi le peuple.',
+      'Premier martyr, j’ai prié pour ceux qui me lapidaient.',
+    ],
+    name: 'Étienne',
+    reference: 'Actes 6 et 7',
+  },
+  {
+    clues: ['J’ai suivi mon mari loin de notre pays.', 'J’ai ri quand on m’a annoncé un fils à mon âge.', 'Mon fils s’appelle Isaac.'],
+    name: 'Sara',
+    reference: 'Genèse 18 et 21',
+  },
+  {
+    clues: [
+      'J’ai vendu un champ et apporté l’argent aux apôtres.',
+      'J’ai présenté Saul aux apôtres quand tous le craignaient.',
+      'Mon surnom veut dire « fils de l’encouragement ».',
+    ],
+    name: 'Barnabé',
+    reference: 'Actes 4:36-37 ; 9:27',
+  },
 ];
 
 export const REFLECTIONS: string[] = [
@@ -479,4 +718,12 @@ export const REFLECTIONS: string[] = [
   'Quelle joie récente peux-tu partager avec quelqu’un ?',
   'Qu’est-ce qui t’habite le plus en ce moment ? Remets-le entre les mains de Dieu.',
   'Quelle personne as-tu croisée aujourd’hui sans vraiment la regarder ?',
+  'Quel visage de Dieu t’a touché cette semaine ?',
+  'Y a-t-il une parole que tu regrettes ? Il n’est pas trop tard pour la réparer.',
+  'Quel don as-tu reçu sans l’avoir mérité ?',
+  'À quoi pourrais-tu renoncer aujourd’hui pour faire de la place à Dieu ?',
+  'Quelle promesse de Dieu as-tu besoin d’entendre aujourd’hui ?',
+  'Qui t’a transmis la foi ? Prie pour cette personne.',
+  'Où as-tu vu de la bonté aujourd’hui, même minuscule ?',
+  'Qu’est-ce qui te donne de la joie, simplement ?',
 ];

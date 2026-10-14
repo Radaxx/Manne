@@ -12,8 +12,11 @@ import {
   type Verse,
 } from './data/content';
 
+import type { NewsItem } from './news';
+
 export type Card =
   | { key: string; kind: 'verse'; verse: Verse }
+  | { key: string; kind: 'news'; item: NewsItem }
   | { key: string; kind: 'fact'; fact: Fact }
   | { key: string; kind: 'quiz'; quiz: Quiz }
   | { key: string; kind: 'person'; person: Person }
@@ -30,7 +33,13 @@ export class FeedGenerator {
   private recent: string[] = [];
   private cursors = { fact: 0, quiz: 0, person: 0, reflection: 0 };
 
-  constructor(private getScores: () => Partial<Record<Theme, number>>) {
+  private newsShown = new Set<string>();
+
+  /** `getNews` : les titres du jour à glisser dans le fil (chacun une seule fois). */
+  constructor(
+    private getScores: () => Partial<Record<Theme, number>>,
+    private getNews: () => NewsItem[] = () => [],
+  ) {
     // Point de départ aléatoire pour ne pas toujours ouvrir sur le même contenu.
     for (const k of EXTRA_KINDS) this.cursors[k] = Math.floor(Math.random() * 10);
   }
@@ -46,6 +55,12 @@ export class FeedGenerator {
     const key = `c${i}`;
     if (i % PAUSE_EVERY === 0) return { key, kind: 'pause', count: i };
     if (i % 4 === 0) {
+      // Une case sur deux revient à l'actualité du jour, tant qu'il reste des titres à montrer.
+      const news = (i / 4) % 2 === 1 ? this.getNews().find((n) => !this.newsShown.has(n.id)) : undefined;
+      if (news) {
+        this.newsShown.add(news.id);
+        return { key, kind: 'news', item: news };
+      }
       const kind = EXTRA_KINDS[(i / 4) % EXTRA_KINDS.length];
       const n = this.cursors[kind]++;
       switch (kind) {

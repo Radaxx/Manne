@@ -1,5 +1,7 @@
-// Génère src/data/verses.json à partir de la Louis Segond 1910 (domaine public) via api.getbible.net
-import { writeFileSync } from 'node:fs';
+// Génère src/data/verses.json (les versets du fil Découvrir) à partir de la Bible embarquée :
+// le texte de la Louis Segond 1910, ou de la Crampon pour les deutérocanoniques. L'app l'affiche ensuite
+// dans la traduction choisie. Usage : node scripts/build-verses.mjs
+import { readFileSync, writeFileSync } from 'node:fs';
 
 // [livre, chapitre, premier verset, dernier verset, thème]
 const REFS = [
@@ -63,30 +65,268 @@ const REFS = [
   [19, 107, 1, 1, 'Gratitude'],
   [51, 3, 17, 17, 'Gratitude'],
   [23, 26, 3, 3, 'Paix'],
+  // Paix
+  [19, 4, 9, 9, 'Paix'],
+  [19, 29, 11, 11, 'Paix'],
+  [19, 85, 11, 11, 'Paix'],
+  [19, 131, 2, 2, 'Paix'],
+  [19, 62, 2, 2, 'Paix'],
+  [19, 34, 15, 15, 'Paix'],
+  [19, 55, 23, 23, 'Paix'],
+  [23, 9, 5, 5, 'Paix'],
+  [23, 32, 17, 17, 'Paix'],
+  [23, 48, 18, 18, 'Paix'],
+  [20, 14, 30, 30, 'Paix'],
+  [40, 11, 29, 29, 'Paix'],
+  [42, 2, 14, 14, 'Paix'],
+  [42, 24, 36, 36, 'Paix'],
+  [43, 16, 33, 33, 'Paix'],
+  [43, 20, 21, 21, 'Paix'],
+  [45, 5, 1, 1, 'Paix'],
+  [45, 14, 19, 19, 'Paix'],
+  [49, 2, 14, 14, 'Paix'],
+  [51, 3, 15, 15, 'Paix'],
+  [53, 3, 16, 16, 'Paix'],
+  [58, 12, 14, 14, 'Paix'],
+  [60, 5, 7, 7, 'Paix'],
+  // Force
+  [19, 18, 2, 3, 'Force'],
+  [19, 27, 14, 14, 'Force'],
+  [19, 28, 7, 7, 'Force'],
+  [19, 31, 25, 25, 'Force'],
+  [19, 73, 26, 26, 'Force'],
+  [19, 121, 1, 2, 'Force'],
+  [19, 138, 3, 3, 'Force'],
+  [23, 12, 2, 2, 'Force'],
+  [23, 40, 29, 29, 'Force'],
+  [23, 41, 13, 13, 'Force'],
+  [16, 8, 10, 10, 'Force'],
+  [2, 15, 2, 2, 'Force'],
+  [5, 31, 6, 6, 'Force'],
+  [9, 17, 45, 45, 'Force'],
+  [35, 3, 19, 19, 'Force'],
+  [38, 4, 6, 6, 'Force'],
+  [47, 12, 10, 10, 'Force'],
+  [47, 4, 8, 9, 'Force'],
+  [49, 6, 10, 10, 'Force'],
+  [55, 4, 17, 17, 'Force'],
+  [46, 16, 13, 13, 'Force'],
+  [46, 10, 13, 13, 'Force'],
+  [58, 4, 16, 16, 'Force'],
+  [40, 28, 20, 20, 'Force'],
+  // Espoir
+  [18, 19, 25, 25, 'Espoir'],
+  [19, 27, 13, 13, 'Espoir'],
+  [19, 30, 6, 6, 'Espoir'],
+  [19, 42, 12, 12, 'Espoir'],
+  [19, 130, 5, 5, 'Espoir'],
+  [19, 147, 3, 3, 'Espoir'],
+  [23, 43, 19, 19, 'Espoir'],
+  [23, 61, 1, 1, 'Espoir'],
+  [23, 65, 17, 17, 'Espoir'],
+  [24, 17, 7, 7, 'Espoir'],
+  [25, 3, 25, 26, 'Espoir'],
+  [26, 36, 26, 26, 'Espoir'],
+  [33, 7, 7, 7, 'Espoir'],
+  [35, 2, 3, 3, 'Espoir'],
+  [43, 11, 25, 25, 'Espoir'],
+  [43, 14, 2, 3, 'Espoir'],
+  [45, 5, 5, 5, 'Espoir'],
+  [45, 8, 18, 18, 'Espoir'],
+  [45, 15, 4, 4, 'Espoir'],
+  [46, 15, 55, 55, 'Espoir'],
+  [47, 4, 16, 16, 'Espoir'],
+  [47, 5, 17, 17, 'Espoir'],
+  [50, 1, 6, 6, 'Espoir'],
+  [50, 3, 13, 14, 'Espoir'],
+  [52, 4, 13, 14, 'Espoir'],
+  [58, 6, 19, 19, 'Espoir'],
+  [60, 1, 3, 3, 'Espoir'],
+  [66, 21, 5, 5, 'Espoir'],
+  [71, 3, 1, 1, 'Espoir'],
+  // Amour
+  [22, 8, 6, 7, 'Amour'],
+  [24, 31, 3, 3, 'Amour'],
+  [23, 49, 15, 15, 'Amour'],
+  [23, 43, 4, 4, 'Amour'],
+  [23, 54, 10, 10, 'Amour'],
+  [5, 6, 4, 5, 'Amour'],
+  [3, 19, 18, 18, 'Amour'],
+  [8, 1, 16, 16, 'Amour'],
+  [40, 22, 37, 39, 'Amour'],
+  [40, 25, 40, 40, 'Amour'],
+  [42, 10, 33, 34, 'Amour'],
+  [43, 13, 34, 35, 'Amour'],
+  [43, 15, 9, 9, 'Amour'],
+  [43, 15, 12, 12, 'Amour'],
+  [43, 21, 17, 17, 'Amour'],
+  [45, 8, 38, 39, 'Amour'],
+  [45, 12, 10, 10, 'Amour'],
+  [45, 13, 10, 10, 'Amour'],
+  [46, 13, 13, 13, 'Amour'],
+  [46, 16, 14, 14, 'Amour'],
+  [48, 5, 13, 14, 'Amour'],
+  [49, 3, 17, 19, 'Amour'],
+  [49, 5, 1, 2, 'Amour'],
+  [51, 3, 14, 14, 'Amour'],
+  [60, 4, 8, 8, 'Amour'],
+  [62, 3, 1, 1, 'Amour'],
+  [62, 3, 18, 18, 'Amour'],
+  [62, 4, 7, 8, 'Amour'],
+  [62, 4, 19, 19, 'Amour'],
+  [20, 10, 12, 12, 'Amour'],
+  [20, 17, 17, 17, 'Amour'],
+  [66, 3, 20, 20, 'Amour'],
+  [72, 6, 14, 14, 'Amour'],
+  // Sagesse
+  [18, 28, 28, 28, 'Sagesse'],
+  [19, 1, 1, 3, 'Sagesse'],
+  [19, 19, 8, 8, 'Sagesse'],
+  [19, 90, 12, 12, 'Sagesse'],
+  [19, 111, 10, 10, 'Sagesse'],
+  [19, 119, 11, 11, 'Sagesse'],
+  [19, 127, 1, 1, 'Sagesse'],
+  [19, 139, 23, 24, 'Sagesse'],
+  [20, 1, 7, 7, 'Sagesse'],
+  [20, 2, 6, 6, 'Sagesse'],
+  [20, 9, 10, 10, 'Sagesse'],
+  [20, 12, 25, 25, 'Sagesse'],
+  [20, 16, 9, 9, 'Sagesse'],
+  [20, 18, 21, 21, 'Sagesse'],
+  [20, 19, 21, 21, 'Sagesse'],
+  [20, 31, 30, 30, 'Sagesse'],
+  [21, 4, 9, 10, 'Sagesse'],
+  [9, 16, 7, 7, 'Sagesse'],
+  [11, 3, 9, 9, 'Sagesse'],
+  [11, 19, 12, 12, 'Sagesse'],
+  [40, 7, 24, 24, 'Sagesse'],
+  [40, 6, 19, 21, 'Sagesse'],
+  [40, 10, 16, 16, 'Sagesse'],
+  [42, 12, 15, 15, 'Sagesse'],
+  [46, 1, 25, 25, 'Sagesse'],
+  [50, 4, 8, 8, 'Sagesse'],
+  [59, 3, 17, 17, 'Sagesse'],
+  [59, 1, 19, 19, 'Sagesse'],
+  [71, 7, 26, 26, 'Sagesse'],
+  [71, 6, 12, 12, 'Sagesse'],
+  [72, 1, 1, 1, 'Sagesse'],
+  // Foi
+  [1, 15, 6, 6, 'Foi'],
+  [19, 56, 4, 4, 'Foi'],
+  [19, 91, 2, 2, 'Foi'],
+  [35, 2, 4, 4, 'Foi'],
+  [40, 8, 8, 8, 'Foi'],
+  [40, 14, 31, 31, 'Foi'],
+  [40, 16, 15, 16, 'Foi'],
+  [40, 17, 20, 20, 'Foi'],
+  [41, 11, 24, 24, 'Foi'],
+  [42, 1, 37, 38, 'Foi'],
+  [42, 1, 45, 45, 'Foi'],
+  [42, 17, 5, 5, 'Foi'],
+  [43, 6, 35, 35, 'Foi'],
+  [43, 6, 68, 68, 'Foi'],
+  [43, 10, 11, 11, 'Foi'],
+  [43, 11, 40, 40, 'Foi'],
+  [43, 14, 6, 6, 'Foi'],
+  [43, 20, 29, 29, 'Foi'],
+  [45, 1, 16, 16, 'Foi'],
+  [45, 10, 9, 9, 'Foi'],
+  [45, 10, 17, 17, 'Foi'],
+  [47, 5, 7, 7, 'Foi'],
+  [48, 2, 20, 20, 'Foi'],
+  [49, 2, 8, 8, 'Foi'],
+  [58, 12, 1, 2, 'Foi'],
+  [59, 2, 17, 17, 'Foi'],
+  [60, 1, 8, 8, 'Foi'],
+  [62, 5, 4, 4, 'Foi'],
+  [55, 4, 7, 7, 'Foi'],
+  // Pardon
+  [2, 34, 6, 6, 'Pardon'],
+  [14, 7, 14, 14, 'Pardon'],
+  [19, 32, 1, 1, 'Pardon'],
+  [19, 32, 5, 5, 'Pardon'],
+  [19, 51, 3, 3, 'Pardon'],
+  [19, 51, 12, 12, 'Pardon'],
+  [19, 86, 5, 5, 'Pardon'],
+  [19, 103, 8, 8, 'Pardon'],
+  [19, 130, 3, 4, 'Pardon'],
+  [23, 1, 18, 18, 'Pardon'],
+  [23, 43, 25, 25, 'Pardon'],
+  [23, 55, 7, 7, 'Pardon'],
+  [24, 31, 34, 34, 'Pardon'],
+  [33, 7, 18, 18, 'Pardon'],
+  [26, 18, 32, 32, 'Pardon'],
+  [32, 4, 2, 2, 'Pardon'],
+  [40, 6, 12, 12, 'Pardon'],
+  [40, 6, 14, 15, 'Pardon'],
+  [40, 9, 12, 13, 'Pardon'],
+  [41, 11, 25, 25, 'Pardon'],
+  [42, 6, 36, 37, 'Pardon'],
+  [42, 7, 47, 47, 'Pardon'],
+  [42, 15, 20, 20, 'Pardon'],
+  [42, 19, 10, 10, 'Pardon'],
+  [42, 23, 34, 34, 'Pardon'],
+  [42, 23, 42, 43, 'Pardon'],
+  [43, 8, 11, 11, 'Pardon'],
+  [45, 8, 1, 1, 'Pardon'],
+  [47, 5, 20, 20, 'Pardon'],
+  [49, 1, 7, 7, 'Pardon'],
+  [60, 2, 24, 24, 'Pardon'],
+  // Gratitude
+  [19, 9, 2, 2, 'Gratitude'],
+  [19, 16, 11, 11, 'Gratitude'],
+  [19, 34, 2, 2, 'Gratitude'],
+  [19, 63, 4, 4, 'Gratitude'],
+  [19, 92, 2, 2, 'Gratitude'],
+  [19, 95, 1, 2, 'Gratitude'],
+  [19, 96, 1, 1, 'Gratitude'],
+  [19, 103, 1, 2, 'Gratitude'],
+  [19, 104, 24, 24, 'Gratitude'],
+  [19, 116, 12, 12, 'Gratitude'],
+  [19, 136, 1, 1, 'Gratitude'],
+  [19, 145, 3, 3, 'Gratitude'],
+  [19, 150, 6, 6, 'Gratitude'],
+  [19, 8, 4, 5, 'Gratitude'],
+  [19, 19, 2, 2, 'Gratitude'],
+  [19, 65, 12, 12, 'Gratitude'],
+  [1, 1, 31, 31, 'Gratitude'],
+  [13, 16, 34, 34, 'Gratitude'],
+  [42, 1, 46, 47, 'Gratitude'],
+  [42, 17, 15, 16, 'Gratitude'],
+  [46, 15, 57, 57, 'Gratitude'],
+  [47, 9, 7, 7, 'Gratitude'],
+  [47, 9, 15, 15, 'Gratitude'],
+  [49, 5, 19, 20, 'Gratitude'],
+  [50, 4, 4, 4, 'Gratitude'],
+  [51, 2, 6, 7, 'Gratitude'],
+  [59, 1, 17, 17, 'Gratitude'],
+  [66, 4, 11, 11, 'Gratitude'],
 ];
 
-const cache = new Map();
-async function chapter(book, ch) {
-  const key = `${book}/${ch}`;
-  if (!cache.has(key)) {
-    const res = await fetch(`https://api.getbible.net/v2/ls1910/${book}/${ch}.json`);
-    if (!res.ok) throw new Error(`${key}: ${res.status}`);
-    cache.set(key, await res.json());
-  }
-  return cache.get(key);
-}
+const bible = (t, book) => JSON.parse(readFileSync(new URL(`../src/data/bible/${t}/${book}.json`, import.meta.url), 'utf8'));
+const names = (t) =>
+  JSON.parse(readFileSync(new URL(`../src/data/bible/${t}/index.ts`, import.meta.url), 'utf8').match(/BOOKS: BookMeta\[\] = (\[.*\]);/)[1]);
+const LSG = names('lsg');
 
 const out = [];
+const seen = new Set();
 for (const [book, ch, from, to, theme] of REFS) {
-  const data = await chapter(book, ch);
-  const verses = data.verses.filter((v) => v.verse >= from && v.verse <= to);
-  if (verses.length !== to - from + 1) throw new Error(`Versets manquants: ${book} ${ch}:${from}-${to}`);
+  const id = `${book}-${ch}-${from}`;
+  if (seen.has(id)) throw new Error(`Passage en double : ${id}`);
+  seen.add(id);
+  // Les deutérocanoniques n'existent que dans la Crampon ; ailleurs, le passage doit être découpé pareil
+  // dans les deux traductions, puisque l'app l'affiche dans celle qu'on a choisie.
+  const lsg = book <= 66;
+  const verses = bible(lsg ? 'lsg' : 'crampon', book)[ch - 1] ?? [];
+  if (lsg && bible('crampon', book)[ch - 1]?.length !== verses.length) throw new Error(`Découpage différent dans la Crampon : ${id}`);
+  if (to > verses.length) throw new Error(`Versets manquants : ${id}`);
+  const bookName = lsg ? LSG[book - 1].name : names('crampon')[book - 1].name;
   const text = verses
-    .map((v) => v.text.trim())
+    .slice(from - 1, to)
     .join(' ')
     .replace(/\s+/g, ' ');
-  const reference = `${data.book_name} ${ch}:${from}${to > from ? `-${to}` : ''}`;
-  out.push({ id: `${book}-${ch}-${from}`, book, bookName: data.book_name, chapter: ch, from, to, reference, text, theme });
+  const reference = `${bookName} ${ch}:${from}${to > from ? `-${to}` : ''}`;
+  out.push({ id, book, bookName, chapter: ch, from, to, reference, text, theme });
 }
 writeFileSync(new URL('../src/data/verses.json', import.meta.url), JSON.stringify(out, null, 2));
 console.log(`${out.length} passages écrits`);

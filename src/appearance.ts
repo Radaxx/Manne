@@ -329,8 +329,27 @@ export const READING_THEMES: ReadingChrome[] = [
   },
 ];
 
-export function readingTheme(id: ReadingThemeId): ReadingChrome {
-  return READING_THEMES.find((t) => t.id === id) ?? READING_THEMES[0];
+/**
+ * L'accent liturgique sur les fonds de lecture : une teinte pâle sur les fonds sombres et colorés (au moins
+ * aussi lisible que le doré sur les dégradés du « livre »), foncée sur Parchemin et Aube. Le blanc garde le doré.
+ */
+const READING_ACCENTS: Partial<Record<LiturgicalColor, { night: string; day: string }>> = {
+  violet: { night: '#e2d6fc', day: '#5e3399' },
+  vert: { night: '#c2efd0', day: '#1e6b3c' },
+  rouge: { night: '#fcd0cc', day: '#a3202e' },
+  rose: { night: '#fbd9e8', day: '#a33a68' },
+};
+
+const rgba = (hex: string, alpha: number) => `rgba(${[1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(',')},${alpha})`;
+
+/** Le fond de lecture ; `liturgical` (la couleur du jour) remplace son accent quand l'accent liturgique est choisi. */
+export function readingTheme(id: ReadingThemeId, liturgical?: LiturgicalColor | null): ReadingChrome {
+  const base = READING_THEMES.find((t) => t.id === id) ?? READING_THEMES[0];
+  const tint = liturgical ? READING_ACCENTS[liturgical] : undefined;
+  if (!tint) return base;
+  const night = base.statusBar === 'light';
+  const accent = night ? tint.night : tint.day;
+  return { ...base, accent, onAccent: night ? '#1a1306' : '#fffaf3', selected: rgba(accent, night ? 0.22 : 0.16) };
 }
 
 const SCHEMES: SchemePreference[] = ['light', 'dark', 'system'];

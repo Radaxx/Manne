@@ -3,9 +3,8 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { readingTheme } from './appearance';
 import { bookMeta } from './bible';
-import { ChapterView, TopScrim } from './chapter';
+import { ChapterView, TopScrim, useReadingChrome } from './chapter';
 import { formatRange, type Plan, planById, planChapters, planStatus } from './plans';
 import { today, useApp } from './storage';
 import { FocusedStatusBar } from './theme';
@@ -44,7 +43,7 @@ function PlanReader({ plan }: { plan: Plan }) {
       ? `Lecture du jour faite ✓${status.ahead > 0 ? ` · +${status.ahead} d’avance` : ''}`
       : `Aujourd’hui : ${formatRange(status.today, t)} · ${status.todayDone}/${status.today.length}`;
   const todayProgress = status.today.length ? status.todayDone / status.today.length : 1;
-  const chrome = readingTheme(api.progress.appearance.reading);
+  const chrome = useReadingChrome();
 
   // En fin de chapitre : la portion du jour atteinte, ou le plan terminé.
   const isLast = idx === status.total - 1;
