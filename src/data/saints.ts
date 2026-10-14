@@ -43,7 +43,7 @@ export const SAINTS: Record<string, Saint[]> = {
     {
       name: 'Le Saint Nom de Jésus',
       rank: 'facultative',
-      life: '« Jésus » veut dire « Dieu sauve ». Huit jours après Noël, l’Église honore ce nom donné par l’ange, devant lequel « tout genou fléchisse » (Philippiens 2, 10).',
+      life: '« Jésus » veut dire « Dieu sauve ». L’Église honore le nom que l’ange a donné à l’enfant, huit jours après sa naissance, et devant lequel « tout genou fléchisse » (Philippiens 2, 10).',
     },
   ],
   '01-04': [
@@ -852,7 +852,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saint Stanislas',
       title: 'évêque et martyr',
       rank: 'memoire',
-      life: 'Évêque de Cracovie, il a reproché au roi Boleslas II sa conduite et a été tué pendant qu’il célébrait la messe en 1079. Patron de la Pologne.',
+      life: 'Évêque de Cracovie, il a reproché au roi Boleslas II sa conduite et a été mis à mort sur son ordre en 1079. Patron de la Pologne.',
     },
   ],
   '04-12': [
@@ -900,7 +900,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Sainte Kateri Tekakwitha',
       title: 'vierge',
       rank: 'martyrologe',
-      life: 'Jeune Mohawk baptisée en 1676 malgré l’hostilité des siens, elle s’est réfugiée près de Montréal pour vivre sa foi. Morte à vingt-quatre ans en 1680, première sainte amérindienne.',
+      life: 'Jeune Mohawk baptisée en 1676 malgré l’hostilité des siens, elle s’est réfugiée près de Montréal pour vivre sa foi. Morte à vingt-quatre ans en 1680, première sainte autochtone d’Amérique du Nord.',
     },
   ],
   '04-18': [
@@ -1171,7 +1171,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saint Yves',
       title: 'prêtre',
       rank: 'facultative',
-      life: 'Juge ecclésiastique à Tréguier au XIIIe siècle, devenu prêtre, il défendait gratuitement les pauvres. Patron de la Bretagne et des avocats. Mort en 1303.',
+      life: 'Juge d’Église à Rennes avant d’être prêtre, il est ordonné en 1284 pour l’être à Tréguier, où il défend gratuitement les pauvres. Patron de la Bretagne et des avocats. Mort en 1303.',
     },
   ],
   '05-20': [
@@ -1616,7 +1616,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saint Benoît',
       title: 'abbé, patron de l’Europe',
       rank: 'fete',
-      life: 'Né à Nursie vers 480, il a fondé le Mont-Cassin. Sa Règle, « prie et travaille », a façonné le monachisme occidental et la culture de l’Europe. Mort vers 547.',
+      life: 'Né à Nursie vers 480, il a fondé le Mont-Cassin. Sa Règle, qui équilibre prière et travail, a façonné le monachisme occidental et la culture de l’Europe. Mort vers 547.',
     },
   ],
   '07-12': [
@@ -1624,7 +1624,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saints Louis et Zélie Martin',
       title: 'époux',
       rank: 'martyrologe',
-      life: 'Horloger et dentellière d’Alençon, parents de neuf enfants dont sainte Thérèse de Lisieux. Canonisés ensemble en 2015 : le premier couple marié proclamé saint.',
+      life: 'Horloger et dentellière d’Alençon, parents de neuf enfants dont sainte Thérèse de Lisieux. En 2015, ils sont le premier couple canonisé ensemble.',
     },
   ],
   '07-13': [
@@ -2219,7 +2219,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saint Maurice et ses compagnons',
       title: 'martyrs',
       rank: 'martyrologe',
-      life: 'Soldats de la légion thébaine, massacrés à Agaune, en Valais, vers 300, pour avoir refusé de sacrifier aux dieux. L’abbaye de Saint-Maurice garde leur mémoire.',
+      life: 'Selon la tradition, soldats de la légion thébaine massacrés à Agaune, en Valais, vers 300, pour avoir refusé de sacrifier aux dieux. L’abbaye de Saint-Maurice garde leur mémoire.',
     },
   ],
   '09-23': [
@@ -2270,7 +2270,7 @@ export const SAINTS: Record<string, Saint[]> = {
       life: 'Duc de Bohême, chrétien fervent, assassiné par son frère en 935 sur le chemin de la messe. Patron de la République tchèque.',
     },
     {
-      name: 'Saints Laurent Ruiz et ses compagnons',
+      name: 'Saint Laurent Ruiz et ses compagnons',
       title: 'martyrs',
       rank: 'facultative',
       life: 'Seize martyrs tués à Nagasaki entre 1633 et 1637. Laurent Ruiz, père de famille philippin, est le premier saint des Philippines.',
@@ -2359,7 +2359,7 @@ export const SAINTS: Record<string, Saint[]> = {
       name: 'Saint Denis et ses compagnons',
       title: 'martyrs',
       rank: 'facultative',
-      life: 'Premier évêque de Paris, au IIIe siècle, décapité avec le prêtre Rustique et le diacre Éleuthère à Montmartre, le « mont des martyrs ». Sa basilique abrite les tombeaux des rois.',
+      life: 'Premier évêque de Paris, au IIIe siècle, décapité avec le prêtre Rustique et le diacre Éleuthère à Montmartre. Sa basilique abrite les tombeaux des rois.',
     },
     {
       name: 'Saint John Henry Newman',
