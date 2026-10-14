@@ -179,7 +179,7 @@ export function HomeScreen() {
               />
             </Pressable>
             <Pressable onPress={() => router.push('/compte')} hitSlop={10} accessibilityLabel="Mon compte" style={styles.streak}>
-              <Ionicons name="flame" size={16} color="#ffb703" />
+              <Ionicons name="flame" size={16} color={C.gold} />
               <Text style={styles.streakText}>{progress.streak}</Text>
             </Pressable>
           </View>

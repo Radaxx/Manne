@@ -221,7 +221,7 @@ function FeedScreen({
           <Text style={[styles.title, { color: ink }]}>{title}</Text>
           <View style={[styles.side, styles.topRight]}>
             <Pressable onPress={() => router.push('/compte')} hitSlop={8} accessibilityLabel="Mon compte" style={styles.streak}>
-              <Ionicons name="flame" size={15} color="#ffb703" />
+              <Ionicons name="flame" size={15} color={accent} />
               <Text style={[styles.streakText, { color: ink }]}>{progress.streak}</Text>
             </Pressable>
             <Pressable onPress={() => setShowSaved(true)} hitSlop={10} accessibilityLabel="Mes versets">
