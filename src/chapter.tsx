@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { type ReadingChrome, readingTheme } from './appearance';
+import { type ReadingChrome, type ReadingThemeId, readingTheme } from './appearance';
 import {
   bookMeta,
   bookRank,
@@ -30,15 +30,24 @@ import { communityKey } from './community';
 import type { Passage } from './data/content';
 import { INTROS } from './data/intros';
 import { haptic } from './haptics';
+import { liturgicalDay } from './liturgical-year';
 import { chapterPrompt, normalize } from './reading';
 import { type ProgressApi, readingPosition, useApp } from './storage';
 
 export type Loc = { book: number; chapter: number };
 
+/** Le fond de lecture choisi (ou `id`), avec l'accent aux couleurs du jour quand c'est réglé ainsi. */
+export function useReadingChrome(id?: ReadingThemeId): ReadingChrome {
+  const { appearance, day } = useApp().progress;
+  const liturgical = appearance.accent === 'liturgique' ? liturgicalDay(day).color : null;
+  const theme = id ?? appearance.reading;
+  return useMemo(() => readingTheme(theme, liturgical), [theme, liturgical]);
+}
+
 /** Voile sombre sous le bandeau du haut, pour que le texte qui défile dessous ne le gêne pas. */
 export function TopScrim({ extra = 108 }: { extra?: number }) {
   const insets = useSafeAreaInsets();
-  const chrome = readingTheme(useApp().progress.appearance.reading);
+  const chrome = useReadingChrome();
   const styles = useMemo(() => readingStyles(chrome), [chrome]);
   return (
     <LinearGradient
@@ -305,7 +314,7 @@ export function ChapterView({
   };
 
   const last = loc.chapter === book.verses.length;
-  const chrome = readingTheme(api.progress.appearance.reading);
+  const chrome = useReadingChrome();
   const styles = useMemo(() => readingStyles(chrome), [chrome]);
   const [bg0, bg1, bg2] = chrome.colors ?? bookGradient(book.n);
 
@@ -452,7 +461,7 @@ function BarButton({
   color?: string;
   onPress: () => void;
 }) {
-  const chrome = readingTheme(useApp().progress.appearance.reading);
+  const chrome = useReadingChrome();
   const styles = useMemo(() => readingStyles(chrome), [chrome]);
   return (
     <Pressable onPress={onPress} hitSlop={6} style={styles.barBtn} accessibilityRole="button" accessibilityLabel={label}>

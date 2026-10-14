@@ -1,4 +1,4 @@
-import { paletteFor } from '../src/appearance';
+import { paletteFor, readingTheme } from '../src/appearance';
 import { adventStart, baptism, easter, epiphany, liturgicalDay, liturgicalYear, upcomingFeasts } from '../src/liturgical-year';
 
 describe('dates de l’année liturgique', () => {
@@ -89,5 +89,14 @@ describe('accent liturgique', () => {
     expect(paletteFor('light', null, 'vert').gold).not.toBe(paletteFor('light', null).gold);
     expect(paletteFor('dark', null, 'blanc').gold).toBe(gold);
     expect(paletteFor('dark', null, null).gold).toBe(gold);
+  });
+});
+
+describe('accent liturgique de la lecture', () => {
+  it('teinte l’accent des fonds de lecture, pâle sur fond sombre et foncé sur fond clair', () => {
+    expect(readingTheme('livre', 'violet').accent).not.toBe(readingTheme('livre').accent);
+    expect(readingTheme('nuit', 'vert').onAccent).toBe('#1a1306');
+    expect(readingTheme('parchemin', 'vert').onAccent).toBe('#fffaf3');
+    expect(readingTheme('aube', 'blanc')).toEqual(readingTheme('aube'));
   });
 });

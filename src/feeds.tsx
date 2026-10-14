@@ -4,10 +4,10 @@ import * as WebBrowser from 'expo-web-browser';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { type ReadingChrome, readingTheme } from './appearance';
+import type { ReadingChrome } from './appearance';
 import { bookMeta, chapterSource, loadPassage, passageLabel, type TranslationId, translationName } from './bible';
 import { FactCard, NewsCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
-import { ChapterReader, TopScrim } from './chapter';
+import { ChapterReader, TopScrim, useReadingChrome } from './chapter';
 import { communityKey, useCommunity } from './community';
 import type { Passage, Theme, Verse } from './data/content';
 import { type Card, FeedGenerator } from './feed';
@@ -202,7 +202,9 @@ function FeedScreen({
   const ink = chrome?.ink ?? '#fff';
   const muted = chrome?.muted ?? 'rgba(255,255,255,0.7)';
   const track = chrome?.track ?? 'rgba(255,255,255,0.2)';
-  const accent = chrome?.accent ?? '#ffd166';
+  // Découvrir n'a pas de fond de lecture : ses cartes sont sombres, comme le fond « Nuit ».
+  const night = useReadingChrome('nuit');
+  const accent = chrome?.accent ?? night.accent;
 
   return (
     <View
@@ -244,7 +246,7 @@ function FeedScreen({
           },
         ]}
       >
-        <Text style={styles.toastTitle}>{toast.title}</Text>
+        <Text style={[styles.toastTitle, { color: accent }]}>{toast.title}</Text>
         <Text style={styles.toastBody}>{toast.body}</Text>
       </Animated.View>
 
@@ -268,7 +270,7 @@ export function ReadingScreen() {
   const api = useApp();
   const [showBooks, setShowBooks] = useState(false);
   const { selectBook, goTo, restartReading } = api;
-  const chrome = readingTheme(api.progress.appearance.reading);
+  const chrome = useReadingChrome();
   return (
     <>
       <FocusedStatusBar style={chrome.statusBar} />
