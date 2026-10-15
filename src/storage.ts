@@ -38,6 +38,7 @@ export type Progress = {
   reminder: ReminderSettings;
   appearance: AppearanceSettings; // thème, accent, chapelet, fond de lecture
   translation: TranslationId; // traduction de la Bible pour la lecture, les plans et les prières bibliques
+  cultureCalendar: boolean; // Découvrir met en avant les œuvres liées au jour et au temps liturgique
   pinnedPrayers: string[]; // dans l'ordre d'épinglage
   customPrayers: CustomPrayer[]; // prières écrites par l'utilisateur
   confession: { items: ConfessionItem[]; lastConfession: string | null }; // préparation de la confession
@@ -50,7 +51,7 @@ export type Progress = {
    * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
    * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
    * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance,
-   * translation, journey:<parcours>:<date>.
+   * translation, culture, journey:<parcours>:<date>.
    */
   stamps: Record<string, number>;
 };
@@ -111,6 +112,7 @@ const initial = (): Progress => ({
   reminder: DEFAULT_REMINDER,
   appearance: DEFAULT_APPEARANCE,
   translation: DEFAULT_TRANSLATION,
+  cultureCalendar: true,
   pinnedPrayers: ['notre-pere', 'je-vous-salue-marie', 'acte-de-contrition'],
   customPrayers: [],
   confession: { items: [], lastConfession: null },
@@ -213,6 +215,7 @@ export function prepareStored(raw: unknown): Progress {
   stored.reminder = { ...initial().reminder, ...(stored.reminder ?? {}) };
   stored.appearance = normalizeAppearance(stored.appearance);
   stored.translation = isTranslation(stored.translation) ? stored.translation : DEFAULT_TRANSLATION;
+  stored.cultureCalendar = typeof stored.cultureCalendar === 'boolean' ? stored.cultureCalendar : true;
   stored.days = stored.days && typeof stored.days === 'object' && !Array.isArray(stored.days) ? stored.days : {};
   stored.stamps = stored.stamps && typeof stored.stamps === 'object' && !Array.isArray(stored.stamps) ? stored.stamps : {};
   stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
@@ -607,6 +610,7 @@ export function useProgress() {
       reminder: p.reminder,
       appearance: p.appearance,
       translation: p.translation,
+      cultureCalendar: p.cultureCalendar,
       confession: { ...initial().confession, items: p.confession.items },
       confessionLock: p.confessionLock,
     }));
@@ -648,6 +652,10 @@ export function useProgress() {
       }
       return { ...p, translation, plans, stamps: stamped(p, 'translation') };
     });
+  }, []);
+
+  const setCultureCalendar = useCallback((cultureCalendar: boolean) => {
+    setProgress((p) => (p.cultureCalendar === cultureCalendar ? p : { ...p, cultureCalendar, stamps: stamped(p, 'culture') }));
   }, []);
 
   const setAppearance = useCallback((patch: Partial<AppearanceSettings>) => {
@@ -719,6 +727,7 @@ export function useProgress() {
     setReminder,
     setAppearance,
     setTranslation,
+    setCultureCalendar,
     togglePin,
     saveCustomPrayer,
     deleteCustomPrayer,

@@ -131,6 +131,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     reminder: here.reminder,
     appearance: byStamp(here, there, 'appearance', here.appearance, there.appearance, (mine) => mine),
     translation: byStamp(here, there, 'translation', here.translation, there.translation, (mine) => mine),
+    cultureCalendar: byStamp(here, there, 'culture', here.cultureCalendar, there.cultureCalendar, (mine) => mine),
     pinnedPrayers: mergeItems(
       here,
       there,

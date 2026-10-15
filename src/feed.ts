@@ -11,7 +11,8 @@ import {
   VERSES,
   type Verse,
 } from './data/content';
-import { CULTURE, CULTURE_KINDS, type Culture } from './data/culture';
+import { CULTURE, CULTURE_KINDS, type Culture, type CultureSeason } from './data/culture';
+import { liturgicalDay } from './liturgical-year';
 
 import type { NewsItem } from './news';
 
@@ -21,7 +22,7 @@ export type Card =
   | { key: string; kind: 'fact'; fact: Fact }
   | { key: string; kind: 'quiz'; quiz: Quiz }
   | { key: string; kind: 'person'; person: Person }
-  | { key: string; kind: 'culture'; culture: Culture }
+  | { key: string; kind: 'culture'; culture: Culture; why?: string }
   | { key: string; kind: 'reflection'; prompt: string }
   | { key: string; kind: 'pause'; count: number };
 
@@ -40,6 +41,31 @@ export function cultureOrder(items: Culture[] = CULTURE): Culture[] {
 
 const CULTURE_ORDER = cultureOrder();
 
+/** Une œuvre mise en avant ce jour-là, et pourquoi (« Aujourd’hui, saint Matthieu »). */
+export type CultureMatch = { culture: Culture; why: string };
+
+/** Les œuvres liées à une date : d'abord la fête ou le saint du jour, puis le temps liturgique. */
+export function cultureForDay(date: string, items: Culture[] = CULTURE): CultureMatch[] {
+  const day = liturgicalDay(date);
+  const monthDay = date.slice(5);
+  const season: CultureSeason | null =
+    day.season === 'triduum' || (day.season === 'careme' && day.week === 6)
+      ? 'semaine-sainte'
+      : day.season === 'ordinaire'
+        ? null
+        : day.season;
+  const today: CultureMatch[] = [];
+  const during: CultureMatch[] = [];
+  for (const culture of items) {
+    const when = culture.when ?? [];
+    const exact = when.find((o) => ('day' in o && o.day === monthDay) || ('feast' in o && o.feast === day.feast?.name));
+    const inSeason = when.find((o) => 'season' in o && o.season === season);
+    if (exact) today.push({ culture, why: exact.why });
+    else if (inSeason) during.push({ culture, why: inSeason.why });
+  }
+  return [...today, ...during];
+}
+
 /** L'article Wikipédia : la recherche ouvre directement l'article quand le titre existe. */
 export const wikiUrl = (c: Culture) => `https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(c.wiki)}`;
 
@@ -52,11 +78,16 @@ export class FeedGenerator {
   private cursors = { fact: 0, quiz: 0, person: 0, reflection: 0, culture: 0 };
 
   private newsShown = new Set<string>();
+  private cultureShown = new Set<string>();
 
-  /** `getNews` : les titres du jour à glisser dans le fil (chacun une seule fois). */
+  /**
+   * `getNews` : les titres du jour à glisser dans le fil (chacun une seule fois).
+   * `getCalendar` : les œuvres du jour, qui passent avant les autres (chacune une seule fois).
+   */
   constructor(
     private getScores: () => Partial<Record<Theme, number>>,
     private getNews: () => NewsItem[] = () => [],
+    private getCalendar: () => CultureMatch[] = () => [],
   ) {
     // Point de départ aléatoire pour ne pas toujours ouvrir sur le même contenu.
     for (const k of EXTRA_KINDS) this.cursors[k] = Math.floor(Math.random() * 10);
@@ -74,7 +105,7 @@ export class FeedGenerator {
     const key = `c${i}`;
     if (i % PAUSE_EVERY === 0) return { key, kind: 'pause', count: i };
     // Une œuvre de la culture chrétienne toutes les 8 cartes, entre deux autres surprises.
-    if (i % 8 === 6) return { key, kind: 'culture', culture: CULTURE_ORDER[this.cursors.culture++ % CULTURE_ORDER.length] };
+    if (i % 8 === 6) return { key, kind: 'culture', ...this.nextCulture() };
     if (i % 4 === 0) {
       // Une case sur deux revient à l'actualité du jour, tant qu'il reste des titres à montrer.
       const news = (i / 4) % 2 === 1 ? this.getNews().find((n) => !this.newsShown.has(n.id)) : undefined;
@@ -96,6 +127,20 @@ export class FeedGenerator {
       }
     }
     return { key, kind: 'verse', verse: this.pickVerse() };
+  }
+
+  /** L'œuvre suivante : celles du jour d'abord, puis les autres, sans resservir tout de suite une œuvre du jour. */
+  private nextCulture(): { culture: Culture; why?: string } {
+    const match = this.getCalendar().find((m) => !this.cultureShown.has(m.culture.id));
+    if (match) {
+      this.cultureShown.add(match.culture.id);
+      return match;
+    }
+    let culture = CULTURE_ORDER[this.cursors.culture++ % CULTURE_ORDER.length];
+    for (let k = 0; k < CULTURE_ORDER.length && this.cultureShown.has(culture.id); k++) {
+      culture = CULTURE_ORDER[this.cursors.culture++ % CULTURE_ORDER.length];
+    }
+    return { culture };
   }
 
   /** Tirage pondéré : les thèmes que l'utilisateur aime remontent, sans jamais exclure les autres. */

@@ -73,6 +73,15 @@ describe('mergeProgress', () => {
     expect(mergeProgress(crampon, lsg).translation).toBe('crampon');
   });
 
+  it('garde le dernier choix des œuvres au fil du calendrier', () => {
+    expect(prepareStored({}).cultureCalendar).toBe(true);
+    expect(prepareStored({ cultureCalendar: 'oui' as never }).cultureCalendar).toBe(true);
+    const off = progress({ cultureCalendar: false, stamps: { culture: NOW } });
+    const on = progress({ cultureCalendar: true, stamps: { culture: NOW - 1000 } });
+    expect(mergeProgress(on, off).cultureCalendar).toBe(false);
+    expect(mergeProgress(off, on).cultureCalendar).toBe(false);
+  });
+
   it('additionne les jours vécus d’un parcours, sauf un retrait plus récent', () => {
     const here = progress({ journeys: { 'avent-2026': ['2026-11-29', '2026-11-30'] } });
     const there = progress({ journeys: { 'avent-2026': ['2026-12-01'] }, stamps: { 'journey:avent-2026:2026-11-30': NOW } });

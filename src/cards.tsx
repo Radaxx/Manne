@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
 import { CULTURE_LABELS, type Culture, type CultureKind } from './data/culture';
+import { CULTURE_IMAGES } from './data/culture-images';
 import { type NewsItem, publishedAgo } from './news';
 
 export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
@@ -263,32 +265,60 @@ const CULTURE_STYLE: Record<CultureKind, { colors: Gradient; icon: keyof typeof 
 export function CultureCard({
   culture,
   height,
+  why,
   onMore,
   onListen,
 }: {
   culture: Culture;
   height: number;
+  /** Pourquoi l'œuvre sort aujourd'hui : la fête, le saint ou le temps liturgique. */
+  why?: string;
   onMore: () => void;
   /** Pour la musique : écouter l'œuvre. */
   onListen?: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+  const [viewing, setViewing] = useState(false);
   const { colors, icon } = CULTURE_STYLE[culture.kind];
   const labels = CULTURE_LABELS[culture.kind];
+  const art = CULTURE_IMAGES[culture.id];
   return (
     <Shell colors={colors} height={height}>
-      <View style={styles.center}>
+      {/* Avec une image, l'œuvre prend la place qui reste au-dessus du texte, sous le bandeau du haut. */}
+      <View style={art ? [styles.cultureWithArt, { paddingTop: insets.top + 84 }] : styles.center}>
+        {why ? (
+          <View style={styles.cultureWhy}>
+            <Ionicons name="calendar-outline" size={13} color="#0b0f1a" />
+            <Text style={styles.cultureWhyText}>{why}</Text>
+          </View>
+        ) : null}
         <Kicker icon={icon} label={labels.label} />
-        <Text style={styles.cultureTitle}>{culture.title}</Text>
-        <Text style={styles.cultureMeta}>
+        {art ? (
+          <>
+            <Pressable
+              onPress={() => setViewing(true)}
+              style={styles.cultureArt}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`${culture.title}, voir en grand`}
+            >
+              <Image source={art.image} resizeMode="contain" style={styles.cultureImage} />
+            </Pressable>
+            <Text style={styles.cultureCredit} numberOfLines={1}>
+              {art.credit}
+            </Text>
+          </>
+        ) : null}
+        <Text style={[styles.cultureTitle, art && styles.cultureTitleArt]}>{culture.title}</Text>
+        <Text style={[styles.cultureMeta, art && styles.cultureMetaArt]}>
           {culture.author} · {culture.date}
-          {culture.place ? `\n${culture.place}` : ''}
+          {culture.place ? `${art ? ' · ' : '\n'}${culture.place}` : ''}
         </Text>
-        <Text style={styles.cultureText}>{culture.text}</Text>
-        <View style={styles.cultureDetail}>
+        <Text style={[styles.cultureText, art && styles.cultureTextArt]}>{culture.text}</Text>
+        <View style={[styles.cultureDetail, art && styles.cultureDetailArt]}>
           <Text style={styles.cultureDetailLabel}>{labels.detail}</Text>
-          <Text style={styles.cultureDetailText}>{culture.detail}</Text>
+          <Text style={[styles.cultureDetailText, art && styles.cultureTextArt]}>{culture.detail}</Text>
         </View>
-        <View style={styles.cultureActions}>
+        <View style={[styles.cultureActions, art && styles.cultureActionsArt]}>
           {onListen ? (
             <Pressable onPress={onListen} style={styles.newsBtn} accessibilityRole="link">
               <Ionicons name="play" size={16} color="#0b0f1a" />
@@ -301,6 +331,44 @@ export function CultureCard({
           </Pressable>
         </View>
       </View>
+      {art ? (
+        <Modal
+          visible={viewing}
+          animationType="fade"
+          onRequestClose={() => setViewing(false)}
+          supportedOrientations={['portrait', 'landscape']}
+        >
+          <View style={styles.viewer}>
+            {/* Sur iPhone, on peut zoomer dans l'œuvre en pinçant. */}
+            <ScrollView
+              style={styles.viewerScroll}
+              contentContainerStyle={styles.viewerContent}
+              maximumZoomScale={4}
+              minimumZoomScale={1}
+              centerContent
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
+              <Image source={art.image} resizeMode="contain" style={styles.viewerImage} />
+            </ScrollView>
+            <View style={[styles.viewerBar, { paddingBottom: insets.bottom + 16 }]}>
+              <Text style={styles.viewerTitle}>{culture.title}</Text>
+              <Text style={styles.viewerCredit}>
+                {culture.author} · {art.credit} · Wikimedia Commons
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setViewing(false)}
+              hitSlop={12}
+              style={[styles.viewerClose, { top: insets.top + 12 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer"
+            >
+              <Ionicons name="close" size={26} color="#fff" />
+            </Pressable>
+          </View>
+        </Modal>
+      ) : null}
     </Shell>
   );
 }
@@ -424,6 +492,44 @@ const styles = StyleSheet.create({
   cultureDetailLabel: { color: '#ffd166', fontSize: 11, letterSpacing: 2, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
   cultureDetailText: { color: '#fff', fontFamily: SERIF, fontSize: 16, lineHeight: 23, fontStyle: 'italic' },
   cultureActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  cultureWithArt: { flex: 1, paddingHorizontal: 28, paddingBottom: 24 },
+  cultureWhy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: '#ffd166',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+  cultureWhyText: { color: '#0b0f1a', fontSize: 12, fontWeight: '700' },
+  cultureArt: { flex: 1, minHeight: 0, marginTop: -6 },
+  cultureImage: { flex: 1, width: '100%' },
+  cultureCredit: { color: 'rgba(255,255,255,0.45)', fontSize: 10, marginTop: 4, marginBottom: 12, textAlign: 'right' },
+  cultureTitleArt: { fontSize: 24, lineHeight: 29 },
+  cultureMetaArt: { marginTop: 4, marginBottom: 10 },
+  cultureTextArt: { fontSize: 15, lineHeight: 22 },
+  cultureDetailArt: { marginTop: 12 },
+  cultureActionsArt: { marginTop: -8 },
+  viewer: { flex: 1, backgroundColor: '#000' },
+  viewerScroll: { flex: 1 },
+  viewerContent: { flexGrow: 1, justifyContent: 'center' },
+  viewerImage: { width: '100%', height: '100%' },
+  viewerBar: { paddingHorizontal: 20, paddingTop: 12 },
+  viewerTitle: { color: '#fff', fontFamily: SERIF, fontSize: 20, fontWeight: '700' },
+  viewerCredit: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 4 },
+  viewerClose: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
   ghostBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ACCENT_OPTIONS, type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
 import { SERIF } from '../cards';
 import { liturgicalDay, SEASONS } from '../liturgical-year';
@@ -19,14 +19,15 @@ function accentHint() {
 }
 
 export default function ReglagesScreen() {
-  const { progress, setAppearance, setTranslation } = useApp();
+  const { progress, setAppearance, setTranslation, setCultureCalendar } = useApp();
   const { appearance, reminder } = progress;
   const { C, styles } = useThemed(stylesFor);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
-        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, et le rappel du jour.
+        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir et le rappel
+        du jour.
       </Text>
 
       <Text style={styles.section}>Apparence</Text>
@@ -118,6 +119,29 @@ export default function ReglagesScreen() {
 
       <Text style={styles.section}>Traduction de la Bible</Text>
       <TranslationPicker translation={progress.translation} onChange={setTranslation} />
+
+      <Text style={styles.section}>Découvrir</Text>
+      <Pressable
+        onPress={() => setCultureCalendar(!progress.cultureCalendar)}
+        style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: progress.cultureCalendar }}
+      >
+        <Ionicons name="calendar-outline" size={22} color={C.gold} />
+        <View style={styles.rowBody}>
+          <Text style={styles.rowLabel}>Œuvres au fil du calendrier</Text>
+          <Text style={styles.rowHint}>
+            Le jour d’un saint, d’une fête ou pendant un temps liturgique, les œuvres qui s’y rattachent passent en premier.
+          </Text>
+        </View>
+        <Switch
+          value={progress.cultureCalendar}
+          onValueChange={setCultureCalendar}
+          trackColor={{ true: C.gold, false: C.faint }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      </Pressable>
 
       <Text style={styles.section}>Notification</Text>
       <Pressable onPress={() => router.push('/rappel')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>

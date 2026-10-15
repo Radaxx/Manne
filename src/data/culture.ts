@@ -16,7 +16,15 @@ export type Culture = {
   detail: string;
   /** Titre de l'article Wikipédia (en français) qui en dit plus. */
   wiki: string;
+  /** Les jours où l'œuvre remonte dans le fil, quand on suit le calendrier. */
+  when?: CultureOccasion[];
 };
+
+/** Un temps de l'année liturgique ; la Semaine sainte compte à part du Carême. */
+export type CultureSeason = 'avent' | 'noel' | 'careme' | 'semaine-sainte' | 'paques';
+
+/** Un jour fixe (MM-JJ), une fête du calendrier (son nom dans `liturgical-year.ts`) ou un temps, et pourquoi. */
+export type CultureOccasion = { why: string } & ({ day: string } | { feast: string } | { season: CultureSeason });
 
 export const CULTURE_KINDS: CultureKind[] = ['peinture', 'sculpture', 'architecture', 'musique', 'litterature', 'pensee', 'cinema'];
 
@@ -32,6 +40,10 @@ export const CULTURE: Culture[] = [
     text: 'Léonard saisit l’instant où Jésus annonce : « L’un de vous me livrera » (Jean 13:21). Les apôtres s’agitent par groupes de trois. Peinte sur un mur sec plutôt qu’en vraie fresque, l’œuvre a commencé à s’abîmer du vivant même du peintre.',
     detail: 'Toutes les lignes de la pièce convergent vers la tête du Christ, seul personnage calme au milieu de l’agitation.',
     wiki: 'La Cène (Léonard de Vinci)',
+    when: [
+      { feast: 'Jeudi saint', why: 'Jeudi saint, le soir de la Cène' },
+      { season: 'semaine-sainte', why: 'Pour la Semaine sainte' },
+    ],
   },
   {
     id: 'creation-adam',
@@ -54,6 +66,7 @@ export const CULTURE: Culture[] = [
     text: 'Vingt-cinq ans après le plafond, Michel-Ange couvre le mur de l’autel : le Christ juge au centre, les élus qui montent, les damnés qui tombent. Après le concile de Trente, Daniele da Volterra voile les nus, ce qui lui vaut le surnom d’« Il Braghettone », le culottier.',
     detail: 'Saint Barthélemy tient sa propre peau d’écorché : le visage qu’on y devine serait l’autoportrait de Michel-Ange.',
     wiki: 'Le Jugement dernier (Michel-Ange)',
+    when: [{ feast: 'Le Christ, Roi de l’univers', why: 'Aujourd’hui, le Christ, Roi de l’univers' }],
   },
   {
     id: 'fils-prodigue',
@@ -66,6 +79,7 @@ export const CULTURE: Culture[] = [
     detail:
       'Les deux mains du père sur le dos du fils ne sont pas pareilles : l’une est forte et masculine, l’autre plus fine, presque maternelle.',
     wiki: 'Le Retour du fils prodigue (Rembrandt)',
+    when: [{ season: 'careme', why: 'En Carême, le temps du retour' }],
   },
   {
     id: 'vocation-matthieu',
@@ -77,6 +91,7 @@ export const CULTURE: Culture[] = [
     text: 'Dans un bureau de collecteurs d’impôts, Jésus entre et désigne Matthieu (Matthieu 9:9). Le tableau se trouve dans l’église nationale des Français à Rome, où on peut le voir gratuitement, quelques pièces glissées dans la machine pour l’éclairer.',
     detail: 'Un rayon de lumière suit exactement le geste du Christ. Sa main reprend celle d’Adam peinte par Michel-Ange.',
     wiki: 'La Vocation de saint Matthieu',
+    when: [{ day: '09-21', why: 'Aujourd’hui, saint Matthieu' }],
   },
   {
     id: 'agneau-mystique',
@@ -88,6 +103,7 @@ export const CULTURE: Culture[] = [
     text: 'Ce retable de vingt panneaux montre l’Agneau de l’Apocalypse adoré par toute l’humanité. C’est sans doute l’œuvre la plus volée de l’histoire : convoitée par Napoléon, puis par les nazis, elle a été retrouvée en 1945 dans une mine de sel autrichienne.',
     detail: 'Le panneau des « Juges intègres », volé en 1934, n’a jamais été retrouvé : celui qu’on voit aujourd’hui est une copie.',
     wiki: 'L’Agneau mystique',
+    when: [{ feast: 'Toussaint', why: 'Aujourd’hui, la Toussaint' }],
   },
   {
     id: 'annonciation-angelico',
@@ -99,6 +115,7 @@ export const CULTURE: Culture[] = [
     text: 'Dominicain, Fra Angelico a peint cette Annonciation en haut de l’escalier qui mène aux cellules de ses frères, pour qu’ils prient en passant devant. Jean-Paul II l’a béatifié en 1982 et l’a donné pour patron aux artistes.',
     detail: 'Une inscription au bas de la fresque demande à chaque frère de dire un Ave Maria en passant.',
     wiki: 'L’Annonciation (Fra Angelico, San Marco)',
+    when: [{ feast: 'Annonciation du Seigneur', why: 'Aujourd’hui, l’Annonciation' }],
   },
   {
     id: 'angelus-millet',
@@ -110,6 +127,7 @@ export const CULTURE: Culture[] = [
     text: 'Au loin, le clocher sonne l’Angélus. Deux paysans posent leurs outils et prient, debout dans le champ. Le tableau est devenu l’une des images les plus reproduites du XIXe siècle, jusque sur les assiettes et les boîtes de biscuits.',
     detail: 'L’Angélus se prie trois fois par jour, matin, midi et soir, en mémoire de l’Incarnation.',
     wiki: 'L’Angélus (Millet)',
+    when: [{ feast: 'Annonciation du Seigneur', why: 'Aujourd’hui, l’Annonciation' }],
   },
   {
     id: 'christ-saint-jean-croix',
@@ -132,6 +150,7 @@ export const CULTURE: Culture[] = [
     text: 'Les deux disciples reconnaissent Jésus à la fraction du pain (Luc 24:30-31). L’un écarte les bras, l’autre se lève d’un bond. Caravage peint un Christ jeune et imberbe, celui qu’ils n’avaient pas reconnu en chemin.',
     detail: 'La corbeille de fruits déborde du bord de la table et semble sur le point de tomber vers nous.',
     wiki: 'Le Souper à Emmaüs (Caravage, Londres)',
+    when: [{ season: 'paques', why: 'Au temps de Pâques' }],
   },
   {
     id: 'madone-sixtine',
@@ -143,6 +162,7 @@ export const CULTURE: Culture[] = [
     text: 'Marie avance sur les nuages en portant l’Enfant, entre le pape Sixte II et sainte Barbe. Des rideaux s’ouvrent comme au théâtre. Dostoïevski en gardait une reproduction au-dessus de son divan.',
     detail: 'En bas, deux angelots accoudés, l’air rêveur, sont devenus plus célèbres que le tableau lui-même.',
     wiki: 'La Madone Sixtine',
+    when: [{ season: 'noel', why: 'Au temps de Noël' }],
   },
   {
     id: 'issenheim',
@@ -154,6 +174,10 @@ export const CULTURE: Culture[] = [
     text: 'Peint pour l’hôpital des Antonins, qui soignaient le « mal des ardents », une maladie qui couvrait la peau de plaies. Le Christ en croix y est couvert des mêmes plaies que les malades, qui priaient devant lui : Dieu souffrait avec eux.',
     detail: 'Le retable s’ouvre : derrière la Crucifixion apparaît une Résurrection lumineuse, le Christ rayonnant dans un halo d’or.',
     wiki: 'Retable d’Issenheim',
+    when: [
+      { feast: 'Vendredi saint', why: 'Aujourd’hui, le Vendredi saint' },
+      { feast: 'Pâques, Résurrection du Seigneur', why: 'Aujourd’hui, Pâques' },
+    ],
   },
   {
     id: 'trinite-masaccio',
@@ -165,6 +189,7 @@ export const CULTURE: Culture[] = [
     text: 'Le Père soutient la croix du Fils, la colombe de l’Esprit entre eux. C’est l’une des premières peintures construites avec une perspective mathématique rigoureuse : on a l’impression qu’une chapelle est creusée dans le mur.',
     detail: 'En bas, un squelette porte l’inscription : « J’ai été ce que vous êtes, et ce que je suis, vous le serez. »',
     wiki: 'La Trinité (Masaccio)',
+    when: [{ feast: 'Sainte Trinité', why: 'Aujourd’hui, la Sainte Trinité' }],
   },
   {
     id: 'trinite-roublev',
@@ -176,6 +201,7 @@ export const CULTURE: Culture[] = [
     text: 'Cette icône montre les trois visiteurs reçus par Abraham au chêne de Mambré (Genèse 18), image de la Trinité. Les trois anges, presque identiques, s’inclinent les uns vers les autres autour d’une coupe. C’est l’icône la plus célèbre du monde orthodoxe.',
     detail: 'Le côté de la table tourné vers nous est vide : la place est laissée à celui qui regarde.',
     wiki: 'Trinité (Roublev)',
+    when: [{ feast: 'Sainte Trinité', why: 'Aujourd’hui, la Sainte Trinité' }],
   },
   {
     id: 'joseph-charpentier',
@@ -187,6 +213,10 @@ export const CULTURE: Culture[] = [
     text: 'Dans l’atelier plongé dans la nuit, Joseph perce une poutre pendant que l’enfant Jésus tient la chandelle. Le peintre lorrain fait de cette scène d’intérieur toute simple une méditation : la poutre annonce déjà la croix.',
     detail: 'La flamme éclaire les doigts de l’enfant par transparence : c’est lui, la lumière de la scène.',
     wiki: 'Saint Joseph charpentier',
+    when: [
+      { feast: 'Saint Joseph', why: 'Aujourd’hui, saint Joseph' },
+      { day: '05-01', why: 'Aujourd’hui, saint Joseph travailleur' },
+    ],
   },
   {
     id: 'comte-orgaz',
@@ -198,6 +228,7 @@ export const CULTURE: Culture[] = [
     text: 'Selon la légende, saint Étienne et saint Augustin descendirent du ciel pour ensevelir eux-mêmes ce seigneur généreux envers l’Église. En bas, la terre et ses notables ; en haut, le ciel qui accueille l’âme du défunt.',
     detail: 'Le petit page au premier plan est le fils du peintre : son mouchoir porte l’année de sa naissance, 1578.',
     wiki: 'L’Enterrement du comte d’Orgaz',
+    when: [{ feast: 'Commémoraison des fidèles défunts', why: 'Aujourd’hui, on prie pour les défunts' }],
   },
   {
     id: 'scrovegni',
@@ -210,6 +241,7 @@ export const CULTURE: Culture[] = [
     detail:
       'L’étoile des mages est une comète : Giotto aurait vu passer celle de Halley en 1301. La sonde spatiale envoyée vers elle porte son nom.',
     wiki: 'Chapelle des Scrovegni',
+    when: [{ feast: 'Épiphanie du Seigneur', why: 'Aujourd’hui, l’Épiphanie' }],
   },
   {
     id: 'cristo-velazquez',
@@ -221,6 +253,10 @@ export const CULTURE: Culture[] = [
     text: 'Sur un fond noir, rien d’autre que le Christ en croix, paisible, la tête penchée. Le poète Miguel de Unamuno y a consacré un long poème. Velázquez a peint les pieds côte à côte, fixés par deux clous, comme le recommandait son maître Pacheco.',
     detail: 'Une mèche de cheveux tombe et cache la moitié du visage, comme si le peintre n’osait pas tout montrer.',
     wiki: 'Le Christ crucifié (Velázquez)',
+    when: [
+      { feast: 'Vendredi saint', why: 'Aujourd’hui, le Vendredi saint' },
+      { feast: 'La Croix glorieuse', why: 'Aujourd’hui, la Croix glorieuse' },
+    ],
   },
   {
     id: 'miserere-rouault',
@@ -266,6 +302,10 @@ export const CULTURE: Culture[] = [
     text: 'Michel-Ange a environ 24 ans quand il taille dans un seul bloc de marbre Marie tenant le corps de son Fils. C’est la seule œuvre qu’il ait signée : il aurait entendu des visiteurs l’attribuer à un autre. Depuis qu’un homme l’a frappée au marteau en 1972, elle est protégée par une vitre.',
     detail: 'Marie a un visage très jeune. Michel-Ange expliquait que la pureté garde la jeunesse.',
     wiki: 'Pietà (Michel-Ange)',
+    when: [
+      { day: '09-15', why: 'Aujourd’hui, Notre-Dame des Douleurs' },
+      { season: 'semaine-sainte', why: 'Pour la Semaine sainte' },
+    ],
   },
   {
     id: 'extase-therese',
@@ -277,6 +317,7 @@ export const CULTURE: Culture[] = [
     text: 'Le Bernin sculpte une scène racontée par Thérèse d’Avila dans sa Vie : un ange lui transperce le cœur d’un dard d’or, la laissant « tout embrasée d’un grand amour de Dieu ». Le marbre semble flotter sur un nuage.',
     detail: 'Une fenêtre cachée au-dessus de la scène fait tomber la lumière du jour sur des rayons dorés.',
     wiki: 'L’Extase de sainte Thérèse',
+    when: [{ day: '10-15', why: 'Aujourd’hui, sainte Thérèse d’Avila' }],
   },
   {
     id: 'beau-dieu-amiens',
@@ -299,6 +340,7 @@ export const CULTURE: Culture[] = [
     text: 'Sur le portail de la cathédrale des sacres, un ange sourit, fait rare dans la sculpture gothique. En septembre 1914, un obus allemand provoque un incendie et la tête se brise. Recollée à partir des morceaux, elle reprend sa place en 1926.',
     detail: 'On l’appelle aussi « le Sourire de Reims ». C’est devenu l’emblème de la ville.',
     wiki: 'Ange au sourire',
+    when: [{ day: '10-02', why: 'Aujourd’hui, les saints Anges gardiens' }],
   },
   {
     id: 'christ-redempteur',
@@ -334,6 +376,7 @@ export const CULTURE: Culture[] = [
     text: 'Il a fallu près de deux siècles pour la bâtir. Le 15 avril 2019, un incendie détruit sa charpente et sa flèche. Après cinq ans de chantier mené par des centaines d’artisans, elle rouvre ses portes le 7 décembre 2024.',
     detail: 'Sur le parvis, une plaque marque le point zéro des routes de France : les distances depuis Paris se mesurent à partir d’elle.',
     wiki: 'Cathédrale Notre-Dame de Paris',
+    when: [{ feast: 'Assomption de la Vierge Marie', why: 'Aujourd’hui, l’Assomption' }],
   },
   {
     id: 'chartres',
@@ -345,6 +388,7 @@ export const CULTURE: Culture[] = [
     text: 'Après un incendie en 1194, la cathédrale est rebâtie en une trentaine d’années seulement, ce qui lui donne une rare unité. Elle conserve l’essentiel de ses vitraux d’origine et leur bleu profond, le « bleu de Chartres ».',
     detail: 'Au sol de la nef, un grand labyrinthe dallé : les pèlerins le parcourent en priant, comme un chemin vers Jérusalem.',
     wiki: 'Cathédrale Notre-Dame de Chartres',
+    when: [{ feast: 'Assomption de la Vierge Marie', why: 'Aujourd’hui, l’Assomption' }],
   },
   {
     id: 'sagrada-familia',
@@ -356,6 +400,7 @@ export const CULTURE: Culture[] = [
     text: 'Gaudí y consacre plus de quarante ans, dont ses dernières années entières. Renversé par un tramway en 1926, il meurt sans avoir vu son église achevée. Benoît XVI la consacre en 2010 ; l’Église a reconnu les vertus héroïques de Gaudí en 2025.',
     detail: '« Mon client n’est pas pressé », disait Gaudí. Les piliers de la nef se ramifient comme une forêt de pierre.',
     wiki: 'Sagrada Família',
+    when: [{ feast: 'Sainte Famille', why: 'Aujourd’hui, la Sainte Famille' }],
   },
   {
     id: 'mont-saint-michel',
@@ -367,6 +412,7 @@ export const CULTURE: Culture[] = [
     text: 'Selon la tradition, l’archange Michel apparut à Aubert, évêque d’Avranches, pour lui demander de bâtir un sanctuaire sur le rocher. Pendant des siècles, les pèlerins, les « miquelots », ont traversé la baie à pied, à marée basse.',
     detail: 'Tout en haut de la flèche, une statue dorée de saint Michel terrasse le dragon, visible de toute la baie.',
     wiki: 'Mont-Saint-Michel',
+    when: [{ day: '09-29', why: 'Aujourd’hui, saint Michel et les archanges' }],
   },
   {
     id: 'saint-pierre',
@@ -378,6 +424,10 @@ export const CULTURE: Culture[] = [
     text: 'Elle est construite au-dessus de la tombe de l’apôtre Pierre. Pendant plus d’un siècle se succèdent les plus grands architectes : Michel-Ange dessine la coupole, Le Bernin la place et sa colonnade.',
     detail: 'La colonnade forme deux bras courbes : Le Bernin voulait que l’Église y accueille le monde comme une mère.',
     wiki: 'Basilique Saint-Pierre',
+    when: [
+      { feast: 'Saints Pierre et Paul', why: 'Aujourd’hui, saints Pierre et Paul' },
+      { day: '11-18', why: 'Aujourd’hui, la dédicace de Saint-Pierre' },
+    ],
   },
   {
     id: 'sainte-chapelle',
@@ -389,6 +439,7 @@ export const CULTURE: Culture[] = [
     text: 'Le roi Louis IX la fait bâtir en sept ans pour abriter la couronne d’épines, achetée à l’empereur de Constantinople. Les murs semblent disparaître : il ne reste presque que des vitraux, comme un reliquaire de lumière.',
     detail: 'Les quinze verrières racontent l’histoire du monde en 1 113 scènes, de la Genèse à l’arrivée des reliques à Paris.',
     wiki: 'Sainte-Chapelle',
+    when: [{ day: '08-25', why: 'Aujourd’hui, saint Louis' }],
   },
   {
     id: 'vezelay',
@@ -400,6 +451,7 @@ export const CULTURE: Culture[] = [
     text: 'Dédiée à Marie-Madeleine, elle est l’un des départs des chemins de Compostelle. Saint Bernard y prêche la deuxième croisade en 1146. Son grand tympan montre le Christ envoyant ses apôtres vers tous les peuples.',
     detail: 'À midi, le jour du solstice d’été, des taches de lumière se posent exactement au milieu de la nef.',
     wiki: 'Basilique Sainte-Marie-Madeleine de Vézelay',
+    when: [{ day: '07-22', why: 'Aujourd’hui, sainte Marie-Madeleine' }],
   },
   {
     id: 'sainte-sophie',
@@ -445,6 +497,7 @@ export const CULTURE: Culture[] = [
     text: 'Les cisterciens de saint Bernard voulaient une architecture sans décor, pour ne pas distraire de la prière. Au Thoronet, il n’y a que la pierre, la lumière et le son. Le Corbusier l’a visitée avant de dessiner le couvent de La Tourette.',
     detail: 'L’église résonne longtemps : un seul chant y remplit tout l’espace.',
     wiki: 'Abbaye du Thoronet',
+    when: [{ day: '08-20', why: 'Aujourd’hui, saint Bernard' }],
   },
 
   // ——— Musique ———
@@ -457,6 +510,7 @@ export const CULTURE: Culture[] = [
     text: 'Il porte le nom du pape Grégoire le Grand, mais s’est surtout fixé à l’époque de Charlemagne. Oublié peu à peu, il a été restauré au XIXe siècle par les moines de Solesmes. Le concile Vatican II lui reconnaît « la première place » dans la liturgie latine.',
     detail: 'Une seule ligne mélodique, sans mesure : la musique suit le rythme naturel des mots latins.',
     wiki: 'Chant grégorien',
+    when: [{ day: '09-03', why: 'Aujourd’hui, saint Grégoire le Grand' }],
   },
   {
     id: 'messe-si-bach',
@@ -477,6 +531,7 @@ export const CULTURE: Culture[] = [
     text: 'Créée à Leipzig un Vendredi saint, cette Passion raconte les chapitres 26 et 27 de Matthieu, entrecoupés de chorals et d’airs de méditation. Oubliée après la mort de Bach, elle est remise à l’honneur par le jeune Mendelssohn en 1829.',
     detail: 'Les paroles de Jésus sont entourées d’un halo de cordes, sauf la dernière : « Eli, Eli, lama sabachthani ? »',
     wiki: 'Passion selon saint Matthieu (Bach)',
+    when: [{ season: 'semaine-sainte', why: 'Pour la Semaine sainte' }],
   },
   {
     id: 'messie-haendel',
@@ -488,6 +543,10 @@ export const CULTURE: Culture[] = [
     text: 'Haendel compose cet oratorio en à peine plus de trois semaines. Il parcourt toute l’histoire du salut : l’annonce des prophètes, la Nativité, la Passion, la Résurrection. Les recettes de la création ont été données à des œuvres de charité.',
     detail: 'Au chœur de l’« Alléluia », le public se lève : on dit que le roi George II l’a fait le premier.',
     wiki: 'Le Messie (Haendel)',
+    when: [
+      { season: 'avent', why: 'Pour l’Avent' },
+      { season: 'noel', why: 'Au temps de Noël' },
+    ],
   },
   {
     id: 'miserere-allegri',
@@ -498,6 +557,10 @@ export const CULTURE: Culture[] = [
     text: 'Ce Psaume 51 mis en musique était chanté dans la chapelle Sixtine pendant la Semaine sainte. Il était interdit de le copier. En 1770, le jeune Mozart, 14 ans, l’aurait écouté une seule fois et retranscrit de mémoire.',
     detail: 'Écoute le contre-ut du soprano, qui s’élève comme un cri vers le ciel à chaque reprise.',
     wiki: 'Miserere (Allegri)',
+    when: [
+      { feast: 'Mercredi des Cendres', why: 'Aujourd’hui, les Cendres' },
+      { season: 'semaine-sainte', why: 'Pour la Semaine sainte' },
+    ],
   },
   {
     id: 'requiem-mozart',
@@ -508,6 +571,7 @@ export const CULTURE: Culture[] = [
     text: 'Commandé par un mystérieux inconnu, ce Requiem est la dernière œuvre de Mozart, qui meurt avant de l’achever. Son élève Franz Xaver Süssmayr le complète. La légende d’un Mozart composant sa propre messe des morts a fait le reste.',
     detail: 'Le « Lacrimosa » s’interrompt après huit mesures : ce sont parmi les dernières notes écrites par Mozart.',
     wiki: 'Requiem (Mozart)',
+    when: [{ feast: 'Commémoraison des fidèles défunts', why: 'Aujourd’hui, on prie pour les défunts' }],
   },
   {
     id: 'requiem-faure',
@@ -518,6 +582,7 @@ export const CULTURE: Culture[] = [
     text: 'Fauré, organiste à la Madeleine, écarte l’effroi du Jugement pour une musique de paix. Il expliquait voir la mort « comme une délivrance heureuse, une aspiration au bonheur d’au-delà, plutôt que comme un passage douloureux ».',
     detail: 'Le dernier mouvement, « In paradisum », est le chant qui accompagne le défunt à la sortie de l’église.',
     wiki: 'Requiem (Fauré)',
+    when: [{ feast: 'Commémoraison des fidèles défunts', why: 'Aujourd’hui, on prie pour les défunts' }],
   },
   {
     id: 'ave-maria-schubert',
@@ -549,6 +614,10 @@ export const CULTURE: Culture[] = [
     detail:
       '« Stabat Mater dolorosa » : debout, la Mère des douleurs. Le texte se chante le 15 septembre, fête de Notre-Dame des Douleurs.',
     wiki: 'Stabat Mater (Pergolèse)',
+    when: [
+      { day: '09-15', why: 'Aujourd’hui, Notre-Dame des Douleurs' },
+      { feast: 'Vendredi saint', why: 'Aujourd’hui, le Vendredi saint' },
+    ],
   },
   {
     id: 'te-deum-charpentier',
@@ -559,6 +628,7 @@ export const CULTURE: Culture[] = [
     text: 'Le Te Deum est le grand chant d’action de grâce de l’Église, entonné pour les victoires, les sacres ou la fin d’une année. Celui de Charpentier, compositeur de Louis XIV, s’ouvre sur un prélude éclatant de trompettes et de timbales.',
     detail: 'Ce prélude, tu le connais sûrement : c’est l’indicatif de l’Eurovision.',
     wiki: 'Te Deum (Charpentier)',
+    when: [{ day: '12-31', why: 'Le dernier soir de l’année, on chante le Te Deum' }],
   },
   {
     id: 'taize',
@@ -590,6 +660,7 @@ export const CULTURE: Culture[] = [
     text: 'Abbesse bénédictine, Hildegarde a écrit sur la théologie, la médecine, les plantes, et composé plus de soixante-dix chants. Elle est l’une des premières compositrices dont on connaisse le nom. Benoît XVI l’a proclamée docteur de l’Église en 2012.',
     detail: 'Ses mélodies montent très haut et redescendent largement, bien au-delà de l’ambitus habituel du grégorien.',
     wiki: 'Hildegarde de Bingen',
+    when: [{ day: '09-17', why: 'Aujourd’hui, sainte Hildegarde' }],
   },
   {
     id: 'douce-nuit',
@@ -601,6 +672,10 @@ export const CULTURE: Culture[] = [
     text: 'La veille de Noël, le vicaire Joseph Mohr demande à l’organiste Franz Xaver Gruber de mettre son poème en musique. Le chant est créé le soir même, à la guitare. Il a été traduit dans plus de trois cents langues.',
     detail: 'À Noël 1914, des soldats anglais et allemands l’auraient chanté ensemble dans les tranchées, pendant la trêve.',
     wiki: 'Douce Nuit',
+    when: [
+      { day: '12-24', why: 'Ce soir, la nuit de Noël' },
+      { season: 'noel', why: 'Au temps de Noël' },
+    ],
   },
   {
     id: 'gloria-vivaldi',
@@ -612,6 +687,7 @@ export const CULTURE: Culture[] = [
     text: 'Vivaldi était prêtre : on le surnommait « le prêtre roux », à cause de ses cheveux. Il enseignait la musique aux orphelines de la Pietà, à Venise, qui interprétaient ses œuvres derrière une grille.',
     detail: 'Le chœur d’ouverture répète « Gloria » sur des octaves bondissantes, comme une joie qui ne tient pas en place.',
     wiki: 'Gloria (Vivaldi)',
+    when: [{ season: 'noel', why: 'Au temps de Noël, le chant des anges' }],
   },
   {
     id: 'dialogues-carmelites',
@@ -622,6 +698,7 @@ export const CULTURE: Culture[] = [
     text: 'L’opéra raconte les seize carmélites de Compiègne, guillotinées en 1794 pendant la Terreur. Elles montent à l’échafaud en chantant, une à une. Le pape François les a déclarées saintes en décembre 2024.',
     detail: 'Dans la scène finale, le « Salve Regina » s’amenuise à chaque coup de couperet, jusqu’à la dernière voix.',
     wiki: 'Dialogues des carmélites (opéra)',
+    when: [{ day: '07-17', why: 'Aujourd’hui, les carmélites de Compiègne' }],
   },
 
   // ——— Littérature ———
@@ -634,6 +711,7 @@ export const CULTURE: Culture[] = [
     text: 'Évêque d’Hippone, Augustin raconte sa jeunesse agitée, sa quête de vérité et sa conversion, en s’adressant directement à Dieu. On considère souvent ce livre comme la première autobiographie de la littérature occidentale.',
     detail: '« Tu nous as faits pour toi, et notre cœur est sans repos tant qu’il ne repose en toi. »',
     wiki: 'Les Confessions (Augustin)',
+    when: [{ day: '08-28', why: 'Aujourd’hui, saint Augustin' }],
   },
   {
     id: 'divine-comedie',
@@ -676,6 +754,7 @@ export const CULTURE: Culture[] = [
     text: 'Malade et presque aveugle, François loue Dieu pour « frère Soleil », « sœur Lune », « frère Vent » et « sœur Eau ». C’est l’un des premiers textes écrits en italien. Le pape François en a tiré le titre de son encyclique Laudato si’.',
     detail: 'Peu avant de mourir, François a ajouté une strophe pour « notre sœur la Mort corporelle ».',
     wiki: 'Cantique des créatures',
+    when: [{ day: '10-04', why: 'Aujourd’hui, saint François d’Assise' }],
   },
   {
     id: 'histoire-ame',
@@ -686,6 +765,7 @@ export const CULTURE: Culture[] = [
     text: 'Morte à 24 ans au carmel de Lisieux, Thérèse laisse des cahiers où elle raconte sa « petite voie » : la confiance d’un enfant envers Dieu. Publiés un an après sa mort, ils font le tour du monde. Elle a été proclamée docteur de l’Église en 1997.',
     detail: '« Je veux passer mon Ciel à faire du bien sur la terre. »',
     wiki: 'Histoire d’une âme',
+    when: [{ day: '10-01', why: 'Aujourd’hui, sainte Thérèse de Lisieux' }],
   },
   {
     id: 'miserables',
@@ -706,6 +786,7 @@ export const CULTURE: Culture[] = [
     text: 'Un jeune prêtre malade tient le journal de sa première paroisse, dans un village du Nord qui lui reste hostile. Il doute, échoue, se sent inutile, et pourtant la grâce passe par lui. Le roman a reçu le grand prix du roman de l’Académie française.',
     detail: 'Le livre s’achève sur ses derniers mots : « Qu’est-ce que cela fait ? Tout est grâce. »',
     wiki: 'Journal d’un curé de campagne',
+    when: [{ day: '08-04', why: 'Aujourd’hui, le saint curé d’Ars' }],
   },
   {
     id: 'claudel',
@@ -716,6 +797,7 @@ export const CULTURE: Culture[] = [
     text: 'Le soir de Noël 1886, le jeune Claudel entre à Notre-Dame de Paris par curiosité. Pendant le Magnificat des vêpres, il est saisi : « En un instant mon cœur fut touché et je crus. » Toute son œuvre, comme ce drame sur le don et le sacrifice, en découle.',
     detail: 'Une plaque marque, dans Notre-Dame, l’endroit où il se tenait, près d’un pilier.',
     wiki: 'L’Annonce faite à Marie',
+    when: [{ feast: 'Nativité du Seigneur', why: 'Claudel s’est converti un jour de Noël' }],
   },
   {
     id: 'peguy-chartres',
@@ -726,6 +808,7 @@ export const CULTURE: Culture[] = [
     text: 'En 1912, Péguy marche de Paris à Chartres pour confier à Marie son fils malade. Il en tire ce long poème qui accompagne le pas du marcheur dans les blés. Il meurt au front le 5 septembre 1914, au début de la bataille de la Marne.',
     detail: 'Des milliers de jeunes refont chaque année ce pèlerinage à la Pentecôte, en récitant ses vers.',
     wiki: 'Charles Péguy',
+    when: [{ feast: 'Pentecôte', why: 'À la Pentecôte, le pèlerinage de Chartres' }],
   },
   {
     id: 'seigneur-anneaux',
@@ -736,6 +819,7 @@ export const CULTURE: Culture[] = [
     text: 'Tolkien, catholique fervent, écrivait à un ami prêtre que son livre était « une œuvre fondamentalement religieuse et catholique ». Dieu n’y est jamais nommé, mais la pitié, le sacrifice et la grâce tiennent toute l’histoire.',
     detail: 'L’Anneau est détruit un 25 mars, jour de l’Annonciation, date que la tradition donne aussi à la Crucifixion.',
     wiki: 'Le Seigneur des anneaux',
+    when: [{ day: '03-25', why: 'Le 25 mars, l’Anneau est détruit' }],
   },
   {
     id: 'narnia',
@@ -766,6 +850,7 @@ export const CULTURE: Culture[] = [
     text: 'Thérèse compare l’âme à un château de cristal aux nombreuses demeures. Au centre, dans la septième, Dieu habite. La prière est le chemin qui fait traverser les pièces, une à une, vers lui. Elle a été la première femme proclamée docteur de l’Église, en 1970.',
     detail: '« Notre âme est comme un château fait d’un seul diamant ou d’un très clair cristal. »',
     wiki: 'Le Château intérieur',
+    when: [{ day: '10-15', why: 'Aujourd’hui, sainte Thérèse d’Avila' }],
   },
   {
     id: 'jean-croix',
@@ -776,6 +861,7 @@ export const CULTURE: Culture[] = [
     text: 'En 1577, Jean de la Croix est enfermé par des frères de son ordre opposés à sa réforme du Carmel, dans un cachot de Tolède. Il y compose de tête ses premiers poèmes mystiques, avant de s’évader au bout de neuf mois, par une fenêtre, à l’aide de draps noués.',
     detail: 'La « nuit obscure », c’est l’épreuve où Dieu semble absent, mais où l’âme avance vers lui sans le voir.',
     wiki: 'La Nuit obscure',
+    when: [{ day: '12-14', why: 'Aujourd’hui, saint Jean de la Croix' }],
   },
   {
     id: 'fioretti',
@@ -787,6 +873,7 @@ export const CULTURE: Culture[] = [
     detail:
       'François y explique à frère Léon que la « joie parfaite » consiste à être rejeté par tous… et à le supporter avec patience par amour.',
     wiki: 'Fioretti',
+    when: [{ day: '10-04', why: 'Aujourd’hui, saint François d’Assise' }],
   },
 
   // ——— Pensée et grands textes ———
@@ -800,6 +887,7 @@ export const CULTURE: Culture[] = [
     detail:
       'Après une expérience mystique pendant la messe, il cesse d’écrire : « Tout ce que j’ai écrit me semble de la paille. » La Somme reste inachevée.',
     wiki: 'Somme théologique',
+    when: [{ day: '01-28', why: 'Aujourd’hui, saint Thomas d’Aquin' }],
   },
   {
     id: 'regle-benoit',
@@ -810,6 +898,7 @@ export const CULTURE: Culture[] = [
     text: 'Ce court texte organise la vie des moines : prière, travail, lecture, repas, sommeil, accueil des hôtes. Il a façonné pendant des siècles des milliers de monastères, qui ont gardé vivante la culture européenne. Benoît est le saint patron de l’Europe.',
     detail: 'Le premier mot de la Règle est « Écoute ».',
     wiki: 'Règle de saint Benoît',
+    when: [{ day: '07-11', why: 'Aujourd’hui, saint Benoît' }],
   },
   {
     id: 'credo-nicee',
@@ -830,6 +919,7 @@ export const CULTURE: Culture[] = [
     text: 'Évêque de Genève, François de Sales écrit pour les laïcs, et non pour les moines : on peut devenir saint dans son métier, sa famille, sa vie de tous les jours. Le livre, écrit dans un français clair et imagé, connaît un succès immense.',
     detail: 'Pour sa plume, il est devenu le patron des journalistes et des écrivains.',
     wiki: 'Introduction à la vie dévote',
+    when: [{ day: '01-24', why: 'Aujourd’hui, saint François de Sales' }],
   },
   {
     id: 'exercices-ignace',
@@ -840,6 +930,7 @@ export const CULTURE: Culture[] = [
     text: 'Blessé à la jambe en 1521, le soldat Ignace s’ennuie pendant sa convalescence et lit des vies de saints. Il apprend à reconnaître ce qui le rend joyeux ou triste au fond de lui. De cette expérience naît une retraite de quatre semaines, encore pratiquée partout.',
     detail: 'Le « discernement des esprits » : remarquer ce qui laisse en paix et ce qui trouble, pour choisir.',
     wiki: 'Exercices spirituels',
+    when: [{ day: '07-31', why: 'Aujourd’hui, saint Ignace de Loyola' }],
   },
   {
     id: 'rerum-novarum',
@@ -850,6 +941,7 @@ export const CULTURE: Culture[] = [
     text: 'En pleine révolution industrielle, le pape prend la défense des ouvriers : juste salaire, droit de s’associer en syndicats, limitation du temps de travail. Cette encyclique est le point de départ de la doctrine sociale de l’Église.',
     detail: 'Le nom d’un document pontifical vient de ses premiers mots latins : ici, « des choses nouvelles ».',
     wiki: 'Rerum novarum',
+    when: [{ day: '05-01', why: 'Aujourd’hui, saint Joseph travailleur' }],
   },
   {
     id: 'laudato-si',
@@ -860,6 +952,10 @@ export const CULTURE: Culture[] = [
     text: 'Première encyclique consacrée à l’écologie, elle parle de « la maison commune ». Tout est lié : le soin de la planète, la justice envers les pauvres et la paix intérieure. Elle s’adresse à « chaque personne qui habite cette planète ».',
     detail: 'Son titre vient du Cantique des créatures de saint François : « Loué sois-tu, mon Seigneur ».',
     wiki: 'Laudato si’',
+    when: [
+      { day: '09-01', why: 'Journée de prière pour la création' },
+      { day: '10-04', why: 'Aujourd’hui, saint François d’Assise' },
+    ],
   },
   {
     id: 'fides-ratio',
@@ -871,6 +967,7 @@ export const CULTURE: Culture[] = [
     detail:
       '« La foi et la raison sont comme les deux ailes qui permettent à l’esprit humain de s’élever vers la contemplation de la vérité. »',
     wiki: 'Fides et ratio',
+    when: [{ day: '10-22', why: 'Aujourd’hui, saint Jean-Paul II' }],
   },
   {
     id: 'diognete',
@@ -891,6 +988,7 @@ export const CULTURE: Culture[] = [
     text: 'Préparé pendant six ans sous la direction du cardinal Ratzinger, il présente toute la foi catholique en quatre parties : le Credo, les sacrements, la vie morale et la prière. Un Compendium, plus court, sous forme de questions-réponses, a suivi en 2005.',
     detail: 'Il compte 2 865 paragraphes numérotés, qu’on cite comme des versets : « CEC 1324 ».',
     wiki: 'Catéchisme de l’Église catholique',
+    when: [{ day: '10-22', why: 'Aujourd’hui, saint Jean-Paul II' }],
   },
   {
     id: 'vatican-ii',
@@ -901,6 +999,7 @@ export const CULTURE: Culture[] = [
     text: 'Plus de deux mille évêques du monde entier se réunissent à Rome pendant quatre sessions. Le concile produit seize documents : sur l’Église, la Révélation, la liturgie, le monde de ce temps. La messe peut désormais être célébrée dans la langue de chacun.',
     detail: 'On prête à Jean XXIII une image : ouvrir les fenêtres de l’Église pour laisser entrer un peu d’air frais.',
     wiki: 'Concile Vatican II',
+    when: [{ day: '10-11', why: 'Aujourd’hui, saint Jean XXIII' }],
   },
 
   // ——— Cinéma ———
@@ -923,6 +1022,7 @@ export const CULTURE: Culture[] = [
     text: 'Un documentaire sur la Grande Chartreuse, où vivent des moines chartreux dans le silence. Ni musique ajoutée ni commentaire : seulement la vie du monastère au fil des saisons. Le réalisateur a attendu seize ans la réponse des moines à sa demande de tournage.',
     detail: 'Le film dure près de trois heures et presque personne ne parle : c’est le silence qu’on regarde.',
     wiki: 'Le Grand Silence',
+    when: [{ day: '10-06', why: 'Aujourd’hui, saint Bruno' }],
   },
   {
     id: 'therese-cavalier',
@@ -933,6 +1033,7 @@ export const CULTURE: Culture[] = [
     text: 'La vie de Thérèse de Lisieux au carmel, filmée dans un décor presque vide, avec des fonds gris et peu d’objets, comme des tableaux. Le film a reçu le Prix du jury à Cannes et six César, dont celui du meilleur film.',
     detail: 'L’actrice Catherine Mouchet avait 27 ans, à peine plus que Thérèse à sa mort.',
     wiki: 'Thérèse (film, 1986)',
+    when: [{ day: '10-01', why: 'Aujourd’hui, sainte Thérèse de Lisieux' }],
   },
   {
     id: 'passion-gibson',
@@ -943,6 +1044,7 @@ export const CULTURE: Culture[] = [
     text: 'Le film suit les douze dernières heures de Jésus, de Gethsémani à la croix. Les acteurs y parlent araméen, hébreu et latin, sous-titrés. Très violent, il a été autant salué que critiqué, et reste l’un des plus grands succès du cinéma religieux.',
     detail: 'Des souvenirs, comme la Cène ou le Sermon sur la montagne, interrompent la Passion par des retours en arrière.',
     wiki: 'La Passion du Christ',
+    when: [{ season: 'semaine-sainte', why: 'Pour la Semaine sainte' }],
   },
 ];
 

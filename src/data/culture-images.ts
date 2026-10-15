@@ -1,0 +1,38 @@
+// Généré par scripts/fetch-culture-images.mjs : ne pas modifier à la main.
+// Images de Wikimedia Commons, sous licence libre ; le crédit s'affiche sous l'œuvre.
+import type { ImageSourcePropType } from 'react-native';
+
+export const CULTURE_IMAGES: Record<string, { image: ImageSourcePropType; credit: string }> = {
+  'cene-vinci': { image: require('../../assets/culture/cene-vinci.jpg'), credit: 'Domaine public' },
+  'creation-adam': { image: require('../../assets/culture/creation-adam.jpg'), credit: 'Domaine public' },
+  'jugement-dernier': { image: require('../../assets/culture/jugement-dernier.jpg'), credit: 'Domaine public' },
+  'fils-prodigue': { image: require('../../assets/culture/fils-prodigue.jpg'), credit: 'Domaine public' },
+  'vocation-matthieu': { image: require('../../assets/culture/vocation-matthieu.jpg'), credit: 'Domaine public' },
+  'agneau-mystique': { image: require('../../assets/culture/agneau-mystique.jpg'), credit: 'Domaine public' },
+  'annonciation-angelico': { image: require('../../assets/culture/annonciation-angelico.jpg'), credit: 'Domaine public' },
+  'angelus-millet': { image: require('../../assets/culture/angelus-millet.jpg'), credit: 'Domaine public' },
+  'emmaus-caravage': { image: require('../../assets/culture/emmaus-caravage.jpg'), credit: 'Domaine public' },
+  'madone-sixtine': { image: require('../../assets/culture/madone-sixtine.jpg'), credit: 'Domaine public' },
+  issenheim: { image: require('../../assets/culture/issenheim.jpg'), credit: '© Jörgens.mi, CC BY-SA 3.0' },
+  'trinite-masaccio': { image: require('../../assets/culture/trinite-masaccio.jpg'), credit: 'Domaine public' },
+  'trinite-roublev': { image: require('../../assets/culture/trinite-roublev.jpg'), credit: 'Domaine public' },
+  'joseph-charpentier': { image: require('../../assets/culture/joseph-charpentier.jpg'), credit: 'Domaine public' },
+  'comte-orgaz': { image: require('../../assets/culture/comte-orgaz.jpg'), credit: 'Domaine public' },
+  scrovegni: { image: require('../../assets/culture/scrovegni.jpg'), credit: '© José Luiz Bernardes Ribeiro, CC BY-SA 4.0' },
+  'cristo-velazquez': { image: require('../../assets/culture/cristo-velazquez.jpg'), credit: 'Domaine public' },
+  pieta: { image: require('../../assets/culture/pieta.jpg'), credit: 'Juan M Romero, CC BY-SA 4.0' },
+  'extase-therese': { image: require('../../assets/culture/extase-therese.jpg'), credit: 'Alvesgaspar, CC BY-SA 4.0' },
+  'beau-dieu-amiens': { image: require('../../assets/culture/beau-dieu-amiens.jpg'), credit: 'Domaine public' },
+  'ange-sourire': { image: require('../../assets/culture/ange-sourire.jpg'), credit: 'Domaine public' },
+  'moise-michel-ange': { image: require('../../assets/culture/moise-michel-ange.jpg'), credit: 'Livioandronico2013, CC BY-SA 4.0' },
+  'notre-dame-paris': { image: require('../../assets/culture/notre-dame-paris.jpg'), credit: 'Peter Haas, CC BY-SA 3.0' },
+  chartres: { image: require('../../assets/culture/chartres.jpg'), credit: 'Chabe01, CC BY-SA 4.0' },
+  'sagrada-familia': { image: require('../../assets/culture/sagrada-familia.jpg'), credit: 'Canaan, CC BY-SA 4.0' },
+  'mont-saint-michel': { image: require('../../assets/culture/mont-saint-michel.jpg'), credit: 'Lynx1211, CC BY-SA 4.0' },
+  'saint-pierre': { image: require('../../assets/culture/saint-pierre.jpg'), credit: 'Alvesgaspar, CC BY-SA 4.0' },
+  'sainte-chapelle': { image: require('../../assets/culture/sainte-chapelle.jpg'), credit: 'Diego Delso, CC BY-SA 4.0' },
+  vezelay: { image: require('../../assets/culture/vezelay.jpg'), credit: 'Benjism89, CC BY-SA 4.0' },
+  'sainte-sophie': { image: require('../../assets/culture/sainte-sophie.jpg'), credit: 'Adli Wahid, CC BY-SA 3.0' },
+  cluny: { image: require('../../assets/culture/cluny.jpg'), credit: 'Benjism89, CC BY-SA 4.0' },
+  thoronet: { image: require('../../assets/culture/thoronet.jpg'), credit: 'Domaine public' },
+};

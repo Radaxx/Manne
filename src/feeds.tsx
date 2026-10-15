@@ -10,11 +10,11 @@ import { CultureCard, FactCard, NewsCard, PauseCard, PersonCard, QuizCard, Refle
 import { ChapterReader, TopScrim, useReadingChrome } from './chapter';
 import { communityKey, useCommunity } from './community';
 import type { Passage, Theme, Verse } from './data/content';
-import { type Card, FeedGenerator, listenUrl, wikiUrl } from './feed';
+import { type Card, cultureForDay, FeedGenerator, listenUrl, wikiUrl } from './feed';
 import { haptic } from './haptics';
 import { headlines, useNews } from './news';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
-import { DAILY_GOAL, type ProgressApi, useApp } from './storage';
+import { DAILY_GOAL, type ProgressApi, today, useApp } from './storage';
 import { supabase } from './supabase';
 import { FocusedStatusBar } from './theme';
 import { goalCaption, goalToast } from './today';
@@ -97,8 +97,15 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
   const news = useNews();
   const todays = useRef(headlines(news.items));
   todays.current = headlines(news.items);
+  // Le réglage peut changer pendant qu'on scrolle : le générateur le relit à chaque œuvre.
+  const calendar = useRef(api.progress.cultureCalendar);
+  calendar.current = api.progress.cultureCalendar;
   const [{ generator, initial }] = useState(() => {
-    const g = new FeedGenerator(api.getScores, () => todays.current);
+    const g = new FeedGenerator(
+      api.getScores,
+      () => todays.current,
+      () => (calendar.current ? cultureForDay(today()) : []),
+    );
     return { generator: g, initial: g.next(12) };
   });
   const t = api.progress.translation;
@@ -157,6 +164,7 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
               <CultureCard
                 culture={culture}
                 height={height}
+                why={card.why}
                 onMore={() => open(wikiUrl(culture))}
                 onListen={culture.kind === 'musique' ? () => open(listenUrl(culture)) : undefined}
               />
