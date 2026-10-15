@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
+import { CULTURE_LABELS, type Culture, type CultureKind } from './data/culture';
 import { type NewsItem, publishedAgo } from './news';
 
 export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
@@ -248,6 +249,62 @@ export function ReflectionCard({ prompt, height }: { prompt: string; height: num
   );
 }
 
+const CULTURE_STYLE: Record<CultureKind, { colors: Gradient; icon: keyof typeof Ionicons.glyphMap }> = {
+  peinture: { colors: ['#160b08', '#3d1d14', '#7a3b22'], icon: 'color-palette-outline' },
+  sculpture: { colors: ['#121212', '#2e2b27', '#5c564c'], icon: 'cube-outline' },
+  architecture: { colors: ['#0c1016', '#1f2a36', '#46566a'], icon: 'business-outline' },
+  musique: { colors: ['#0d0a1f', '#271b4d', '#4c3a86'], icon: 'musical-notes-outline' },
+  litterature: { colors: ['#14100a', '#3a2c17', '#6e5428'], icon: 'book-outline' },
+  pensee: { colors: ['#0a1412', '#16332c', '#2d5e52'], icon: 'school-outline' },
+  cinema: { colors: ['#0a0a0c', '#1c1c24', '#3a3240'], icon: 'film-outline' },
+};
+
+/** Une œuvre de la culture chrétienne : ce qu'elle raconte, et le détail à ne pas manquer. */
+export function CultureCard({
+  culture,
+  height,
+  onMore,
+  onListen,
+}: {
+  culture: Culture;
+  height: number;
+  onMore: () => void;
+  /** Pour la musique : écouter l'œuvre. */
+  onListen?: () => void;
+}) {
+  const { colors, icon } = CULTURE_STYLE[culture.kind];
+  const labels = CULTURE_LABELS[culture.kind];
+  return (
+    <Shell colors={colors} height={height}>
+      <View style={styles.center}>
+        <Kicker icon={icon} label={labels.label} />
+        <Text style={styles.cultureTitle}>{culture.title}</Text>
+        <Text style={styles.cultureMeta}>
+          {culture.author} · {culture.date}
+          {culture.place ? `\n${culture.place}` : ''}
+        </Text>
+        <Text style={styles.cultureText}>{culture.text}</Text>
+        <View style={styles.cultureDetail}>
+          <Text style={styles.cultureDetailLabel}>{labels.detail}</Text>
+          <Text style={styles.cultureDetailText}>{culture.detail}</Text>
+        </View>
+        <View style={styles.cultureActions}>
+          {onListen ? (
+            <Pressable onPress={onListen} style={styles.newsBtn} accessibilityRole="link">
+              <Ionicons name="play" size={16} color="#0b0f1a" />
+              <Text style={styles.newsBtnText}>Écouter</Text>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={onMore} style={onListen ? styles.ghostBtn : styles.newsBtn} accessibilityRole="link">
+            <Text style={onListen ? styles.ghostBtnText : styles.newsBtnText}>En savoir plus</Text>
+            <Ionicons name="open-outline" size={16} color={onListen ? '#fff' : '#0b0f1a'} />
+          </Pressable>
+        </View>
+      </View>
+    </Shell>
+  );
+}
+
 /** Une actualité de l'Église : le titre et le début de l'article, qui se lit chez l'éditeur. */
 export function NewsCard({ item, height, onOpen, onAll }: { item: NewsItem; height: number; onOpen: () => void; onAll: () => void }) {
   return (
@@ -360,6 +417,26 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   newsBtnText: { color: '#0b0f1a', fontSize: 15, fontWeight: '700' },
+  cultureTitle: { color: '#fff', fontFamily: SERIF, fontSize: 28, lineHeight: 34, fontWeight: '700' },
+  cultureMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', lineHeight: 19, marginTop: 8, marginBottom: 16 },
+  cultureText: { color: 'rgba(255,255,255,0.9)', fontSize: 16, lineHeight: 24 },
+  cultureDetail: { marginTop: 18, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: 'rgba(255,209,102,0.7)' },
+  cultureDetailLabel: { color: '#ffd166', fontSize: 11, letterSpacing: 2, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
+  cultureDetailText: { color: '#fff', fontFamily: SERIF, fontSize: 16, lineHeight: 23, fontStyle: 'italic' },
+  cultureActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  ghostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 999,
+    marginTop: 24,
+  },
+  ghostBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   newsAll: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '600', marginTop: 16 },
   options: { gap: 12, marginTop: 8 },
   option: {

@@ -6,11 +6,11 @@ import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReadingChrome } from './appearance';
 import { bookMeta, chapterSource, loadPassage, passageLabel, type TranslationId, translationName } from './bible';
-import { FactCard, NewsCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
+import { CultureCard, FactCard, NewsCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import { ChapterReader, TopScrim, useReadingChrome } from './chapter';
 import { communityKey, useCommunity } from './community';
 import type { Passage, Theme, Verse } from './data/content';
-import { type Card, FeedGenerator } from './feed';
+import { type Card, FeedGenerator, listenUrl, wikiUrl } from './feed';
 import { haptic } from './haptics';
 import { headlines, useNews } from './news';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
@@ -90,7 +90,7 @@ export function Pager<T extends { key: string }>(props: {
   );
 }
 
-/** Découvrir : versets choisis, anecdotes, quiz, personnages — selon tes goûts. */
+/** Découvrir : versets choisis, anecdotes, quiz, personnages, culture chrétienne — selon tes goûts. */
 function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: number; onContext: (p: Passage) => void }) {
   const community = useCommunity();
   const extraData = useMemo(() => ({ progress: api.progress, revision: community.revision }), [api.progress, community.revision]);
@@ -150,6 +150,18 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
             return <QuizCard quiz={card.quiz} height={height} />;
           case 'person':
             return <PersonCard person={card.person} height={height} />;
+          case 'culture': {
+            const { culture } = card;
+            const open = (url: string) => WebBrowser.openBrowserAsync(url).catch(() => {});
+            return (
+              <CultureCard
+                culture={culture}
+                height={height}
+                onMore={() => open(wikiUrl(culture))}
+                onListen={culture.kind === 'musique' ? () => open(listenUrl(culture)) : undefined}
+              />
+            );
+          }
           case 'reflection':
             return <ReflectionCard prompt={card.prompt} height={height} />;
           case 'pause':

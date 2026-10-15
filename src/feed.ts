@@ -11,6 +11,7 @@ import {
   VERSES,
   type Verse,
 } from './data/content';
+import { CULTURE, CULTURE_KINDS, type Culture } from './data/culture';
 
 import type { NewsItem } from './news';
 
@@ -20,6 +21,7 @@ export type Card =
   | { key: string; kind: 'fact'; fact: Fact }
   | { key: string; kind: 'quiz'; quiz: Quiz }
   | { key: string; kind: 'person'; person: Person }
+  | { key: string; kind: 'culture'; culture: Culture }
   | { key: string; kind: 'reflection'; prompt: string }
   | { key: string; kind: 'pause'; count: number };
 
@@ -28,10 +30,26 @@ export const PAUSE_EVERY = 15;
 
 const EXTRA_KINDS = ['fact', 'quiz', 'person', 'reflection'] as const;
 
+/** Les œuvres, une catégorie après l'autre : jamais deux peintures d'affilée. */
+export function cultureOrder(items: Culture[] = CULTURE): Culture[] {
+  const byKind = CULTURE_KINDS.map((k) => items.filter((c) => c.kind === k));
+  const order: Culture[] = [];
+  for (let n = 0; order.length < items.length; n++) for (const list of byKind) if (n < list.length) order.push(list[n]);
+  return order;
+}
+
+const CULTURE_ORDER = cultureOrder();
+
+/** L'article Wikipédia : la recherche ouvre directement l'article quand le titre existe. */
+export const wikiUrl = (c: Culture) => `https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(c.wiki)}`;
+
+/** Une recherche de l'œuvre à écouter. */
+export const listenUrl = (c: Culture) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${c.title} ${c.author}`)}`;
+
 export class FeedGenerator {
   private index = 0;
   private recent: string[] = [];
-  private cursors = { fact: 0, quiz: 0, person: 0, reflection: 0 };
+  private cursors = { fact: 0, quiz: 0, person: 0, reflection: 0, culture: 0 };
 
   private newsShown = new Set<string>();
 
@@ -42,6 +60,7 @@ export class FeedGenerator {
   ) {
     // Point de départ aléatoire pour ne pas toujours ouvrir sur le même contenu.
     for (const k of EXTRA_KINDS) this.cursors[k] = Math.floor(Math.random() * 10);
+    this.cursors.culture = Math.floor(Math.random() * CULTURE_ORDER.length);
   }
 
   next(count: number): Card[] {
@@ -54,6 +73,8 @@ export class FeedGenerator {
     const i = ++this.index;
     const key = `c${i}`;
     if (i % PAUSE_EVERY === 0) return { key, kind: 'pause', count: i };
+    // Une œuvre de la culture chrétienne toutes les 8 cartes, entre deux autres surprises.
+    if (i % 8 === 6) return { key, kind: 'culture', culture: CULTURE_ORDER[this.cursors.culture++ % CULTURE_ORDER.length] };
     if (i % 4 === 0) {
       // Une case sur deux revient à l'actualité du jour, tant qu'il reste des titres à montrer.
       const news = (i / 4) % 2 === 1 ? this.getNews().find((n) => !this.newsShown.has(n.id)) : undefined;
