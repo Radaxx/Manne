@@ -154,7 +154,7 @@ function DiscoverPager({ api, height, onContext }: { api: ProgressApi; height: n
           case 'fact':
             return <FactCard fact={card.fact} height={height} />;
           case 'quiz':
-            return <QuizCard quiz={card.quiz} height={height} />;
+            return <QuizCard quiz={card.quiz} culture={card.culture} height={height} />;
           case 'person':
             return <PersonCard person={card.person} height={height} />;
           case 'culture': {

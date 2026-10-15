@@ -11,7 +11,7 @@ import {
   VERSES,
   type Verse,
 } from './data/content';
-import { CULTURE, CULTURE_KINDS, type Culture, type CultureSeason } from './data/culture';
+import { CULTURE, CULTURE_KINDS, CULTURE_QUIZZES, type Culture, type CultureSeason } from './data/culture';
 import { liturgicalDay } from './liturgical-year';
 
 import type { NewsItem } from './news';
@@ -20,7 +20,7 @@ export type Card =
   | { key: string; kind: 'verse'; verse: Verse }
   | { key: string; kind: 'news'; item: NewsItem }
   | { key: string; kind: 'fact'; fact: Fact }
-  | { key: string; kind: 'quiz'; quiz: Quiz }
+  | { key: string; kind: 'quiz'; quiz: Quiz; culture?: boolean }
   | { key: string; kind: 'person'; person: Person }
   | { key: string; kind: 'culture'; culture: Culture; why?: string }
   | { key: string; kind: 'reflection'; prompt: string }
@@ -119,7 +119,9 @@ export class FeedGenerator {
         case 'fact':
           return { key, kind, fact: FACTS[n % FACTS.length] };
         case 'quiz':
-          return { key, kind, quiz: QUIZZES[n % QUIZZES.length] };
+          // Un quiz sur deux porte sur la culture chrétienne.
+          if (n % 2) return { key, kind, quiz: CULTURE_QUIZZES[Math.floor(n / 2) % CULTURE_QUIZZES.length], culture: true };
+          return { key, kind, quiz: QUIZZES[Math.floor(n / 2) % QUIZZES.length] };
         case 'person':
           return { key, kind, person: PERSONS[n % PERSONS.length] };
         case 'reflection':

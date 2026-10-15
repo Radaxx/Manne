@@ -1,3 +1,5 @@
+import type { Quiz } from './content';
+
 /** Les œuvres de la culture chrétienne glissées dans Découvrir : une carte, une œuvre, un détail à retenir. */
 
 export type CultureKind = 'peinture' | 'sculpture' | 'architecture' | 'musique' | 'litterature' | 'pensee' | 'cinema';
@@ -1058,3 +1060,277 @@ export const CULTURE_LABELS: Record<CultureKind, { label: string; detail: string
   pensee: { label: 'GRANDS TEXTES', detail: 'À retenir' },
   cinema: { label: 'CINÉMA', detail: 'À voir' },
 };
+
+/** Les quiz sur la culture chrétienne, glissés entre les quiz bibliques. */
+export const CULTURE_QUIZZES: Quiz[] = [
+  {
+    art: 'cene-vinci',
+    question: 'Qui a peint cette Cène ?',
+    options: ['Raphaël', 'Léonard de Vinci', 'Giotto'],
+    answer: 1,
+    explanation: 'Léonard de Vinci, vers 1495-1498, sur un mur du couvent Santa Maria delle Grazie, à Milan.',
+  },
+  {
+    art: 'creation-adam',
+    question: 'Où se trouve cette fresque ?',
+    options: ['Au plafond de la chapelle Sixtine', 'Au musée du Louvre', 'À Notre-Dame de Paris'],
+    answer: 0,
+    explanation: 'Michel-Ange a peint le plafond de la Sixtine de 1508 à 1512, debout sur un échafaudage.',
+  },
+  {
+    art: 'fils-prodigue',
+    question: 'Quelle parabole Rembrandt a-t-il peinte ici ?',
+    options: ['Le bon Samaritain', 'Le fils prodigue', 'La brebis perdue'],
+    answer: 1,
+    explanation: 'Le père accueille le fils revenu (Luc 15). Le tableau est à l’Ermitage, à Saint-Pétersbourg.',
+  },
+  {
+    art: 'trinite-roublev',
+    question: 'Qui sont ces trois anges peints par Roublev ?',
+    options: ['Les rois mages', 'Les visiteurs d’Abraham', 'Trois archanges'],
+    answer: 1,
+    explanation: 'Les trois visiteurs reçus par Abraham à Mambré (Genèse 18), image de la Trinité.',
+  },
+  {
+    art: 'pieta',
+    question: 'Qui a sculpté cette Pietà ?',
+    options: ['Le Bernin', 'Donatello', 'Michel-Ange'],
+    answer: 2,
+    explanation: 'Michel-Ange avait environ 24 ans. C’est la seule œuvre qu’il ait signée.',
+  },
+  {
+    art: 'extase-therese',
+    question: 'Quelle sainte le Bernin a-t-il sculptée ici ?',
+    options: ['Thérèse d’Avila', 'Thérèse de Lisieux', 'Catherine de Sienne'],
+    answer: 0,
+    explanation: 'Thérèse d’Avila, transpercée par le dard d’or d’un ange, comme elle le raconte dans sa Vie.',
+  },
+  {
+    art: 'mont-saint-michel',
+    question: 'Quel archange a donné son nom à ce rocher ?',
+    options: ['Gabriel', 'Raphaël', 'Michel'],
+    answer: 2,
+    explanation: 'Selon la tradition, saint Michel apparut à l’évêque Aubert d’Avranches, en 708.',
+  },
+  {
+    art: 'sainte-chapelle',
+    question: 'Pour quelle relique saint Louis a-t-il bâti la Sainte-Chapelle ?',
+    options: ['La couronne d’épines', 'Le saint suaire', 'Le voile de Marie'],
+    answer: 0,
+    explanation: 'Achetée à l’empereur de Constantinople, elle est aujourd’hui gardée à Notre-Dame de Paris.',
+  },
+  {
+    art: 'angelus-millet',
+    question: 'Que font ces deux paysans peints par Millet ?',
+    options: ['Ils se reposent', 'Ils prient l’Angélus', 'Ils attendent la pluie'],
+    answer: 1,
+    explanation: 'Au son de la cloche, ils posent leurs outils pour prier. L’Angélus se dit matin, midi et soir.',
+  },
+  {
+    art: 'moise-michel-ange',
+    question: 'Pourquoi le Moïse de Michel-Ange a-t-il des cornes ?',
+    options: ['À cause d’une traduction de la Bible', 'C’est un symbole du diable', 'C’est un casque de guerre'],
+    answer: 0,
+    explanation: 'La Vulgate rendait par « cornu » le visage « rayonnant » de Moïse descendu du Sinaï (Exode 34:29).',
+  },
+  {
+    art: 'vocation-matthieu',
+    question: 'Quel métier exerçait Matthieu quand Jésus l’a appelé ?',
+    options: ['Pêcheur', 'Collecteur d’impôts', 'Charpentier'],
+    answer: 1,
+    explanation: 'Jésus le voit « assis au bureau des taxes » et lui dit : « Suis-moi » (Matthieu 9:9).',
+  },
+  {
+    art: 'agneau-mystique',
+    question: 'Quel triste record détient ce retable de Gand ?',
+    options: ['Le plus volé de l’histoire', 'Le plus abîmé du monde', 'Le plus cher jamais vendu'],
+    answer: 0,
+    explanation: 'Convoité par Napoléon puis par les nazis, il a perdu en 1934 un panneau jamais retrouvé.',
+  },
+  {
+    art: 'notre-dame-paris',
+    question: 'En quelle année Notre-Dame de Paris a-t-elle rouvert après l’incendie ?',
+    options: ['2022', '2024', '2026'],
+    answer: 1,
+    explanation: 'Le 7 décembre 2024, après cinq ans de chantier. L’incendie avait eu lieu le 15 avril 2019.',
+  },
+  {
+    art: 'sagrada-familia',
+    question: 'Qui a conçu la Sagrada Família ?',
+    options: ['Antoni Gaudí', 'Le Corbusier', 'Salvador Dalí'],
+    answer: 0,
+    explanation: 'Gaudí y a travaillé plus de quarante ans, jusqu’à sa mort en 1926.',
+  },
+  {
+    art: 'issenheim',
+    question: 'Pourquoi le Christ d’Issenheim est-il couvert de plaies ?',
+    options: ['Pour ressembler aux malades', 'Par goût de l’horreur', 'À cause d’une restauration ratée'],
+    answer: 0,
+    explanation:
+      'Le retable a été peint pour un hôpital : les malades du « mal des ardents » priaient devant un Christ qui souffrait comme eux.',
+  },
+  {
+    art: 'joseph-charpentier',
+    question: 'Qui tient la chandelle dans ce tableau de Georges de La Tour ?',
+    options: ['Marie', 'L’enfant Jésus', 'Un ange'],
+    answer: 1,
+    explanation: 'L’enfant éclaire Joseph au travail : la flamme traverse ses doigts.',
+  },
+  {
+    question: 'Quel compositeur signait ses partitions « S.D.G. », Soli Deo Gloria ?',
+    options: ['Mozart', 'Jean-Sébastien Bach', 'Vivaldi'],
+    answer: 1,
+    explanation: '« À Dieu seul la gloire » : Bach l’écrivait souvent au bas de ses œuvres.',
+  },
+  {
+    question: 'Quelle œuvre sacrée sert d’indicatif à l’Eurovision ?',
+    options: ['Le Te Deum de Charpentier', 'Le Gloria de Vivaldi', 'Le Messie de Haendel'],
+    answer: 0,
+    explanation: 'Le prélude du Te Deum de Marc-Antoine Charpentier, compositeur du temps de Louis XIV.',
+  },
+  {
+    question: 'À quel âge Mozart aurait-il retranscrit de mémoire le Miserere d’Allegri ?',
+    options: ['8 ans', '14 ans', '20 ans'],
+    answer: 1,
+    explanation: 'En 1770, après une seule écoute à la chapelle Sixtine, où il était interdit de le copier.',
+  },
+  {
+    question: 'Quel chant de Noël est né en 1818 dans un village autrichien ?',
+    options: ['Il est né le divin enfant', 'Douce nuit', 'Les anges dans nos campagnes'],
+    answer: 1,
+    explanation: 'Joseph Mohr écrit le texte, Franz Xaver Gruber la musique ; le chant est créé le soir même, à la guitare.',
+  },
+  {
+    question: 'Qu’était Vivaldi, en plus d’être compositeur ?',
+    options: ['Prêtre', 'Médecin', 'Soldat'],
+    answer: 0,
+    explanation: 'On l’appelait « le prêtre roux », à cause de ses cheveux.',
+  },
+  {
+    question: 'Où Messiaen a-t-il créé son Quatuor pour la fin du Temps ?',
+    options: ['À Notre-Dame de Paris', 'Dans un camp de prisonniers', 'À l’Opéra de Paris'],
+    answer: 1,
+    explanation: 'En 1941, en Silésie, devant les détenus du camp où il était prisonnier.',
+  },
+  {
+    question: 'Qui a remis à l’honneur la Passion selon saint Matthieu de Bach, en 1829 ?',
+    options: ['Mendelssohn', 'Beethoven', 'Liszt'],
+    answer: 0,
+    explanation: 'Le jeune Felix Mendelssohn, à 20 ans, près d’un siècle après la création de l’œuvre.',
+  },
+  {
+    question: 'D’où vient le nom du chant grégorien ?',
+    options: ['Du pape Grégoire le Grand', 'D’un moine de Solesmes', 'D’un empereur byzantin'],
+    answer: 0,
+    explanation: 'Il porte son nom, même s’il s’est surtout fixé plus tard, à l’époque de Charlemagne.',
+  },
+  {
+    question: 'Quel est le premier mot de la Règle de saint Benoît ?',
+    options: ['Prie', 'Écoute', 'Travaille'],
+    answer: 1,
+    explanation: '« Écoute, mon fils, les préceptes du maître. »',
+  },
+  {
+    question: 'Quel surnom ses camarades donnaient-ils à Thomas d’Aquin ?',
+    options: ['Le bœuf muet', 'Le lion de Cologne', 'Le géant de Naples'],
+    answer: 0,
+    explanation:
+      'À cause de sa corpulence et de son silence. Son maître Albert aurait répondu que ses mugissements retentiraient dans le monde entier.',
+  },
+  {
+    question: 'Quel mot ouvre le Mémorial de Pascal, trouvé cousu dans sa veste ?',
+    options: ['Amen', 'Feu', 'Dieu'],
+    answer: 1,
+    explanation: 'Le récit de la nuit du 23 novembre 1654, qui avait bouleversé sa vie.',
+  },
+  {
+    question: 'Par quel mot se terminent les trois parties de la Divine Comédie ?',
+    options: ['Amour', 'Étoiles', 'Paradis'],
+    answer: 1,
+    explanation: 'L’Enfer, le Purgatoire et le Paradis s’achèvent tous sur « stelle », les étoiles.',
+  },
+  {
+    question: 'Quel roman se termine par « Tout est grâce » ?',
+    options: ['Journal d’un curé de campagne', 'Les Misérables', 'Le Soulier de satin'],
+    answer: 0,
+    explanation: 'Les derniers mots du jeune prêtre de Bernanos, qui les reprenait de Thérèse de Lisieux.',
+  },
+  {
+    question: 'Dans Les Misérables, que donne Mgr Myriel à Jean Valjean en plus de l’argenterie volée ?',
+    options: ['Sa croix', 'Ses chandeliers', 'Sa Bible'],
+    answer: 1,
+    explanation: 'Cette miséricorde bouleverse Jean Valjean et change sa vie.',
+  },
+  {
+    question: 'Quel jour l’Anneau est-il détruit dans Le Seigneur des anneaux ?',
+    options: ['Le 25 décembre', 'Le 25 mars', 'Le 1er novembre'],
+    answer: 1,
+    explanation: 'Le jour de l’Annonciation, date que la tradition donne aussi à la Crucifixion. Tolkien était catholique.',
+  },
+  {
+    question: 'Pendant quel office Paul Claudel s’est-il converti, le jour de Noël 1886 ?',
+    options: ['La messe de minuit', 'Les vêpres', 'Les laudes'],
+    answer: 1,
+    explanation: 'Au chant du Magnificat, à Notre-Dame de Paris : « En un instant mon cœur fut touché et je crus. »',
+  },
+  {
+    question: 'Quelle sainte a été la première femme proclamée docteur de l’Église ?',
+    options: ['Thérèse de Lisieux', 'Thérèse d’Avila', 'Catherine de Sienne'],
+    answer: 1,
+    explanation: 'Le 27 septembre 1970, une semaine avant Catherine de Sienne.',
+  },
+  {
+    question: 'Quelle encyclique lance la doctrine sociale de l’Église, en 1891 ?',
+    options: ['Rerum novarum', 'Laudato si’', 'Fides et ratio'],
+    answer: 0,
+    explanation: 'Léon XIII y défend le juste salaire et le droit des ouvriers à s’associer.',
+  },
+  {
+    question: 'D’où vient le titre de l’encyclique Laudato si’ ?',
+    options: ['Du Cantique des créatures', 'D’un psaume', 'Du Magnificat'],
+    answer: 0,
+    explanation: '« Loué sois-tu, mon Seigneur » : le cantique de saint François d’Assise.',
+  },
+  {
+    question: 'En quelle année s’est tenu le concile de Nicée, qui a donné le Credo ?',
+    options: ['325', '451', '1054'],
+    answer: 0,
+    explanation: 'Le premier concile œcuménique, réuni pour répondre au prêtre Arius.',
+  },
+  {
+    question: 'Combien de paragraphes compte le Catéchisme de l’Église catholique ?',
+    options: ['865', '2 865', '12 865'],
+    answer: 1,
+    explanation: 'Publié en 1992, il se cite par numéro de paragraphe, comme des versets.',
+  },
+  {
+    question: 'Quel film raconte les derniers mois des moines de Tibhirine ?',
+    options: ['Le Grand Silence', 'Des hommes et des dieux', 'Thérèse'],
+    answer: 1,
+    explanation: 'Le film de Xavier Beauvois (2010). Les moines, tués en 1996, ont été béatifiés en 2018.',
+  },
+  {
+    question: 'Dans quelles langues parlent les acteurs de La Passion du Christ ?',
+    options: ['Grec et latin', 'Araméen, hébreu et latin', 'Hébreu seulement'],
+    answer: 1,
+    explanation: 'Mel Gibson a voulu les langues de l’époque, avec des sous-titres.',
+  },
+  {
+    question: 'Combien d’années le réalisateur du Grand Silence a-t-il attendu l’accord des chartreux ?',
+    options: ['2 ans', '16 ans', '30 ans'],
+    answer: 1,
+    explanation: 'Philip Gröning a fait sa demande en 1984 ; la réponse est arrivée seize ans plus tard.',
+  },
+  {
+    question: 'Qui a sculpté le Christ Rédempteur de Rio ?',
+    options: ['Paul Landowski, un Français', 'Auguste Rodin', 'Le Bernin'],
+    answer: 0,
+    explanation: 'Avec l’ingénieur brésilien Heitor da Silva Costa. La statue a été inaugurée en 1931.',
+  },
+  {
+    question: 'Quel saint a prêché la deuxième croisade à Vézelay, en 1146 ?',
+    options: ['Saint Bernard', 'Saint Dominique', 'Saint Louis'],
+    answer: 0,
+    explanation: 'Bernard de Clairvaux, l’abbé cistercien le plus célèbre de son temps.',
+  },
+];

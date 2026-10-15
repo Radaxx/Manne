@@ -200,7 +200,14 @@ export const FACTS: Fact[] = [
   },
 ];
 
-export type Quiz = { question: string; options: string[]; answer: number; explanation: string };
+export type Quiz = {
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+  /** Une œuvre de Découvrir (son id) dont l'image accompagne la question. */
+  art?: string;
+};
 
 export const QUIZZES: Quiz[] = [
   { question: 'Qui a construit l’arche ?', options: ['Abraham', 'Noé', 'Moïse'], answer: 1, explanation: 'Genèse 6 à 9.' },

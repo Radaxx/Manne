@@ -1,4 +1,5 @@
-import { CULTURE, CULTURE_KINDS, CULTURE_LABELS } from '../src/data/culture';
+import { QUIZZES } from '../src/data/content';
+import { CULTURE, CULTURE_KINDS, CULTURE_LABELS, CULTURE_QUIZZES } from '../src/data/culture';
 import { CULTURE_IMAGES } from '../src/data/culture-images';
 import { SAINTS } from '../src/data/saints';
 import { cultureForDay, cultureOrder, FeedGenerator, listenUrl, PAUSE_EVERY, wikiUrl } from '../src/feed';
@@ -95,5 +96,33 @@ describe('œuvres au fil du calendrier', () => {
       .flatMap((c) => (c.kind === 'culture' ? [c.culture.id] : []));
     expect(ids.slice(0, 2)).toEqual(['extase-therese', 'chateau-interieur']);
     expect(ids.slice(2, CULTURE.length)).not.toContain('extase-therese');
+  });
+});
+
+describe('quiz sur la culture', () => {
+  it('ont une bonne réponse parmi des choix distincts, et une image qui existe', () => {
+    expect(CULTURE_QUIZZES.length).toBeGreaterThanOrEqual(40);
+    expect(new Set(CULTURE_QUIZZES.map((q) => q.question)).size).toBe(CULTURE_QUIZZES.length);
+    for (const q of CULTURE_QUIZZES) {
+      expect(new Set(q.options).size).toBe(q.options.length);
+      expect(q.options[q.answer]).toBeDefined();
+      if (q.art) expect({ question: q.question, art: q.art in CULTURE_IMAGES }).toEqual({ question: q.question, art: true });
+    }
+    // La bonne réponse n'est pas toujours au même endroit.
+    expect(new Set(CULTURE_QUIZZES.map((q) => q.answer)).size).toBe(3);
+  });
+
+  it('alternent avec les quiz bibliques', () => {
+    const quizzes = new FeedGenerator(() => ({})).next(200).flatMap((c) => (c.kind === 'quiz' ? [c] : []));
+    expect(quizzes.length).toBeGreaterThanOrEqual(10);
+    quizzes.forEach((c, i) => {
+      if (i === 0) return;
+      const prev = quizzes[i - 1];
+      expect(Boolean(c.kind === 'quiz' && c.culture)).toBe(!(prev.kind === 'quiz' && prev.culture));
+    });
+    for (const c of quizzes) {
+      if (c.kind !== 'quiz') continue;
+      expect((c.culture ? CULTURE_QUIZZES : QUIZZES).includes(c.quiz)).toBe(true);
+    }
   });
 });

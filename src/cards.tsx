@@ -179,13 +179,33 @@ export function FactCard({ fact, height }: { fact: Fact; height: number }) {
   );
 }
 
-export function QuizCard({ quiz, height }: { quiz: Quiz; height: number }) {
+export function QuizCard({
+  quiz,
+  culture,
+  height,
+}: {
+  quiz: Quiz /** Quiz sur la culture chrétienne. */;
+  culture?: boolean;
+  height: number;
+}) {
+  const insets = useSafeAreaInsets();
   const [picked, setPicked] = useState<number | null>(null);
+  const art = quiz.art ? CULTURE_IMAGES[quiz.art] : undefined;
   return (
-    <Shell colors={['#100a2b', '#2a1a5e', '#4b3291']} height={height}>
-      <View style={styles.center}>
-        <Kicker icon="help-circle-outline" label="QUIZ" />
-        <Text style={styles.title}>{quiz.question}</Text>
+    <Shell colors={culture ? ['#160b08', '#3a1d2c', '#5e3260'] : ['#100a2b', '#2a1a5e', '#4b3291']} height={height}>
+      <View style={art ? [styles.cultureWithArt, { paddingTop: insets.top + 84 }] : styles.center}>
+        <Kicker icon={culture ? 'color-palette-outline' : 'help-circle-outline'} label={culture ? 'QUIZ CULTURE' : 'QUIZ'} />
+        {art ? (
+          <>
+            <View style={styles.cultureArt}>
+              <Image source={art.image} resizeMode="contain" style={styles.cultureImage} accessibilityIgnoresInvertColors />
+            </View>
+            <Text style={styles.cultureCredit} numberOfLines={1}>
+              {art.credit}
+            </Text>
+          </>
+        ) : null}
+        <Text style={[styles.title, art && styles.quizTitleArt]}>{quiz.question}</Text>
         <View style={styles.options}>
           {quiz.options.map((opt, i) => {
             const state = picked === null ? 'idle' : i === quiz.answer ? 'right' : i === picked ? 'wrong' : 'dim';
@@ -561,6 +581,7 @@ const styles = StyleSheet.create({
   option_dim: { opacity: 0.4 },
   optionText: { color: '#fff', fontSize: 17, fontWeight: '600', flexShrink: 1 },
   explanation: { color: 'rgba(255,255,255,0.85)', fontSize: 16, marginTop: 18, lineHeight: 24 },
+  quizTitleArt: { fontSize: 22, lineHeight: 28, marginBottom: 10 },
   clue: { color: '#fff', fontFamily: SERIF, fontSize: 21, lineHeight: 30, marginBottom: 12 },
   reveal: { marginTop: 18 },
   revealName: { color: '#ffd166', fontSize: 34, fontWeight: '800' },
