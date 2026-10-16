@@ -3,7 +3,7 @@ import { router, Stack, useGlobalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
-import { openAuthUrl } from '../../auth';
+import { googleFlowInProgress, handledInApp, openAuthUrl } from '../../auth';
 import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
@@ -33,6 +33,12 @@ function usable(url: string | null | undefined): url is string {
   return AUTH_KEYS.some((key) => url.includes(`${key}=`));
 }
 
+/** Revient là d'où la connexion est partie (l'inscription, le compte…), ou au compte si on arrive de l'extérieur. */
+function leave() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/compte');
+}
+
 /** Le lien du mail revient ici et termine la création du compte. */
 export default function AuthCallback() {
   const { C, styles } = useThemed(stylesFor);
@@ -46,8 +52,18 @@ export default function AuthCallback() {
     const done = (message: string | null) => {
       if (!alive) return;
       if (message) setError(message);
-      else router.replace('/compte');
+      else leave();
     };
+    // Retour d'une connexion Google : c'est l'app qui la termine (voir providers.ts). On attend, puis on revient.
+    const google = googleFlowInProgress();
+    if (google) {
+      void google.finally(() => {
+        if (alive) leave();
+      });
+      return () => {
+        alive = false;
+      };
+    }
     const candidate = fromParams ?? [linkingUrl].find(usable) ?? null;
     if (!candidate) {
       const timer = setTimeout(() => {
@@ -65,6 +81,12 @@ export default function AuthCallback() {
         clearTimeout(timer);
       };
     }
+    if (handledInApp(candidate)) {
+      leave();
+      return () => {
+        alive = false;
+      };
+    }
     openAuthUrl(candidate)
       .then(done)
       .catch(() => done('La connexion a échoué.'));
@@ -79,7 +101,7 @@ export default function AuthCallback() {
       {error ? (
         <>
           <Text style={styles.error}>{error}</Text>
-          <Pressable onPress={() => router.replace('/compte')} style={styles.btn}>
+          <Pressable onPress={leave} style={styles.btn}>
             <Text style={styles.btnText}>Retour</Text>
           </Pressable>
         </>

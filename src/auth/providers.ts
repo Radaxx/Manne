@@ -1,7 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { flushLikes, resetCommunity } from '../community';
 import { supabase } from '../supabase';
 import { adopt, adoptPending, clearNonce, depositNonce, finishRedirect, REDIRECT, rememberNonce } from './adoption';
@@ -15,6 +15,7 @@ import {
   otpMessage,
   otpType,
   passwordMessage,
+  readParams,
   taken,
   userGone,
 } from './errors';
@@ -128,21 +129,80 @@ export async function linkApple(): Promise<{ error: string | null; name?: string
   return { error: await adopt(client, nonce), name: name || null };
 }
 
-export async function linkGoogle(): Promise<Result> {
-  const client = supabase;
-  if (!client) return { error: 'Supabase n’est pas configuré.' };
-  const { data, error } = await client.auth.linkIdentity({
-    provider: 'google',
-    options: { redirectTo: REDIRECT, skipBrowserRedirect: true },
+// La connexion Google se termine DANS l'app (openAuthSessionAsync), mais sur Android le retour manne://auth/callback
+// arrive aussi au routeur, qui ouvre l'écran auth/callback. Cet écran ne doit ni échanger le code une seconde fois
+// (le premier échange consomme le secret PKCE : le second échouerait), ni envoyer ailleurs : il attend la connexion
+// en cours, puis revient là où l'on était.
+let googleFlow: Promise<Result> | null = null;
+/** Codes de retour Google déjà traités par l'app : l'écran auth/callback les ignore s'il s'ouvre après coup. */
+const handledCodes = new Set<string>();
+
+/** La connexion Google en cours, s'il y en a une. */
+export function googleFlowInProgress(): Promise<Result> | null {
+  return googleFlow;
+}
+
+/** Vrai si ce lien de retour a déjà été traité par la connexion Google de l'app. */
+export function handledInApp(url: string): boolean {
+  const code = readParams(url).code;
+  return typeof code === 'string' && handledCodes.has(code);
+}
+
+function remember(url: string) {
+  const code = readParams(url).code;
+  if (typeof code === 'string') handledCodes.add(code);
+}
+
+/**
+ * Ouvre la page Google et rend l'adresse de retour, ou null si on a fermé la page. Sur Android, la session peut se
+ * terminer sur « dismiss » alors que le retour est bien arrivé à l'app : on le récupère alors par Linking.
+ */
+async function openGoogle(url: string): Promise<{ url: string } | { closed: true } | { failed: true }> {
+  let received: string | null = null;
+  const sub = Linking.addEventListener('url', (event) => {
+    if (event.url.startsWith(REDIRECT)) {
+      received = event.url;
+      remember(event.url);
+    }
   });
-  if (error || !data.url) return { error: error?.message ?? 'Google est indisponible.' };
-  const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT);
-  if (result.type === 'cancel' || result.type === 'dismiss') return { error: null };
-  if (result.type !== 'success') return { error: 'La connexion Google a été interrompue.' };
-  const outcome = await finishRedirect(result.url);
-  if (outcome === 'linked') return { error: null };
-  if (outcome === 'exists') return signInGoogle();
-  return { error: outcome };
+  try {
+    const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT);
+    if (result.type === 'success') {
+      remember(result.url);
+      return { url: result.url };
+    }
+    if (received) return { url: received };
+    return result.type === 'cancel' || result.type === 'dismiss' ? { closed: true } : { failed: true };
+  } finally {
+    sub.remove();
+  }
+}
+
+function track(run: () => Promise<Result>): Promise<Result> {
+  const task = run();
+  googleFlow = task;
+  return task.finally(() => {
+    if (googleFlow === task) googleFlow = null;
+  });
+}
+
+export function linkGoogle(): Promise<Result> {
+  return track(async () => {
+    const client = supabase;
+    if (!client) return { error: 'Supabase n’est pas configuré.' };
+    const { data, error } = await client.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: REDIRECT, skipBrowserRedirect: true },
+    });
+    if (error || !data.url) return { error: error?.message ?? 'Google est indisponible.' };
+    const opened = await openGoogle(data.url);
+    if ('closed' in opened) return { error: null };
+    if ('failed' in opened) return { error: 'La connexion Google a été interrompue.' };
+    const outcome = await finishRedirect(opened.url);
+    if (outcome === 'linked') return { error: null };
+    if (outcome === 'exists') return signInGoogle();
+    return { error: outcome };
+  });
 }
 
 async function signInGoogle(): Promise<Result> {
@@ -155,9 +215,10 @@ async function signInGoogle(): Promise<Result> {
     options: { redirectTo: REDIRECT, skipBrowserRedirect: true },
   });
   if (error || !data.url) return { error: error?.message ?? 'Google est indisponible.' };
-  const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT);
-  if (result.type !== 'success') return { error: result.type === 'cancel' ? null : 'La connexion Google a été interrompue.' };
-  const outcome = await finishRedirect(result.url);
+  const opened = await openGoogle(data.url);
+  if ('closed' in opened) return { error: null };
+  if ('failed' in opened) return { error: 'La connexion Google a été interrompue.' };
+  const outcome = await finishRedirect(opened.url);
   if (outcome !== 'linked') return { error: outcome === 'exists' ? 'Ce compte Google est déjà utilisé.' : outcome };
   return { error: await adopt(client, nonce) };
 }
