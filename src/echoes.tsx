@@ -6,7 +6,6 @@ import {
   AppState,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -95,7 +94,7 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
   };
 
   return (
-    <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} visible>
+    <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} statusBarTranslucent visible>
       <SafeAreaView style={styles.sheet} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
@@ -106,7 +105,7 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
             <Ionicons name="close" size={26} color={C.text} />
           </Pressable>
         </View>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
             {echoes === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 40 }} /> : null}
             {offline ? <Text style={styles.muted}>{offline}</Text> : null}

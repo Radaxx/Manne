@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from '../appearance';
 import { listIntentions, postIntention, reportIntention, type SharedIntention, setCarry, withdrawIntention } from '../community';
 import { haptic } from '../haptics';
+import { useKeyboardOverlap } from '../keyboard';
 import { setIntentionShown, useMyShowcase } from '../showcase-store';
 import { ShowSwitch } from '../showcase-ui';
 import { useThemed } from '../theme';
@@ -31,6 +32,7 @@ export default function IntentionsScreen() {
   const [offline, setOffline] = useState<string | null>(null);
   const [draft, setDraft] = useState(prefill);
   const [sending, setSending] = useState(false);
+  const keyboard = useKeyboardOverlap();
   const [notice, setNotice] = useState<string | null>(null);
   const [onProfile, setOnProfile] = useState(false);
   const mine = useMyShowcase();
@@ -130,86 +132,89 @@ export default function IntentionsScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
-        <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-          <Text style={styles.lead}>Une intention confiée, pour que quelqu’un la porte avec toi. Rien ne part sans ton geste.</Text>
-          {intentions === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 24 }} /> : null}
-          {offline ? <Text style={styles.muted}>{offline}</Text> : null}
-          {intentions && intentions.length === 0 && !offline ? (
-            <Text style={styles.muted}>Aucune intention confiée pour l’instant. La première peut être la tienne.</Text>
-          ) : null}
-          {intentions?.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <Text style={styles.body}>{item.body}</Text>
-              <Text style={styles.count}>{carried(item.carries)}</Text>
-              <View style={styles.row}>
-                {item.mine ? (
-                  <>
-                    {mine.ready ? (
-                      <View style={{ flex: 1 }}>
-                        <ShowSwitch on={mine.isIntentionShown(item.id)} change={(next) => setIntentionShown(item.id, next)} />
-                      </View>
-                    ) : null}
-                    <Pressable onPress={() => withdraw(item.id)} hitSlop={8} accessibilityLabel="Retirer ton intention">
-                      <Text style={styles.link}>Retirer</Text>
-                    </Pressable>
-                  </>
-                ) : (
-                  <>
-                    <Pressable
-                      onPress={() => toggleCarry(item)}
-                      style={[styles.carry, item.carrying && styles.carryOn]}
-                      accessibilityLabel={item.carrying ? 'Ne plus porter cette intention' : 'Je la porte'}
-                    >
-                      <Ionicons name={item.carrying ? 'heart' : 'heart-outline'} size={16} color={item.carrying ? C.bg : C.gold} />
-                      <Text style={[styles.carryText, item.carrying && styles.carryTextOn]}>Je la porte</Text>
-                    </Pressable>
-                    <Pressable onPress={() => report(item.id)} hitSlop={8} accessibilityLabel="Signaler cette intention">
-                      <Text style={styles.link}>Signaler</Text>
-                    </Pressable>
-                  </>
-                )}
+      <View ref={keyboard.ref} style={{ flex: 1, paddingBottom: keyboard.overlap }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
+          <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+            <Text style={styles.lead}>Une intention confiée, pour que quelqu’un la porte avec toi. Rien ne part sans ton geste.</Text>
+            {intentions === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 24 }} /> : null}
+            {offline ? <Text style={styles.muted}>{offline}</Text> : null}
+            {intentions && intentions.length === 0 && !offline ? (
+              <Text style={styles.muted}>Aucune intention confiée pour l’instant. La première peut être la tienne.</Text>
+            ) : null}
+            {intentions?.map((item) => (
+              <View key={item.id} style={styles.card}>
+                <Text style={styles.body}>{item.body}</Text>
+                <Text style={styles.count}>{carried(item.carries)}</Text>
+                <View style={styles.row}>
+                  {item.mine ? (
+                    <>
+                      {mine.ready ? (
+                        <View style={{ flex: 1 }}>
+                          <ShowSwitch on={mine.isIntentionShown(item.id)} change={(next) => setIntentionShown(item.id, next)} />
+                        </View>
+                      ) : null}
+                      <Pressable onPress={() => withdraw(item.id)} hitSlop={8} accessibilityLabel="Retirer ton intention">
+                        <Text style={styles.link}>Retirer</Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      <Pressable
+                        onPress={() => toggleCarry(item)}
+                        style={[styles.carry, item.carrying && styles.carryOn]}
+                        accessibilityLabel={item.carrying ? 'Ne plus porter cette intention' : 'Je la porte'}
+                      >
+                        <Ionicons name={item.carrying ? 'heart' : 'heart-outline'} size={16} color={item.carrying ? C.bg : C.gold} />
+                        <Text style={[styles.carryText, item.carrying && styles.carryTextOn]}>Je la porte</Text>
+                      </Pressable>
+                      <Pressable onPress={() => report(item.id)} hitSlop={8} accessibilityLabel="Signaler cette intention">
+                        <Text style={styles.link}>Signaler</Text>
+                      </Pressable>
+                    </>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-        </ScrollView>
-        {mine.canShow ? (
-          <Pressable
-            onPress={() => setOnProfile((on) => !on)}
-            style={styles.profileCheck}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: onProfile }}
-          >
-            <Ionicons name={onProfile ? 'checkbox' : 'square-outline'} size={22} color={onProfile ? C.gold : C.muted} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.profileCheckLabel}>Afficher aussi sur mon profil</Text>
-              <Text style={styles.profileCheckHint}>
-                Elle reste anonyme dans le fil, mais s’affiche sur ton profil pour les personnes que tu suis et les membres de tes groupes.
-              </Text>
-            </View>
-          </Pressable>
-        ) : null}
-        <View style={styles.composer}>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Une personne, une situation…"
-            placeholderTextColor={C.faint}
-            style={styles.input}
-            multiline
-            maxLength={280}
-          />
-          <Pressable
-            onPress={() => void send()}
-            disabled={!draft.trim() || sending || !!offline}
-            style={[styles.send, (!draft.trim() || sending || !!offline) && { opacity: 0.4 }]}
-            accessibilityLabel="Confier cette intention"
-          >
-            <Text style={styles.sendText}>{sending ? '…' : 'Confier'}</Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+            ))}
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+          </ScrollView>
+          {mine.canShow ? (
+            <Pressable
+              onPress={() => setOnProfile((on) => !on)}
+              style={styles.profileCheck}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: onProfile }}
+            >
+              <Ionicons name={onProfile ? 'checkbox' : 'square-outline'} size={22} color={onProfile ? C.gold : C.muted} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileCheckLabel}>Afficher aussi sur mon profil</Text>
+                <Text style={styles.profileCheckHint}>
+                  Elle reste anonyme dans le fil, mais s’affiche sur ton profil pour les personnes que tu suis et les membres de tes
+                  groupes.
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
+          <View style={styles.composer}>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Une personne, une situation…"
+              placeholderTextColor={C.faint}
+              style={styles.input}
+              multiline
+              maxLength={280}
+            />
+            <Pressable
+              onPress={() => void send()}
+              disabled={!draft.trim() || sending || !!offline}
+              style={[styles.send, (!draft.trim() || sending || !!offline) && { opacity: 0.4 }]}
+              accessibilityLabel="Confier cette intention"
+            >
+              <Text style={styles.sendText}>{sending ? '…' : 'Confier'}</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
