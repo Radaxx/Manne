@@ -30,7 +30,8 @@ const CHANNEL = 'rappel-quotidien';
 //   rendez-vous de groupe : au plus 15 rendez-vous x 2 occurrences = 30 (src/gathering-reminders.ts) ;
 //   neuvaines de groupe : au plus 3 neuvaines x 3 jours = 9 (src/novena-reminders.ts) ;
 //   Rosaire vivant : un seul rappelé x 3 jours = 3 (src/rosary-reminders.ts) ;
-//   15 + 30 + 9 + 3 = 57 <= 64, il reste 7 de marge. Ne pas augmenter l'un sans revoir les autres.
+//   chaîne d'adoration : mes 3 prochains créneaux = 3 (src/adoration-reminders.ts) ;
+//   15 + 30 + 9 + 3 + 3 = 60 <= 64, il reste 4 de marge. Ne pas augmenter l'un sans revoir les autres.
 // Pourquoi 14 jours devant soi suffisent : ce rappel est reprogrammé à CHAQUE ouverture de l'app et à chaque retour au
 // premier plan (ReminderSync dans src/app/_layout.tsx), donc la fenêtre glisse chaque fois que l'on ouvre l'app. Il ne
 // s'arrête que si l'app reste fermée plus de deux semaines, et un rappel quotidien pour revenir vers l'app n'a alors
@@ -40,11 +41,11 @@ const DAYS_AHEAD = 14;
 export const DAILY_REMINDERS_MAX = DAYS_AHEAD + 1;
 /**
  * Les rappels quotidiens portent un identifiant `daily-AAAA-MM-JJ` : reschedule ne retire que ceux-là, jamais les
- * rendez-vous de groupe (`gathering-…`), les neuvaines (`novena-…`) ni le Rosaire vivant (`rosary-…`). La doc d'Expo est ambiguë sur la forme de ce que
+ * rendez-vous de groupe (`gathering-…`), les neuvaines (`novena-…`), le Rosaire vivant (`rosary-…`) ni la chaîne d'adoration (`adoration-…`). La doc d'Expo est ambiguë sur la forme de ce que
  * rend getAllScheduledNotificationsAsync (`content.data`) ; l'identifiant, lui, est toujours rendu à la racine.
  */
 const DAILY_PREFIX = 'daily-';
-const OTHER_PREFIXES = ['gathering-', 'novena-', 'rosary-'];
+const OTHER_PREFIXES = ['gathering-', 'novena-', 'rosary-', 'adoration-'];
 
 const TITLES = [
   'Ta manne du jour t’attend',
@@ -112,7 +113,7 @@ export function scheduleReminders(settings: ReminderSettings, todayDone = false)
 
 /**
  * Retire les rappels quotidiens programmés. Avant ce correctif ils n'avaient pas d'identifiant à nous : on reconnaît
- * donc aussi les anciens (tout ce qui n'est ni un rendez-vous de groupe, ni une neuvaine, ni le Rosaire vivant), pour qu'une mise à jour de l'app ne laisse pas
+ * donc aussi les anciens (tout ce qui n'est ni un rendez-vous de groupe, ni une neuvaine, ni le Rosaire vivant, ni la chaîne d'adoration), pour qu'une mise à jour de l'app ne laisse pas
  * de doublons.
  */
 async function cancelDailyReminders() {

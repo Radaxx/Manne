@@ -1,4 +1,4 @@
-import { readPrayerKind } from '../src/gatherings';
+import { currentOccurrence, nextOccurrences, presenceWindow, readPrayerKind, type Schedule } from '../src/gatherings';
 import {
   AMEN_COOLDOWN_MS,
   amenLabel,
@@ -211,5 +211,53 @@ describe('compteur de la salle', () => {
     expect(declaredNote(1, 2)).toBeNull();
     expect(declaredNote(4, 2)).toBe('4 ont dit « Je suis là » pour ce rendez-vous');
     expect(declaredNote(1, 0)).toBe('1 a dit « Je suis là » pour ce rendez-vous');
+  });
+});
+
+describe('la salle d’un rendez-vous sur plusieurs jours', () => {
+  // Les mardis, jeudis et samedis de 10 h à 10 h 15 à Paris, jusqu’au mardi 3 novembre 2026 inclus.
+  const trio: Schedule = {
+    recurrence: 'weekly',
+    weekdays: [2, 4, 6],
+    localTime: '10:00',
+    timezone: 'Europe/Paris',
+    startsAt: null,
+    endsOn: '2026-11-03',
+    durationMin: 15,
+  };
+
+  it('s’ouvre 10 minutes avant chaque jour voulu et pas les autres', () => {
+    // Jeudi 22 octobre 2026, 10 h à Paris (UTC+2) = 8 h UTC.
+    expect(currentOccurrence(trio, new Date('2026-10-22T07:49:59Z'))).toBeNull();
+    expect(currentOccurrence(trio, new Date('2026-10-22T07:50:00Z'))?.toISOString()).toBe('2026-10-22T08:00:00.000Z');
+    expect(currentOccurrence(trio, new Date('2026-10-22T08:14:59Z'))?.toISOString()).toBe('2026-10-22T08:00:00.000Z');
+    expect(currentOccurrence(trio, new Date('2026-10-22T08:15:00Z'))).toBeNull();
+    // Mercredi 21 : pas de rendez-vous.
+    expect(currentOccurrence(trio, new Date('2026-10-21T08:05:00Z'))).toBeNull();
+  });
+
+  it('la topic du canal suit l’occurrence du jour', () => {
+    const at = currentOccurrence(trio, new Date('2026-10-24T08:05:00Z'));
+    expect(at?.toISOString()).toBe('2026-10-24T08:00:00.000Z');
+    expect(roomTopic(GID, (at as Date).getTime())).toBe(`room:${GID}:${Date.parse('2026-10-24T08:00:00Z')}`);
+  });
+
+  it('après le changement d’heure, la salle reste à 10 h du mur', () => {
+    // Samedi 31 octobre 2026 : UTC+1 depuis le 25.
+    expect(currentOccurrence(trio, new Date('2026-10-31T09:05:00Z'))?.toISOString()).toBe('2026-10-31T09:00:00.000Z');
+    expect(currentOccurrence(trio, new Date('2026-10-31T08:05:00Z'))).toBeNull();
+  });
+
+  it('le jour de la fin la salle s’ouvre encore, ensuite jamais plus', () => {
+    // Mardi 3 novembre 2026 10 h = 9 h UTC (fin incluse) ; jeudi 5 : plus rien.
+    expect(currentOccurrence(trio, new Date('2026-11-03T09:05:00Z'))?.toISOString()).toBe('2026-11-03T09:00:00.000Z');
+    expect(currentOccurrence(trio, new Date('2026-11-05T09:05:00Z'))).toBeNull();
+    expect(nextOccurrences(trio, new Date('2026-11-03T09:20:00Z'), 3)).toEqual([]);
+  });
+
+  it('la fenêtre de présence dure 10 minutes avant, puis la durée', () => {
+    const { opensAt, closesAt } = presenceWindow(new Date('2026-10-22T08:00:00Z'), 15);
+    expect(opensAt.toISOString()).toBe('2026-10-22T07:50:00.000Z');
+    expect(closesAt.toISOString()).toBe('2026-10-22T08:15:00.000Z');
   });
 });

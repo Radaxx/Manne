@@ -1,11 +1,16 @@
 import { MAX_REMINDED, planReminders, reminderTitle } from '../src/gathering-reminders';
 import {
+  addMonths,
   currentOccurrence,
   durationLabel,
+  ENDS_CHOICES,
+  endsOnProblem,
   endTimeLabel,
   type Gathering,
   inPresenceWindow,
   isTimeZone,
+  lastDayFor,
+  lastOccurrence,
   type MyGathering,
   mergeServer,
   nextOccurrences,
@@ -20,7 +25,10 @@ import {
   type Schedule,
   timeLabel,
   titleProblem,
+  untilLabel,
   upcomingGatherings,
+  weekdaysInZone,
+  weekdaysPhrase,
   whenLabel,
   withParticipation,
   withPresence,
@@ -29,21 +37,29 @@ import {
 
 const iso = (dates: Date[]) => dates.map((d) => d.toISOString());
 
-const weekly = (weekday: number, localTime: string, timezone: string, durationMin = 30): Schedule => ({
+const weekly = (
+  weekday: number | number[],
+  localTime: string,
+  timezone: string,
+  durationMin = 30,
+  endsOn: string | null = null,
+): Schedule => ({
   recurrence: 'weekly',
-  weekday,
+  weekdays: Array.isArray(weekday) ? weekday : [weekday],
   localTime,
   timezone,
   startsAt: null,
+  endsOn,
   durationMin,
 });
 
 const once = (startsAt: string, durationMin = 30): Schedule => ({
   recurrence: 'once',
-  weekday: null,
+  weekdays: [],
   localTime: null,
   timezone: null,
   startsAt,
+  endsOn: null,
   durationMin,
 });
 
@@ -143,11 +159,11 @@ describe('libellés', () => {
     expect(timeLabel(9, 5)).toBe('9 h 05');
   });
 
-  it('hebdomadaire : « Chaque mardi à 21 h »', () => {
+  it('hebdomadaire : « Chaque mardi de 21 h à 21 h 30 »', () => {
     const tuesday = weekly(2, '21:00', 'Europe/Paris');
     const from = new Date('2026-10-19T12:00:00Z');
-    expect(whenLabel(tuesday, from, 'Europe/Paris')).toBe('Chaque mardi à 21 h');
-    expect(whenLabel(weekly(0, '20:30', 'Europe/Paris'), from, 'Europe/Paris')).toBe('Chaque dimanche à 20 h 30');
+    expect(whenLabel(tuesday, from, 'Europe/Paris')).toBe('Chaque mardi de 21 h à 21 h 30');
+    expect(whenLabel(weekly(0, '20:30', 'Europe/Paris'), from, 'Europe/Paris')).toBe('Chaque dimanche de 20 h 30 à 21 h');
   });
 
   it('ponctuel : « Mardi 20 octobre à 20 h 30 »', () => {
@@ -159,14 +175,16 @@ describe('libellés', () => {
   it('affiche l’heure du téléphone, et mentionne l’heure d’origine quand les fuseaux diffèrent', () => {
     const tuesday = weekly(2, '21:00', 'Europe/Paris');
     const from = new Date('2026-10-19T12:00:00Z');
-    expect(whenLabel(tuesday, from, 'America/Toronto')).toBe('Chaque mardi à 15 h');
+    expect(whenLabel(tuesday, from, 'America/Toronto')).toBe('Chaque mardi de 15 h à 15 h 30');
     expect(zoneMention(tuesday, from, 'America/Toronto')).toBe('21 h, heure de Paris');
     expect(zoneMention(weekly(2, '20:30', 'America/Argentina/Buenos_Aires'), from, 'Europe/Paris')).toBe('20 h 30, heure de Buenos Aires');
   });
 
   it('le jour affiché suit le téléphone', () => {
     // Mardi 1 h à Paris : lundi 19 h à Toronto.
-    expect(whenLabel(weekly(2, '01:00', 'Europe/Paris'), new Date('2026-10-18T00:00:00Z'), 'America/Toronto')).toBe('Chaque lundi à 19 h');
+    expect(whenLabel(weekly(2, '01:00', 'Europe/Paris'), new Date('2026-10-18T00:00:00Z'), 'America/Toronto')).toBe(
+      'Chaque lundi de 19 h à 19 h 30',
+    );
   });
 
   it('pas de mention quand l’heure est la même, ni pour un ponctuel', () => {
@@ -214,6 +232,8 @@ describe('lecteurs', () => {
     duration_min: 30,
     recurrence: 'weekly',
     weekday: 2,
+    weekdays: [2],
+    ends_on: null,
     local_time: '21:00',
     timezone: 'Europe/Paris',
     starts_at: null,
@@ -232,10 +252,11 @@ describe('lecteurs', () => {
       description: 'Une dizaine chacun.',
       durationMin: 30,
       recurrence: 'weekly',
-      weekday: 2,
+      weekdays: [2],
       localTime: '21:00',
       timezone: 'Europe/Paris',
       startsAt: null,
+      endsOn: null,
       nextStart: '2026-10-20T19:00:00Z',
       currentStart: null,
       participantCount: 3,
@@ -264,11 +285,19 @@ describe('lecteurs', () => {
       ...row,
       recurrence: 'once',
       weekday: null,
+      weekdays: null,
       local_time: null,
       timezone: null,
       starts_at: '2026-10-20T18:30:00Z',
     });
-    expect(read).toMatchObject({ recurrence: 'once', startsAt: '2026-10-20T18:30:00Z', weekday: null, localTime: null, timezone: null });
+    expect(read).toMatchObject({
+      recurrence: 'once',
+      startsAt: '2026-10-20T18:30:00Z',
+      weekdays: [],
+      endsOn: null,
+      localTime: null,
+      timezone: null,
+    });
   });
 
   it('ignore les lignes abîmées', () => {
@@ -278,7 +307,8 @@ describe('lecteurs', () => {
     expect(readGathering({ ...row, duration_min: 5 })).toBeNull();
     expect(readGathering({ ...row, duration_min: 'abc' })).toBeNull();
     expect(readGathering({ ...row, recurrence: 'daily' })).toBeNull();
-    expect(readGathering({ ...row, weekday: 7 })).toBeNull();
+    expect(readGathering({ ...row, weekday: 7, weekdays: [7] })).toBeNull();
+    expect(readGathering({ ...row, weekdays: [] })).toBeNull();
     expect(readGathering({ ...row, local_time: '25:00' })).toBeNull();
     expect(readGathering({ ...row, timezone: 'Nulle/Part' })).toBeNull();
     expect(readGathering({ ...row, recurrence: 'once', starts_at: 'hier' })).toBeNull();
@@ -294,6 +324,8 @@ describe('lecteurs', () => {
         title: 'Chapelet',
         recurrence: 'weekly',
         weekday: 2,
+        weekdays: [2],
+        ends_on: null,
         local_time: '21:00',
         timezone: 'Europe/Paris',
         starts_at: null,
@@ -305,10 +337,11 @@ describe('lecteurs', () => {
       groupName: 'Fraternité de test',
       title: 'Chapelet',
       recurrence: 'weekly',
-      weekday: 2,
+      weekdays: [2],
       localTime: '21:00',
       timezone: 'Europe/Paris',
       startsAt: null,
+      endsOn: null,
       durationMin: 30,
       present: false,
     });
@@ -435,5 +468,169 @@ describe('prochains rendez-vous', () => {
     expect(upcoming.map((u) => u.current)).toEqual([true, false, false]);
     expect(upcoming[0].at.toISOString()).toBe('2026-10-20T19:00:00.000Z');
     expect(upcomingGatherings([], now)).toEqual([]);
+  });
+});
+
+describe('plusieurs jours de la semaine et une fin', () => {
+  // Mardis, jeudis et samedis à 10 h, heure de Paris.
+  const trio = (endsOn: string | null = null) => weekly([2, 4, 6], '10:00', 'Europe/Paris', 15, endsOn);
+
+  it('renvoie les occurrences de chaque jour, dans l’ordre', () => {
+    expect(iso(nextOccurrences(trio(), new Date('2026-10-16T12:00:00Z'), 4))).toEqual([
+      '2026-10-17T08:00:00.000Z', // samedi 17
+      '2026-10-20T08:00:00.000Z', // mardi 20
+      '2026-10-22T08:00:00.000Z', // jeudi 22
+      '2026-10-24T08:00:00.000Z', // samedi 24
+    ]);
+  });
+
+  it('passage à l’heure d’hiver (25 octobre 2026) : 10 h reste 10 h à Paris', () => {
+    expect(iso(nextOccurrences(trio(), new Date('2026-10-24T12:00:00Z'), 3))).toEqual([
+      '2026-10-27T09:00:00.000Z', // mardi 27, UTC+1
+      '2026-10-29T09:00:00.000Z',
+      '2026-10-31T09:00:00.000Z',
+    ]);
+  });
+
+  it('une fin incluse : le jour de la fin compte, le lendemain non', () => {
+    // Fin le mardi 3 novembre 2026.
+    const ended = trio('2026-11-03');
+    expect(iso(nextOccurrences(ended, new Date('2026-11-01T12:00:00Z'), 5))).toEqual(['2026-11-03T09:00:00.000Z']);
+    expect(nextOccurrences(ended, new Date('2026-11-03T09:00:00Z'), 5)).toEqual([]);
+    expect(nextOccurrences(ended, new Date('2026-11-04T00:00:00Z'), 5)).toEqual([]);
+  });
+
+  it('une fin exclue : le jour d’après la fin n’a plus d’occurrence', () => {
+    // Fin le lundi 2 novembre : le dernier est le samedi 31 octobre.
+    const ended = trio('2026-11-02');
+    expect(iso(nextOccurrences(ended, new Date('2026-10-30T12:00:00Z'), 5))).toEqual(['2026-10-31T09:00:00.000Z']);
+  });
+
+  it('la fin se lit dans le fuseau du rendez-vous, pas dans celui du serveur', () => {
+    // Samedi 31 octobre 2026, 1 h à Paris (UTC+1 depuis le 25 : minuit UTC) ; fin le 31.
+    const night = weekly(6, '01:00', 'Europe/Paris', 30, '2026-10-31');
+    expect(iso(nextOccurrences(night, new Date('2026-10-29T00:00:00Z'), 3))).toEqual(['2026-10-31T00:00:00.000Z']);
+    // Même rendez-vous, fin la veille : plus rien le 31.
+    expect(nextOccurrences(weekly(6, '01:00', 'Europe/Paris', 30, '2026-10-30'), new Date('2026-10-29T00:00:00Z'), 3)).toEqual([]);
+  });
+
+  it('chaque jour de la semaine', () => {
+    const daily = weekly([0, 1, 2, 3, 4, 5, 6], '07:00', 'Europe/Paris', 15);
+    expect(nextOccurrences(daily, new Date('2026-10-16T12:00:00Z'), 3)).toHaveLength(3);
+    expect(iso(nextOccurrences(daily, new Date('2026-10-16T12:00:00Z'), 2))).toEqual([
+      '2026-10-17T05:00:00.000Z',
+      '2026-10-18T05:00:00.000Z',
+    ]);
+  });
+
+  it('refuse des jours invalides sans planter', () => {
+    expect(nextOccurrences(weekly([], '10:00', 'Europe/Paris'), new Date(), 2)).toEqual([]);
+    expect(nextOccurrences(weekly([2, 2], '10:00', 'Europe/Paris'), new Date(), 2)).toEqual([]);
+    expect(nextOccurrences(weekly([1, 8], '10:00', 'Europe/Paris'), new Date(), 2)).toEqual([]);
+  });
+
+  it('la dernière occurrence : le dernier jour voulu avant la fin', () => {
+    expect(lastOccurrence(trio('2026-11-30'))?.toISOString()).toBe('2026-11-28T09:00:00.000Z');
+    expect(lastOccurrence(trio())).toBeNull();
+    expect(lastOccurrence(weekly([1], '10:00', 'Europe/Paris', 15, '2026-11-30'))?.toISOString()).toBe('2026-11-30T09:00:00.000Z');
+  });
+
+  it('les libellés : « Les mardis, jeudis et samedis de 10 h à 10 h 15 »', () => {
+    const from = new Date('2026-10-16T12:00:00Z');
+    expect(whenLabel(trio(), from, 'Europe/Paris')).toBe('Les mardis, jeudis et samedis de 10 h à 10 h 15');
+    expect(whenLabel(weekly([1, 2, 3, 4, 5, 6, 0], '10:00', 'Europe/Paris', 15), from, 'Europe/Paris')).toBe(
+      'Chaque jour de 10 h à 10 h 15',
+    );
+    expect(whenLabel(weekly([5], '10:00', 'Europe/Paris', 15), from, 'Europe/Paris')).toBe('Chaque vendredi de 10 h à 10 h 15');
+    expect(whenLabel(weekly([2, 4], '10:00', 'Europe/Paris', 15), from, 'Europe/Paris')).toBe('Les mardis et jeudis de 10 h à 10 h 15');
+  });
+
+  it('« jusqu’au 30 novembre » quand il y a une fin', () => {
+    const from = new Date('2026-10-16T12:00:00Z');
+    expect(whenLabel(weekly([1, 3], '10:00', 'Europe/Paris', 15, '2026-11-30'), from, 'Europe/Paris')).toBe(
+      'Les lundis et mercredis de 10 h à 10 h 15, jusqu’au 30 novembre',
+    );
+    // La fin tombe un dimanche, sans occurrence : on écrit le dernier jour qui a lieu (samedi 28).
+    expect(whenLabel(trio('2026-11-29'), from, 'Europe/Paris')).toBe(
+      'Les mardis, jeudis et samedis de 10 h à 10 h 15, jusqu’au 28 novembre',
+    );
+    expect(untilLabel(new Date('2026-12-01T10:00:00Z'), 'Europe/Paris')).toBe('jusqu’au 1er décembre');
+  });
+
+  it('les jours suivent le téléphone : mardi et jeudi 1 h à Paris sont lundi et mercredi à Toronto', () => {
+    const from = new Date('2026-10-18T00:00:00Z');
+    const early = weekly([2, 4], '01:00', 'Europe/Paris', 30);
+    expect(whenLabel(early, from, 'America/Toronto')).toBe('Les lundis et mercredis de 19 h à 19 h 30');
+    expect(weekdaysInZone([2, 4], new Date('2026-10-19T23:00:00Z'), 'Europe/Paris', 'America/Toronto')).toEqual([1, 3]);
+  });
+
+  it('weekdaysPhrase met le lundi d’abord et le dimanche à la fin', () => {
+    expect(weekdaysPhrase([0, 6, 1])).toBe('Les lundis, samedis et dimanches');
+    expect(weekdaysPhrase([3])).toBe('Chaque mercredi');
+    expect(weekdaysPhrase([])).toBe('');
+  });
+
+  it('les rappels suivent les jours et la fin', () => {
+    const planned = planReminders(
+      [
+        {
+          id: 'm',
+          groupId: 'g',
+          groupName: 'Fraternité',
+          title: 'Chapelet',
+          present: false,
+          ...trio('2026-10-21'),
+        },
+      ],
+      new Date('2026-10-16T12:00:00Z'),
+    );
+    // Samedi 17 et mardi 20 : la fin du 21 laisse le jeudi 22 de côté.
+    expect(iso(planned.map((p) => p.at))).toEqual(['2026-10-17T08:00:00.000Z', '2026-10-20T08:00:00.000Z']);
+    expect(
+      planReminders(
+        [{ id: 'm', groupId: 'g', groupName: 'Fraternité', title: 'Chapelet', present: false, ...trio('2026-10-15') }],
+        new Date('2026-10-16T12:00:00Z'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('une occurrence « en cours » s’arrête après la fin', () => {
+    // Le jeudi 22 octobre 10 h 05, mais la fin est le mardi 20 : plus rien en cours.
+    expect(currentOccurrence(trio('2026-10-20'), new Date('2026-10-22T08:05:00Z'))).toBeNull();
+    expect(currentOccurrence(trio('2026-10-22'), new Date('2026-10-22T08:05:00Z'))?.toISOString()).toBe('2026-10-22T08:00:00.000Z');
+  });
+});
+
+describe('« Pendant » : la fin choisie', () => {
+  it('ajoute des mois en ramenant le jour au dernier du mois', () => {
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonths('2026-10-16', 3)).toBe('2027-01-16');
+    expect(addMonths('2026-12-15', 2)).toBe('2027-02-15');
+    expect(addMonths('2026-10-16', 12)).toBe('2027-10-16');
+  });
+
+  it('le dernier jour d’une durée', () => {
+    const choice = (id: string) => ENDS_CHOICES.find((c) => c.id === id) as (typeof ENDS_CHOICES)[number];
+    expect(lastDayFor(choice('none'), '2026-10-16')).toBeNull();
+    expect(lastDayFor(choice('w1'), '2026-10-16')).toBe('2026-10-22');
+    expect(lastDayFor(choice('w2'), '2026-10-16')).toBe('2026-10-29');
+    expect(lastDayFor(choice('m1'), '2026-10-16')).toBe('2026-11-15');
+    expect(lastDayFor(choice('m3'), '2026-10-16')).toBe('2027-01-15');
+    expect(lastDayFor(choice('y1'), '2026-10-16')).toBe('2027-10-15');
+  });
+
+  it('refuse une fin passée, à plus d’un an, ou sans occurrence', () => {
+    const now = new Date('2026-10-16T12:00:00Z');
+    const today = '2026-10-16';
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, null), today, now)).toBeNull();
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, '2026-10-15'), today, now)).toBe('Choisis une fin à venir.');
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, '2027-10-17'), today, now)).toBe('La fin est dans un an au plus.');
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, '2027-10-16'), today, now)).toBeNull();
+    // La fin le lundi 19 ne laisse aucun mardi (le prochain est le 20) ; le 20 en laisse un.
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, '2026-10-19'), today, now)).toBe(
+      'Aucun rendez-vous n’a lieu avant cette fin.',
+    );
+    expect(endsOnProblem(weekly([2], '10:00', 'Europe/Paris', 15, '2026-10-20'), today, now)).toBeNull();
   });
 });

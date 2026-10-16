@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdorationHourRow, useMyAdorationSlots } from '../../adoration-ui';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
@@ -43,6 +44,8 @@ export default function CommunauteScreen() {
   const novenas = useRunningNovenas(hasProfile);
   // Mes Rosaires vivants (où j'ai une place) : mêmes règles.
   const rosaries = useMyRosaries(hasProfile);
+  // Mon heure d'adoration : mêmes règles.
+  const adoration = useMyAdorationSlots(hasProfile);
 
   const load = useCallback(async () => {
     if (!hasProfile) {
@@ -120,7 +123,7 @@ export default function CommunauteScreen() {
     inputRef.current?.focus();
   };
 
-  const inUpcoming = upcoming.length > 0 || novenas.length > 0 || rosaries.length > 0;
+  const inUpcoming = upcoming.length > 0 || novenas.length > 0 || rosaries.length > 0 || adoration.length > 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -253,6 +256,10 @@ export default function CommunauteScreen() {
                     <RunningNovenaRows items={novenas} />
                     {rosaries.length > 0 && (upcoming.length > 0 || novenas.length > 0) ? <View style={styles.divider} /> : null}
                     <LivingRosaryRows items={rosaries} />
+                    {adoration.length > 0 && (upcoming.length > 0 || novenas.length > 0 || rosaries.length > 0) ? (
+                      <View style={styles.divider} />
+                    ) : null}
+                    <AdorationHourRow items={adoration} />
                   </View>
                 </>
               ) : null}

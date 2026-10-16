@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -16,7 +16,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { type AdorationStep, adorationSteps, DURATIONS, MODES, sessionLabel, wordOfTheDay } from '../adoration';
+import { type AdorationStep, adorationSteps, DURATIONS, durationFromParam, MODES, sessionLabel, wordOfTheDay } from '../adoration';
 import { useMass } from '../aelf';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
@@ -425,7 +425,9 @@ function Setup({ onStart }: { onStart: (s: AdorationSession) => void }) {
   const { progress, setAdorationPrefs, setAdorationSession } = useApp();
   const { session, last, count } = progress.adoration;
   const [mode, setMode] = useState<AdorationMode>(progress.adoration.mode);
-  const [minutes, setMinutes] = useState(progress.adoration.minutes);
+  // Depuis un créneau de la chaîne d'adoration, la durée du créneau est déjà choisie (`?minutes=60`).
+  const slotMinutes = durationFromParam(useLocalSearchParams<{ minutes?: string | string[] }>().minutes);
+  const [minutes, setMinutes] = useState(slotMinutes ?? progress.adoration.minutes);
   const steps = useMemo(() => adorationSteps(mode, minutes), [mode, minutes]);
 
   const start = () => {

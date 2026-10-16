@@ -285,7 +285,7 @@ const stylesFor = (C: Palette) =>
     dotCurrent: { borderColor: C.gold },
     dotText: { color: C.text, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
     dotTextOn: { color: C.onGold },
-    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
+    card: { backgroundColor: C.card, borderRadius: 20, padding: 20, gap: 8 },
     title: { color: C.text, fontSize: 18, fontWeight: '800' },
     status: { color: C.gold, fontSize: 15, fontWeight: '700' },
     intention: { color: C.text, fontSize: 15, lineHeight: 22 },

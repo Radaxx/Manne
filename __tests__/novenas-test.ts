@@ -1,3 +1,4 @@
+import { ADORATION_REMINDERS_MAX } from '../src/adoration-reminders';
 import { bookMeta, loadPassage, type TranslationId } from '../src/bible';
 import { CUSTOM_TITLE, NOVENAS, novenaModelTitle, novenaTemplate, PASSAGE_SET_DATA, type Passage } from '../src/data/novenas';
 import { prayerById } from '../src/data/prayers';
@@ -242,13 +243,14 @@ describe('rappels', () => {
     expect(planNovenaReminders([mine({ myDays: [1, 2, 3, 4, 5, 6, 7, 8, 9] })], now, 'Europe/Paris')).toEqual([]);
   });
 
-  it('budget iOS : rappel quotidien + rendez-vous + neuvaines + Rosaire vivant tiennent dans 64', () => {
+  it('budget iOS : rappel quotidien + rendez-vous + neuvaines + Rosaire vivant + chaîne d’adoration tiennent dans 64', () => {
     expect(DAILY_REMINDERS_MAX).toBe(15);
     expect(GATHERING_REMINDERS_MAX).toBe(30);
     expect(NOVENA_REMINDERS_MAX).toBe(9);
     expect(ROSARY_REMINDERS_MAX).toBe(3);
-    const total = DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX + ROSARY_REMINDERS_MAX;
-    expect(total).toBe(57);
+    expect(ADORATION_REMINDERS_MAX).toBe(3);
+    const total = DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX + ROSARY_REMINDERS_MAX + ADORATION_REMINDERS_MAX;
+    expect(total).toBe(60);
     expect(total).toBeLessThanOrEqual(64);
   });
 

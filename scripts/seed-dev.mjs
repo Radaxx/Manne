@@ -174,6 +174,10 @@ const FOLLOW_ME = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_pau
 //   rosaries : Rosaire vivant du groupe (un seul actif). `startMonthsAgo` : mois écoulés depuis le mois de départ, dans `timezone` ;
 //   `places` : pseudo -> [équipe, place de base 0 à 19] (le mystère du mois est (place + mois écoulés) mod 20) ; `prayedToday` :
 //   pseudos qui ont coché leur dizaine aujourd'hui (jour de `timezone`). `me` n'a JAMAIS de place : à prendre depuis l'app.
+//   adorations : chaînes d'adoration. `tonight: { startHour, endHour }` : commence ce soir à `startHour` (heure du mur de `timezone` ;
+//   demain soir si cette heure est déjà passée) et finit à `endHour` le lendemain ; `startsInMin` + `durationMin` : commence dans
+//   ce nombre de minutes après le seed. `slotMinutes` : 30 ou 60 ; `reservations` : pseudo -> index de créneaux (0 = premier).
+//   `me` n'a JAMAIS de réservation : à prendre depuis l'app.
 const DAY = 86_400_000;
 const GROUPS = [
   {
@@ -208,8 +212,17 @@ const GROUPS = [
         description: 'Une dizaine chacun, en visio ou chacun chez soi.',
         durationMin: 30,
         prayerKind: 'chapelet',
-        weekly: { weekday: 2, localTime: '21:00', timezone: 'Europe/Paris' },
+        weekly: { weekdays: [2], localTime: '21:00', timezone: 'Europe/Paris' },
         participants: ['dev_marie', 'dev_pierre', 'me'],
+      },
+      {
+        // Plusieurs jours de la semaine et une fin : « Les mardis, jeudis et samedis de 10 h à 10 h 15, jusqu’au … » (dans 60 jours).
+        title: 'Chapelet du matin',
+        description: 'Un quart d’heure, trois fois par semaine, pendant deux mois.',
+        durationMin: 15,
+        prayerKind: 'chapelet',
+        weekly: { weekdays: [2, 4, 6], localTime: '10:00', timezone: 'Europe/Paris', endsInDays: 60 },
+        participants: ['dev_marie', 'dev_claire'],
       },
       {
         // Commence --rdv-in minutes (15 par défaut) après le lancement du seed : pour tester le rappel, puis « Je suis là »
@@ -250,6 +263,56 @@ const GROUPS = [
         prayedToday: ['dev_marie', 'dev_claire'],
       },
     ],
+    adorations: [
+      {
+        // Ce soir 21 h -> 7 h demain (heure de Paris), 10 créneaux de 60 min (11 la nuit du changement d'heure). Trous : les créneaux 3 à 5 et le créneau 9.
+        title: 'Nuit d’adoration',
+        intention: 'Pour les malades de notre paroisse, et pour ceux qui veillent près d’eux.',
+        place: 'Chapelle Saint-Joseph',
+        timezone: 'Europe/Paris',
+        slotMinutes: 60,
+        tonight: { startHour: 21, endHour: 7 },
+        reservations: { dev_marie: [0, 1, 6], dev_pierre: [1, 2, 6], dev_claire: [2, 7, 8] },
+      },
+      {
+        // Commence 20 minutes après le seed : « C'est bientôt ton heure d'adoration » arrive 10 minutes plus tard, et le rappel
+        // aussi si vous réservez le premier créneau (où dev_marie adore déjà).
+        title: 'Adoration de test',
+        intention: '',
+        place: '',
+        timezone: 'Europe/Paris',
+        slotMinutes: 30,
+        startsInMin: 20,
+        durationMin: 120,
+        reservations: { dev_marie: [0] },
+      },
+      {
+        // Récurrente : tous les vendredis de 21 h à 22 h (Paris) pendant 2 mois, créneaux de 30 min. Le premier vendredi est
+        // demain ou dans la semaine ; `reservations` : [numéro de l'occurrence (0 = la première), numéro du créneau]. Aucune au
+        // nom de --me.
+        title: 'Adoration du vendredi',
+        intention: 'Pour les vocations, chaque vendredi soir.',
+        place: 'Chapelle Saint-Joseph',
+        timezone: 'Europe/Paris',
+        slotMinutes: 30,
+        weekly: { weekdays: [5], localStart: '21:00', localEnd: '22:00', months: 2 },
+        reservations: {
+          dev_marie: [
+            [0, 0],
+            [1, 0],
+            [2, 1],
+          ],
+          dev_pierre: [
+            [0, 0],
+            [1, 1],
+          ],
+          dev_claire: [
+            [0, 1],
+            [3, 0],
+          ],
+        },
+      },
+    ],
   },
   {
     name: 'Paroisse de test',
@@ -276,7 +339,7 @@ const GROUPS = [
         description: '',
         durationMin: 60,
         prayerKind: 'chapelet',
-        weekly: { weekday: 0, localTime: '18:30', timezone: 'Europe/Paris' },
+        weekly: { weekdays: [0], localTime: '18:30', timezone: 'Europe/Paris' },
         participants: ['dev_jean', 'dev_marie'],
       },
       {
@@ -285,7 +348,7 @@ const GROUPS = [
         description: 'Une heure d’adoration avec les membres de Toronto.',
         durationMin: 60,
         prayerKind: 'adoration',
-        weekly: { weekday: 4, localTime: '19:00', timezone: 'America/Toronto' },
+        weekly: { weekdays: [4], localTime: '19:00', timezone: 'America/Toronto' },
         participants: ['dev_therese'],
       },
     ],
@@ -317,7 +380,7 @@ const GROUPS = [
         description: 'Vingt minutes pour la neuvaine.',
         durationMin: 20,
         prayerKind: 'office',
-        weekly: { weekday: 5, localTime: '20:00', timezone: 'Europe/Paris' },
+        weekly: { weekdays: [5], localTime: '20:00', timezone: 'Europe/Paris' },
         participants: ['dev_claire', 'dev_pierre'],
       },
     ],
@@ -607,6 +670,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
     const meetings = await seedGatherings(admin, group, groupId, ids, me, now, rdvIn);
     const novenas = await seedNovenas(admin, group, groupId, ids, now);
     const rosaries = await seedRosaries(admin, group, groupId, ids, now);
+    const adorations = await seedAdorations(admin, group, groupId, ids, now);
 
     const who = group.members.map(([handle, role]) => `${handle} (${role})`).join(', ');
     summary.push(
@@ -616,6 +680,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
       ...meetings,
       ...novenas,
       ...rosaries,
+      ...adorations,
     );
   }
   return summary;
@@ -660,10 +725,11 @@ async function seedGatherings(admin, group, groupId, ids, me, now, rdvIn) {
       description: meeting.description,
       duration_min: meeting.durationMin,
       recurrence: once ? 'once' : 'weekly',
-      weekday: once ? null : meeting.weekly.weekday,
+      weekdays: once ? null : meeting.weekly.weekdays,
       local_time: once ? null : meeting.weekly.localTime,
       timezone: once ? null : meeting.weekly.timezone,
       starts_at: once ? startsAt.toISOString() : null,
+      ends_on: !once && meeting.weekly.endsInDays ? dateIn(meeting.weekly.timezone, now, meeting.weekly.endsInDays) : null,
       prayer_kind: meeting.prayerKind ?? 'libre',
       created_by: owner,
     };
@@ -702,7 +768,8 @@ async function seedGatherings(admin, group, groupId, ids, me, now, rdvIn) {
       const [h, m] = meeting.weekly.localTime.split(':').map(Number);
       const wall = wallClock(now, meeting.weekly.timezone);
       const since = wall.minutes - (h * 60 + m); // minutes écoulées depuis le début de CE jour
-      if (wall.weekday === meeting.weekly.weekday && since >= -10 && since < meeting.durationMin) {
+      const ended = row.ends_on !== null && dateIn(meeting.weekly.timezone, now, 0) > row.ends_on;
+      if (!ended && meeting.weekly.weekdays.includes(wall.weekday) && since >= -10 && since < meeting.durationMin) {
         const start = new Date(Math.floor((now - wall.seconds * 1000 - since * 60_000) / 60_000) * 60_000).toISOString();
         const rows = ['dev_marie', 'dev_pierre']
           .filter((handle) => userIds.includes(ids[handle]))
@@ -720,7 +787,7 @@ async function seedGatherings(admin, group, groupId, ids, me, now, rdvIn) {
 
     const when = once
       ? `ponctuel, commence à ${startsAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} heure locale (dans ${rdvIn} min ; « Je suis là » dès ${new Date(startsAt.getTime() - 10 * 60_000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})`
-      : `hebdomadaire, jour ${meeting.weekly.weekday} (0 = dimanche) à ${meeting.weekly.localTime}, ${meeting.weekly.timezone}`;
+      : `hebdomadaire, jours ${meeting.weekly.weekdays.join(', ')} (0 = dimanche) à ${meeting.weekly.localTime}, ${meeting.weekly.timezone}${row.ends_on ? `, jusqu’au ${row.ends_on}` : ', sans fin'}`;
     const who = meeting.participants.filter((p) => p !== 'me' || (me && group.includeMe)).map((p) => (p === 'me' ? me.handle : p));
     lines.push(`    rendez-vous : ${meeting.title} — ${when}, ${meeting.durationMin} min ; inscrits : ${who.join(', ')}${present}`);
   }
@@ -803,6 +870,144 @@ async function seedRosaries(admin, group, groupId, ids, now) {
     const who = Object.entries(rosary.places).map(([handle, [team, slot]]) => `${handle} (équipe ${team}, place ${slot})`);
     lines.push(
       `    rosaire vivant : début ${startMonth}, ${rosary.timezone} — ${who.join(', ')} ; dizaine cochée aujourd’hui (${today}) : ${rosary.prayedToday.join(', ') || 'personne'}`,
+    );
+  }
+  return lines;
+}
+
+/** AAAA-MM-JJ décalé de `shift` jours (calendrier UTC, sans changement d'heure). */
+function shiftIso(iso, shift) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + shift)).toISOString().slice(0, 10);
+}
+
+/** AAAA-MM-JJ plus `months` mois, le jour ramené au dernier du mois s'il n'existe pas. */
+function addMonthsIso(iso, months) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + months, Math.min(d, last))).toISOString().slice(0, 10);
+}
+
+/** L'instant (ms) où il est `hour:minute` le `iso` (AAAA-MM-JJ) dans `zone`. Deux passes corrigent le décalage quand il change. */
+function instantIn(zone, iso, hour, minute) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const wall = Date.UTC(y, m - 1, d, hour, minute);
+  const offset = (ts) => {
+    const p = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    }).formatToParts(new Date(ts));
+    const get = (type) => Number(p.find((x) => x.type === type).value);
+    return (
+      Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second')) - Math.floor(ts / 1000) * 1000
+    );
+  };
+  const first = wall - offset(wall);
+  return wall - offset(first);
+}
+
+/**
+ * Recrée les chaînes d'adoration d'un groupe avec les réservations des comptes de test. Rien n'est écrit au nom de
+ * l'utilisateur (--me) : aucune réservation. Renvoie les lignes du résumé.
+ */
+async function seedAdorations(admin, group, groupId, ids, now) {
+  const owner = ids[group.members.find(([, role]) => role === 'owner')[0]];
+  const lines = [];
+  for (const chain of group.adorations ?? []) {
+    const weekly = chain.weekly !== undefined;
+    const zone = chain.timezone;
+    const slotMs = chain.slotMinutes * 60_000;
+    /** Les occurrences : une pour une chaîne ponctuelle, une par jour voulu pour une hebdomadaire (fin à l'heure du mur). */
+    let occurrences;
+    let schedule = {};
+    if (weekly) {
+      const w = chain.weekly;
+      const [sh, sm] = w.localStart.split(':').map(Number);
+      const [eh, em] = w.localEnd.split(':').map(Number);
+      // Premier jour : demain ou le premier jour voulu qui suit.
+      let firstOn = dateIn(zone, now, 1);
+      while (!w.weekdays.includes(new Date(`${firstOn}T00:00:00Z`).getUTCDay())) firstOn = shiftIso(firstOn, 1);
+      const lastOn = shiftIso(addMonthsIso(firstOn, w.months), -1);
+      occurrences = [];
+      for (let day = firstOn; day <= lastOn; day = shiftIso(day, 1)) {
+        if (!w.weekdays.includes(new Date(`${day}T00:00:00Z`).getUTCDay())) continue;
+        const nextDay = eh * 60 + em > sh * 60 + sm ? 0 : 1;
+        occurrences.push({ start: instantIn(zone, day, sh, sm), end: instantIn(zone, shiftIso(day, nextDay), eh, em) });
+      }
+      schedule = {
+        recurrence: 'weekly',
+        weekdays: w.weekdays,
+        local_start: w.localStart,
+        local_end: w.localEnd,
+        first_on: firstOn,
+        last_on: lastOn,
+      };
+    } else {
+      let start;
+      let end;
+      if (chain.tonight) {
+        let day = dateIn(zone, now, 0);
+        start = instantIn(zone, day, chain.tonight.startHour, 0);
+        // Une heure déjà passée (à 5 minutes près) : demain soir.
+        if (start <= now + 5 * 60_000) {
+          day = dateIn(zone, now, 1);
+          start = instantIn(zone, day, chain.tonight.startHour, 0);
+        }
+        end = instantIn(zone, dateIn(zone, start, 1), chain.tonight.endHour, 0);
+      } else {
+        start = Math.floor((now + chain.startsInMin * 60_000) / 60_000) * 60_000;
+        end = start + chain.durationMin * 60_000;
+      }
+      occurrences = [{ start, end }];
+      schedule = { recurrence: 'once' };
+    }
+    const start = occurrences[0].start;
+    const end = occurrences[occurrences.length - 1].end;
+    const { data, error } = await admin
+      .from('adoration_chains')
+      .insert({
+        group_id: groupId,
+        title: chain.title,
+        intention: chain.intention,
+        place: chain.place,
+        starts_at: new Date(start).toISOString(),
+        ends_at: new Date(end).toISOString(),
+        slot_minutes: chain.slotMinutes,
+        timezone: zone,
+        created_by: owner,
+        ...schedule,
+      })
+      .select('id')
+      .single();
+    check(error, `Chaîne d’adoration « ${chain.title} »`);
+    // Une réservation = l'instant de début du créneau. Ponctuel : [index du créneau]. Hebdomadaire : [occurrence, index du créneau].
+    const rows = Object.entries(chain.reservations).flatMap(([handle, picks]) =>
+      picks.map((pick) => {
+        const [occurrence, index] = weekly ? pick : [0, pick];
+        return {
+          chain_id: data.id,
+          slot_start: new Date(occurrences[occurrence].start + index * slotMs).toISOString(),
+          user_id: ids[handle],
+        };
+      }),
+    );
+    if (rows.length) check((await admin.from('adoration_slots').insert(rows)).error, `Réservations de « ${chain.title} »`);
+    const count = occurrences.reduce((sum, o) => sum + Math.floor((o.end - o.start) / slotMs), 0);
+    const taken = new Set(rows.map((r) => r.slot_start)).size;
+    const clock = (ts) =>
+      new Intl.DateTimeFormat('fr-FR', { timeZone: zone, weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(ts));
+    const who = Object.entries(chain.reservations).map(([handle, picks]) => `${handle} (${picks.length} créneau(x))`);
+    const when = weekly
+      ? `hebdomadaire, jours ${chain.weekly.weekdays.join(', ')} (0 = dimanche), ${chain.weekly.localStart} – ${chain.weekly.localEnd} (${zone}), du ${schedule.first_on} au ${schedule.last_on}, ${occurrences.length} occurrences`
+      : `du ${clock(start)} au ${clock(end)} (${zone})`;
+    lines.push(
+      `    chaîne d’adoration : ${chain.title} — ${when}, ${count} créneaux de ${chain.slotMinutes} min, ${taken} réservés ; ${who.join(', ')}`,
     );
   }
   return lines;
@@ -968,7 +1173,7 @@ async function removeReviewer(admin, base) {
 
 function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
-  seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous, deux neuvaines et un Rosaire vivant
+  seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous, deux neuvaines, un Rosaire vivant et deux chaînes d’adoration
                          --me : ces comptes suivent votre profil (sauf dev_therese) et vous entrez
                          comme simple membre dans « ${GROUPS[0].name} » et inscrit à ses rendez-vous
                          --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)

@@ -20,6 +20,16 @@ export type AdorationStep = {
 
 export const DURATIONS = [15, 30, 45, 60];
 
+/**
+ * La durée passée dans l'adresse (`/adoration?minutes=60`) quand on entre en adoration depuis un créneau de la chaîne : elle doit
+ * être l'une des durées proposées, sinon null (l'écran garde alors la durée habituelle de la personne).
+ */
+export function durationFromParam(value: string | string[] | undefined): number | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const minutes = raw !== undefined && /^\d{1,3}$/.test(raw) ? Number(raw) : Number.NaN;
+  return DURATIONS.includes(minutes) ? minutes : null;
+}
+
 export const MODES: { id: AdorationMode; name: string; hint: string; icon: 'moon-outline' | 'footsteps-outline' }[] = [
   { id: 'contemplative', name: 'Contemplatif', hint: 'Surtout du silence, avec quelques mots pour t’y poser.', icon: 'moon-outline' },
   { id: 'guided', name: 'Guidé', hint: 'Pas à pas : la Parole, le merci, le pardon, ceux que tu portes.', icon: 'footsteps-outline' },

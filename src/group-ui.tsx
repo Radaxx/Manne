@@ -12,6 +12,11 @@ export function openGroup(id: string) {
   router.push({ pathname: '/groupe/[id]', params: { id } });
 }
 
+/** La chaîne d'adoration d'un groupe (id de la chaîne). */
+export function openAdorationChain(id: string) {
+  router.push({ pathname: '/adoration-chaine/[id]', params: { id } });
+}
+
 /** La salle de prière en direct d'un rendez-vous (id du rendez-vous). */
 export function openRoom(gatheringId: string) {
   router.push({ pathname: '/salle/[id]', params: { id: gatheringId } });
@@ -37,7 +42,7 @@ export function NeedProfile() {
   );
 }
 
-const KIND_ICONS: Record<GroupKind, keyof typeof Ionicons.glyphMap> = {
+export const KIND_ICONS: Record<GroupKind, keyof typeof Ionicons.glyphMap> = {
   fraternite: 'lock-closed-outline',
   communaute: 'people-outline',
   ephemere: 'hourglass-outline',

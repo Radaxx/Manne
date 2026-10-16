@@ -1,4 +1,4 @@
-import { dayLabel, WEEKDAYS } from './dates';
+import { dayLabel, MONTHS, shiftDay, WEEKDAYS } from './dates';
 import { DESCRIPTION_MAX } from './groups';
 import { asRecord, call, type Result, readRows } from './profile';
 
@@ -6,6 +6,8 @@ import { asRecord, call, type Result, readRows } from './profile';
 // sauf les rappels que programme src/gathering-reminders.ts pour les rendez-vous auxquels on s'est inscrit.
 //
 // Jour de la semaine : 0 à 6, DIMANCHE = 0 (comme getDay(), WEEKDAYS de src/dates.ts et extract(dow) côté serveur).
+// Un hebdomadaire a un ou plusieurs jours (`weekdays`, 1 à 7 valeurs distinctes) et une fin facultative (`endsOn`, dernier jour
+// local, dans son fuseau : aucune occurrence n'a lieu après ce jour).
 // Fuseaux : le serveur calcule avec `at time zone` ; ici, `nextOccurrences` fait le même calcul avec Intl
 // (Intl.DateTimeFormat + timeZone + formatToParts), sans dépendance. Intl avec fuseau IANA existe dans Node (Jest) et
 // dans Hermes sur iOS et Android (ICU) ; si un moteur ne le supportait pas, tout échoue en douceur : aucune occurrence,
@@ -48,14 +50,16 @@ export const PRESENCE_LEAD_MIN = 10;
 /** Ce qui décide des occurrences d'un rendez-vous. */
 export type Schedule = {
   recurrence: Recurrence;
-  /** Hebdomadaire : 0 (dimanche) à 6 (samedi). */
-  weekday: number | null;
+  /** Hebdomadaire : les jours, 0 (dimanche) à 6 (samedi), triés, sans doublon ; vide pour un ponctuel. */
+  weekdays: number[];
   /** Hebdomadaire : « HH:MM » dans le fuseau du créateur. */
   localTime: string | null;
   /** Hebdomadaire : fuseau IANA du créateur, par exemple Europe/Paris. */
   timezone: string | null;
   /** Ponctuel : l'instant (ISO). */
   startsAt: string | null;
+  /** Hebdomadaire : dernier jour (AAAA-MM-JJ, dans le fuseau du rendez-vous), ou nul s'il n'a pas de fin. */
+  endsOn: string | null;
   durationMin: number;
 };
 
@@ -172,10 +176,19 @@ export function parseLocalTime(value: unknown): { hour: number; minute: number }
   return hour < 24 && minute < 60 ? { hour, minute } : null;
 }
 
+/** Les jours d'un hebdomadaire, ou rien s'ils sont invalides. */
+function validWeekdays(days: number[]): boolean {
+  return (
+    days.length >= 1 && days.length <= 7 && days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6) && new Set(days).size === days.length
+  );
+}
+
+const isoOfUtc = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
 /**
  * Les `n` prochaines occurrences (début), strictement après `from`, en ordre. Un hebdomadaire tient compte du fuseau de
- * son créateur et des changements d'heure ; un ponctuel passé n'en a aucune. Même calcul que le serveur
- * (gathering_next_occurrence). Renvoie [] au lieu d'échouer si le fuseau est inconnu du moteur.
+ * son créateur, de ses jours, de sa fin éventuelle (`endsOn`, incluse) et des changements d'heure ; un ponctuel passé n'en a
+ * aucune. Même calcul que le serveur (weekly_next_start). Renvoie [] au lieu d'échouer si le fuseau est inconnu du moteur.
  */
 export function nextOccurrences(rdv: Schedule, from: Date, n: number): Date[] {
   if (n <= 0 || Number.isNaN(from.getTime())) return [];
@@ -185,14 +198,16 @@ export function nextOccurrences(rdv: Schedule, from: Date, n: number): Date[] {
       return Number.isFinite(start) && start > from.getTime() ? [new Date(start)] : [];
     }
     const time = parseLocalTime(rdv.localTime);
-    if (!time || rdv.weekday === null || !rdv.timezone || rdv.weekday < 0 || rdv.weekday > 6) return [];
+    if (!time || !rdv.timezone || !validWeekdays(rdv.weekdays)) return [];
     const zone = rdv.timezone;
     const first = zonedParts(from.getTime(), zone);
     const found: Date[] = [];
     let day = Date.UTC(first.year, first.month - 1, first.day);
+    // Au plus une semaine par occurrence demandée (un seul jour), plus la marge d'un jour de départ.
     for (let k = 0; k < 7 * n + 14 && found.length < n; k++, day += 86_400_000) {
+      if (rdv.endsOn && isoOfUtc(day) > rdv.endsOn) break;
       const date = new Date(day);
-      if (date.getUTCDay() !== rdv.weekday) continue;
+      if (!rdv.weekdays.includes(date.getUTCDay())) continue;
       const ts = zonedInstant(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), time.hour, time.minute, zone);
       if (ts > from.getTime()) found.push(new Date(ts));
     }
@@ -200,6 +215,27 @@ export function nextOccurrences(rdv: Schedule, from: Date, n: number): Date[] {
   } catch {
     return [];
   }
+}
+
+/** Le début de la dernière occurrence d'un hebdomadaire qui a une fin (le dernier jour de la semaine voulu <= endsOn), ou null. */
+export function lastOccurrence(rdv: Schedule): Date | null {
+  if (rdv.recurrence !== 'weekly' || !rdv.endsOn || !rdv.timezone) return null;
+  const time = parseLocalTime(rdv.localTime);
+  if (!time || !validWeekdays(rdv.weekdays) || !/^\d{4}-\d{2}-\d{2}$/.test(rdv.endsOn)) return null;
+  try {
+    const [y, m, d] = rdv.endsOn.split('-').map(Number);
+    for (let k = 0; k < 7; k++) {
+      const date = new Date(Date.UTC(y, m - 1, d - k));
+      if (rdv.weekdays.includes(date.getUTCDay())) {
+        return new Date(
+          zonedInstant(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), time.hour, time.minute, rdv.timezone),
+        );
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 /** La fenêtre de « Je suis là » d'une occurrence : de 10 minutes avant le début jusqu'à la fin de la durée. */
@@ -301,7 +337,73 @@ export function occurrenceLabel(start: Date, zone: string = deviceTimeZone()): s
   }
 }
 
-/** « Chaque mardi à 21 h » (hebdomadaire) ou « Mardi 21 octobre à 20 h 30 » (ponctuel), à l'heure de `zone`. */
+/** Les jours de la semaine dans l'ordre d'un calendrier français : lundi d'abord, dimanche en dernier. */
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+/**
+ * « Chaque jour » (7 jours), « Chaque vendredi » (1 jour) ou « Les mardis, jeudis et samedis » : les jours d'un hebdomadaire,
+ * dans l'ordre de la semaine (lundi d'abord).
+ */
+export function weekdaysPhrase(days: number[]): string {
+  const sorted = WEEK_ORDER.filter((d) => days.includes(d));
+  if (sorted.length === 0) return '';
+  if (sorted.length === 7) return 'Chaque jour';
+  if (sorted.length === 1) return `Chaque ${WEEKDAYS[sorted[0]]}`;
+  const names = sorted.map((d) => `${WEEKDAYS[d]}s`);
+  return `Les ${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}`;
+}
+
+/**
+ * Les jours d'un hebdomadaire vus depuis `zone` : ceux du fuseau d'origine, décalés d'autant que le jour de l'occurrence
+ * `reference` change d'un fuseau à l'autre (un jeudi 19 h à Toronto est un vendredi 1 h à Paris).
+ */
+export function weekdaysInZone(days: number[], reference: Date, originZone: string, zone: string): number[] {
+  try {
+    const delta = (zonedParts(reference.getTime(), zone).weekday - zonedParts(reference.getTime(), originZone).weekday + 7) % 7;
+    return days.map((d) => (d + delta) % 7);
+  } catch {
+    return days;
+  }
+}
+
+/** « 30 novembre », « 1er décembre » : un jour sans l'année. */
+export function dayMonthLabel(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d === 1 ? '1er' : d} ${MONTHS[m - 1]}`;
+}
+
+/** « jusqu’au 30 novembre » : le jour de la dernière occurrence (à l'heure de `zone`). */
+export function untilLabel(last: Date, zone: string = deviceTimeZone()): string {
+  const p = zonedParts(last.getTime(), zone);
+  return `jusqu’au ${dayMonthLabel(`${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`)}`;
+}
+
+/**
+ * La récurrence d'un hebdomadaire à l'heure de `zone`, d'après son occurrence `reference` (la prochaine) :
+ * « Les mardis, jeudis et samedis de 10 h à 10 h 15 », « Chaque jour de 10 h à 10 h 15 », puis « , jusqu’au 30 novembre »
+ * s'il a une fin.
+ */
+export function recurrenceText(
+  rdv: Pick<Schedule, 'weekdays' | 'timezone' | 'localTime' | 'durationMin' | 'endsOn' | 'recurrence'>,
+  reference: Date,
+  zone: string = deviceTimeZone(),
+): string {
+  if (rdv.recurrence !== 'weekly' || !rdv.timezone) return '';
+  try {
+    const p = zonedParts(reference.getTime(), zone);
+    const phrase = weekdaysPhrase(weekdaysInZone(rdv.weekdays, reference, rdv.timezone, zone));
+    const base = `${phrase} de ${timeLabel(p.hour, p.minute)} à ${endTimeLabel(reference, rdv.durationMin, zone)}`;
+    const last = lastOccurrence(rdv as Schedule);
+    return last ? `${base}, ${untilLabel(last, zone)}` : base;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * « Les mardis, jeudis et samedis de 10 h à 10 h 15, jusqu’au 30 novembre » (hebdomadaire) ou « Mardi 21 octobre à 20 h 30 »
+ * (ponctuel), à l'heure de `zone`.
+ */
 export function whenLabel(rdv: Schedule, from: Date = new Date(), zone: string = deviceTimeZone()): string {
   try {
     if (rdv.recurrence === 'once') {
@@ -309,15 +411,14 @@ export function whenLabel(rdv: Schedule, from: Date = new Date(), zone: string =
       return Number.isFinite(start) ? occurrenceLabel(new Date(start), zone) : '';
     }
     const next = nextOccurrences(rdv, from, 1)[0];
-    if (!next) return '';
-    const p = zonedParts(next.getTime(), zone);
-    return `Chaque ${WEEKDAYS[p.weekday]} à ${timeLabel(p.hour, p.minute)}`;
+    return next ? recurrenceText(rdv, next, zone) : '';
   } catch {
     return '';
   }
 }
 
-function zoneCity(zone: string): string | null {
+/** La ville d'un fuseau IANA : « Europe/Paris » donne « Paris » ; null s'il n'a pas de ville (« UTC »). */
+export function zoneCity(zone: string): string | null {
   if (!zone.includes('/')) return null;
   return (zone.split('/').pop() ?? zone).replace(/_/g, ' ');
 }
@@ -381,6 +482,59 @@ export function onceProblem(at: Date | null, now: Date = new Date()): string | n
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// « Pendant » : la fin d'un hebdomadaire (fonctions pures, calendrier UTC pour éviter les changements d'heure)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Une durée rapide : un nombre de semaines ou de mois, à partir d'un premier jour. */
+export type SpanChoice = { id: string; label: string; weeks?: number; months?: number };
+
+/** Les choix de « Pendant » d'un rendez-vous (« Sans fin » ou une durée ; une date de fin explicite se choisit à part). */
+export const ENDS_CHOICES: SpanChoice[] = [
+  { id: 'none', label: 'Sans fin' },
+  { id: 'w1', label: '1 semaine', weeks: 1 },
+  { id: 'w2', label: '2 semaines', weeks: 2 },
+  { id: 'm1', label: '1 mois', months: 1 },
+  { id: 'm3', label: '3 mois', months: 3 },
+  { id: 'm6', label: '6 mois', months: 6 },
+  { id: 'y1', label: '1 an', months: 12 },
+];
+
+/** La fin est dans un an au plus (le serveur compte un an de calendrier, jusqu'à 366 jours). */
+export const ENDS_MAX_MONTHS = 12;
+
+/** AAAA-MM-JJ plus `n` mois, le jour ramené au dernier du mois s'il n'existe pas (31 janvier + 1 mois = 28 ou 29 février). */
+export function addMonths(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const index = m - 1 + n;
+  const year = y + Math.floor(index / 12);
+  const month = ((index % 12) + 12) % 12;
+  const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month, Math.min(d, last))).toISOString().slice(0, 10);
+}
+
+/**
+ * Le dernier jour d'une durée qui commence le `first` : 3 semaines depuis le 23 octobre se terminent le 12 novembre (21 jours
+ * en tout), 2 mois depuis le 23 octobre le 22 décembre. Nul pour « Sans fin ».
+ */
+export function lastDayFor(choice: SpanChoice, first: string): string | null {
+  if (choice.weeks) return shiftDay(first, choice.weeks * 7 - 1);
+  if (choice.months) return shiftDay(addMonths(first, choice.months), -1);
+  return null;
+}
+
+/**
+ * Pourquoi cette fin est refusée pour un hebdomadaire, en français, ou null : une fin passée, à plus d'un an, ou qui ne laisse
+ * aucune occurrence à venir. `today` : le jour d'aujourd'hui dans le fuseau du rendez-vous.
+ */
+export function endsOnProblem(rdv: Schedule, today: string, now: Date = new Date()): string | null {
+  if (rdv.recurrence !== 'weekly' || !rdv.endsOn) return null;
+  if (rdv.endsOn < today) return 'Choisis une fin à venir.';
+  if (rdv.endsOn > addMonths(today, ENDS_MAX_MONTHS)) return 'La fin est dans un an au plus.';
+  if (nextOccurrences(rdv, now, 1).length === 0) return 'Aucun rendez-vous n’a lieu avant cette fin.';
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Lecteurs de lignes (défensifs : une ligne inattendue est ignorée, jamais une erreur)
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -391,20 +545,34 @@ const nat = (value: unknown): number | null => {
 };
 const isoDate = (value: unknown): string | null => (typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null);
 
+/** Les jours d'une ligne du serveur : `weekdays`, ou à défaut l'ancien `weekday` seul. Vide si invalide. */
+function readWeekdays(record: Record<string, unknown>): number[] {
+  const raw = Array.isArray(record.weekdays)
+    ? record.weekdays
+    : record.weekday === null || record.weekday === undefined
+      ? []
+      : [record.weekday];
+  const days = raw.map(nat);
+  if (days.some((d) => d === null || d > 6)) return [];
+  const unique = [...new Set(days as number[])].sort((a, b) => a - b);
+  return unique.length >= 1 && unique.length <= 7 ? unique : [];
+}
+
 function readSchedule(record: Record<string, unknown>): Schedule | null {
   const durationMin = nat(record.duration_min);
   if (durationMin === null || durationMin < DURATION_MIN || durationMin > DURATION_MAX) return null;
   if (record.recurrence === 'once') {
     const startsAt = isoDate(record.starts_at);
-    return startsAt ? { recurrence: 'once', weekday: null, localTime: null, timezone: null, startsAt, durationMin } : null;
+    return startsAt ? { recurrence: 'once', weekdays: [], localTime: null, timezone: null, startsAt, endsOn: null, durationMin } : null;
   }
   if (record.recurrence === 'weekly') {
-    const weekday = nat(record.weekday);
+    const weekdays = readWeekdays(record);
     const time = parseLocalTime(record.local_time);
     const timezone = str(record.timezone);
-    if (weekday === null || weekday > 6 || !time || !timezone || !isTimeZone(timezone)) return null;
+    if (weekdays.length === 0 || !time || !timezone || !isTimeZone(timezone)) return null;
     const localTime = `${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}`;
-    return { recurrence: 'weekly', weekday, localTime, timezone, startsAt: null, durationMin };
+    const endsOn = typeof record.ends_on === 'string' && /^\d{4}-\d{2}-\d{2}/.test(record.ends_on) ? record.ends_on.slice(0, 10) : null;
+    return { recurrence: 'weekly', weekdays, localTime, timezone, startsAt: null, endsOn, durationMin };
   }
   return null;
 }
@@ -480,10 +648,12 @@ export type GatheringInput = {
   description: string;
   durationMin: number;
   recurrence: Recurrence;
-  /** Hebdomadaire : 0 (dimanche) à 6. */
-  weekday: number;
+  /** Hebdomadaire : les jours, 0 (dimanche) à 6. */
+  weekdays: number[];
   hour: number;
   minute: number;
+  /** Hebdomadaire : dernier jour (AAAA-MM-JJ, à l'heure du téléphone), ou nul pour un rendez-vous sans fin. */
+  endsOn: string | null;
   /** Ponctuel : le moment. */
   startsAt: Date | null;
   prayerKind: PrayerKind;
@@ -496,7 +666,10 @@ function fields(input: GatheringInput) {
     p_description: input.description.trim(),
     p_duration: input.durationMin,
     p_recurrence: input.recurrence,
-    p_weekday: weekly ? input.weekday : null,
+    // `p_weekday` ne sert qu'aux téléphones d'avant (un seul jour) : le serveur lit `p_weekdays` d'abord.
+    p_weekday: null,
+    p_weekdays: weekly ? [...input.weekdays].sort((a, b) => a - b) : null,
+    p_ends_on: weekly ? input.endsOn : null,
     p_local_time: weekly ? `${String(input.hour).padStart(2, '0')}:${String(input.minute).padStart(2, '0')}` : null,
     // Le fuseau du téléphone de celui qui enregistre : l'heure saisie est celle de son mur.
     p_timezone: weekly ? deviceTimeZone() : null,

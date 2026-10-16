@@ -1,3 +1,4 @@
+import { ADORATION_REMINDERS_MAX } from '../src/adoration-reminders';
 import { MYSTERIES } from '../src/data/prayers';
 import { GATHERING_REMINDERS_MAX } from '../src/gathering-reminders';
 import {
@@ -266,10 +267,10 @@ describe('rappels', () => {
     expect(planRosaryReminders([mine({ reminderTime: null })], at('2026-10-16T05:00:00Z'), 'Europe/Paris')).toEqual([]);
   });
 
-  it('budget iOS : quotidien 15 + rendez-vous 30 + neuvaines 9 + Rosaire vivant 3 = 57, dans 64', () => {
-    const total = DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX + ROSARY_REMINDERS_MAX;
+  it('budget iOS : quotidien 15 + rendez-vous 30 + neuvaines 9 + Rosaire vivant 3 + adoration 3 = 60, dans 64', () => {
+    const total = DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX + ROSARY_REMINDERS_MAX + ADORATION_REMINDERS_MAX;
     expect(ROSARY_REMINDERS_MAX).toBe(3);
-    expect(total).toBe(57);
+    expect(total).toBe(60);
     expect(total).toBeLessThanOrEqual(64);
   });
 

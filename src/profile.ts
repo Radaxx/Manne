@@ -122,6 +122,9 @@ function failureMessage(message: string) {
     message.includes('Ce groupe') ||
     message.includes('Ce rendez-vous') ||
     message.includes('Cette neuvaine') ||
+    message.includes('Cette chaîne') ||
+    message.includes('Ce créneau') ||
+    message.includes('Des créneaux') ||
     message.includes('Ce jour n’est') ||
     message.includes('Tu es déjà') ||
     message.includes('Tu es le propriétaire') ||
@@ -139,6 +142,20 @@ function failureMessage(message: string) {
   if (message.includes('nom_invalide')) return 'Le nom du groupe fait entre 3 et 60 caractères.';
   if (message.includes('type_invalide')) return 'Ce type de groupe n’existe pas.';
   if (message.includes('fin_invalide')) return 'La date de fin doit être dans le futur, à un an au plus.';
+  // Chaîne d'adoration : codes avant ceux des rendez-vous (aucun ne contient l'un des leurs, mais l'ordre reste lisible).
+  if (message.includes('chaine_inconnue')) return 'Cette chaîne d’adoration n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('creneau_invalide')) return 'Ce créneau n’existe pas.';
+  if (message.includes('chaine_titre')) return 'Le titre de la chaîne d’adoration fait entre 3 et 60 caractères.';
+  if (message.includes('chaine_texte')) return 'L’intention fait 280 caractères au plus, et le lieu 80.';
+  if (message.includes('chaine_creneau_duree')) return 'Un créneau dure 30 ou 60 minutes.';
+  if (message.includes('chaine_periode')) return 'Une chaîne qui a lieu une seule fois dure de 1 h à 7 jours, en créneaux entiers.';
+  if (message.includes('chaine_recurrence')) return 'Une chaîne a lieu une seule fois, ou chaque semaine.';
+  if (message.includes('chaine_jours')) return 'Choisis un à sept jours de la semaine.';
+  if (message.includes('chaine_heures')) return 'Une plage d’adoration dure de 30 minutes à 24 heures, en créneaux entiers.';
+  if (message.includes('chaine_dates'))
+    return 'Choisis un premier et un dernier jour (un an au plus), avec au moins une plage entre les deux.';
+  if (message.includes('chaine_occurrences')) return 'Une chaîne a 400 plages au plus.';
+  if (message.includes('chaine_debut')) return 'Choisis un début à venir, dans les 60 prochains jours.';
   if (message.includes('rdv_inconnu')) return 'Ce rendez-vous n’existe plus, ou tu n’as pas accès à ce groupe.';
   if (message.includes('rosaire_inconnu')) return 'Ce Rosaire vivant n’existe plus, ou tu n’as pas accès à ce groupe.';
   if (message.includes('pas_participant')) return 'Tu ne participes pas à ce Rosaire vivant.';
@@ -153,7 +170,9 @@ function failureMessage(message: string) {
   if (message.includes('titre_invalide')) return 'Le titre du rendez-vous fait entre 3 et 60 caractères.';
   if (message.includes('duree_invalide')) return 'La durée d’un rendez-vous va de 10 à 180 minutes.';
   if (message.includes('recurrence_invalide')) return 'Ce type de rendez-vous n’existe pas.';
-  if (message.includes('jour_invalide')) return 'Ce jour de la semaine n’existe pas.';
+  if (message.includes('jour_invalide')) return 'Choisis un à sept jours de la semaine.';
+  if (message.includes('fin_rdv'))
+    return 'La fin du rendez-vous est entre aujourd’hui et dans un an, et au moins un rendez-vous a lieu avant elle.';
   if (message.includes('heure_invalide')) return 'Choisis une heure.';
   if (message.includes('fuseau_invalide')) return 'Le fuseau horaire de ton téléphone n’est pas reconnu.';
   if (message.includes('date_invalide')) return 'Le rendez-vous doit être dans le futur, à un an au plus.';

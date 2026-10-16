@@ -5,6 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
+import { onAdorationChanged } from '../adoration-chain';
+import { adorationChainIdFromUrl, syncAdorationReminders } from '../adoration-reminders';
 import { type Palette, paletteFor } from '../appearance';
 import { AuthProvider, useAuth } from '../auth';
 import { EchoHost } from '../echoes';
@@ -12,7 +14,7 @@ import { FONT_FILES } from '../font-files';
 import { fontFace } from '../fonts';
 import { groupIdFromUrl, syncGatheringReminders } from '../gathering-reminders';
 import { onGatheringsChanged } from '../gatherings';
-import { openGroup } from '../group-ui';
+import { openAdorationChain, openGroup } from '../group-ui';
 import { liturgicalDay } from '../liturgical-year';
 import { onRosariesChanged } from '../living-rosary';
 import { openRosary } from '../living-rosary-ui';
@@ -174,13 +176,45 @@ function RosarySync() {
   return null;
 }
 
-/** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine, celui du Rosaire vivant ouvre le Rosaire. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
+/**
+ * Les rappels de la chaîne d'adoration (10 minutes avant chacun de mes 3 prochains créneaux) sont reprogrammés au lancement,
+ * au retour de l'app au premier plan, quand le compte ou le profil change, et après chaque créneau réservé ou libéré, chaîne
+ * organisée, modifiée ou annulée. Sans compte relié ni profil, tous les rappels `adoration-…` sont annulés (les autres rappels
+ * ne sont pas touchés). Hors ligne, on garde ce qui est programmé.
+ */
+function AdorationSync() {
+  const { status, userId, profile, profileLoaded, profileOffline } = useAuth();
+  const profileMissing = status === 'signedIn' && profileLoaded && !profileOffline && !profile;
+  const waiting = status === 'signedIn' && !profileLoaded;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance la synchro quand on change de compte
+  useEffect(() => {
+    if (!notificationsSupported || waiting) return;
+    const sync = () => syncAdorationReminders({ profileMissing }).catch(() => {});
+    sync();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sync();
+    });
+    const off = onAdorationChanged(sync);
+    return () => {
+      sub.remove();
+      off();
+    };
+  }, [waiting, profileMissing, userId, status]);
+  return null;
+}
+
+/** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine, celui du Rosaire vivant ouvre le Rosaire, celui d'un créneau d'adoration ouvre la chaîne. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
 function NotificationLinks() {
   useEffect(() => {
     if (!notificationsSupported) return;
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
       const url = response.notification.request.content.data?.url;
+      const chain = adorationChainIdFromUrl(url);
+      if (chain) {
+        openAdorationChain(chain);
+        return;
+      }
       const novena = novenaIdFromUrl(url);
       if (novena) {
         openNovena(novena);
@@ -222,6 +256,7 @@ function ThemedShell() {
         <GatheringSync />
         <NovenaSync />
         <RosarySync />
+        <AdorationSync />
         <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
@@ -270,6 +305,8 @@ function ThemedShell() {
           <Stack.Screen name="groupe/neuvaine-nouvelle" options={{ title: 'Lancer une neuvaine' }} />
           <Stack.Screen name="neuvaine/[id]" options={{ title: 'Neuvaine' }} />
           <Stack.Screen name="rosaire/[id]" options={{ title: 'Rosaire vivant' }} />
+          <Stack.Screen name="groupe/adoration-nouvelle" options={{ title: 'Chaîne d’adoration' }} />
+          <Stack.Screen name="adoration-chaine/[id]" options={{ title: 'Chaîne d’adoration' }} />
           <Stack.Screen name="groupe/membres" options={{ title: 'Membres' }} />
           <Stack.Screen name="groupe/reglages" options={{ title: 'Réglages du groupe' }} />
           {/* Pas de geste de retour : on ne quitte pas la salle par erreur, le bouton « Quitter la salle » suffit. */}

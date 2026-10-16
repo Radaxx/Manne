@@ -280,7 +280,7 @@ const stylesFor = (C: Palette) =>
     beadNum: { color: C.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
     beadNumPrayed: { color: C.onGold },
     crownCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
+    card: { backgroundColor: C.card, borderRadius: 20, padding: 20, gap: 8 },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     title: { color: C.text, fontSize: 18, fontWeight: '800' },
     sub: { color: C.muted, fontSize: 14, lineHeight: 20 },

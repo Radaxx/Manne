@@ -10,8 +10,8 @@ import { supabase } from './supabase';
 // téléphone (nextReminderDays) ; la liste vient de my_novenas. Prier un jour, ou changer le rappel, resynchronise.
 //
 // Budget iOS (64 notifications programmées en tout) : 3 neuvaines rappelées x 3 jours = 9 au plus, plus 15 rappels
-// quotidiens (src/reminder.ts), 30 rappels de rendez-vous (src/gathering-reminders.ts) et 3 rappels de Rosaire vivant
-// (src/rosary-reminders.ts) = 57, marge de 7.
+// quotidiens (src/reminder.ts), 30 rappels de rendez-vous (src/gathering-reminders.ts), 3 rappels de Rosaire vivant
+// (src/rosary-reminders.ts) et 3 rappels de chaîne d'adoration (src/adoration-reminders.ts) = 60, marge de 4.
 
 const PREFIX = 'novena-';
 const CHANNEL = 'neuvaines';

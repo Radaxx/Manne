@@ -3,15 +3,20 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
-import { daysSince, localDate, shortDate, WEEKDAYS } from '../../dates';
+import { daysSince, localDate, shiftDay, shortDate, WEEKDAYS } from '../../dates';
 import {
+  addMonths,
   createGathering,
   DEFAULT_DURATION,
   DURATION_CHOICES,
   deviceTimeZone,
+  ENDS_CHOICES,
+  ENDS_MAX_MONTHS,
+  endsOnProblem,
   GATHERING_DESCRIPTION_MAX,
   type Gathering,
   gatheringDescriptionProblem,
+  lastDayFor,
   listGatherings,
   nextOccurrences,
   ONCE_MAX_DAYS,
@@ -20,22 +25,26 @@ import {
   type PrayerKind,
   prayerKindLabel,
   type Recurrence,
+  recurrenceText,
+  type Schedule,
   TITLE_MAX,
   timeLabel,
   titleProblem,
   updateGathering,
+  weekdaysInZone,
   zonedParts,
 } from '../../gatherings';
 import { NeedProfile, useGroupGate } from '../../group-ui';
 import { firstParam } from '../../groups';
 import { haptic } from '../../haptics';
+import { Chip } from '../../novena-ui';
 import { Button, Field, FormScreen, Lead } from '../../profile-ui';
+import { DateStepper, WeekdayChips } from '../../recurrence-ui';
 import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
-// Les jours de la semaine, du lundi au dimanche (le serveur compte 0 = dimanche).
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
-const capital = (text: string) => text[0].toUpperCase() + text.slice(1);
+/** « Pendant » d'un hebdomadaire : `none` (sans fin), l'un des choix rapides (ENDS_CHOICES) ou `date` (une date de fin choisie). */
+type Until = 'none' | 'date' | string;
 
 /** Ce que contient le formulaire. */
 type Draft = {
@@ -44,29 +53,36 @@ type Draft = {
   durationMin: number;
   recurrence: Recurrence;
   prayerKind: PrayerKind;
-  weekday: number;
+  /** Hebdomadaire : les jours, 0 (dimanche) à 6. */
+  weekdays: number[];
   hour: number;
   minute: number;
   /** Ponctuel : nombre de jours à partir d'aujourd'hui (0 à ONCE_MAX_DAYS). */
   dayOffset: number;
+  /** Hebdomadaire : combien de temps. */
+  until: Until;
+  /** Hebdomadaire, `until` = `date` : le dernier jour (AAAA-MM-JJ). */
+  untilDate: string;
 };
 
-const EMPTY: Draft = {
+const emptyDraft = (): Draft => ({
   title: '',
   description: '',
   durationMin: DEFAULT_DURATION,
   recurrence: 'weekly',
   prayerKind: 'libre',
-  weekday: 2,
+  weekdays: [2],
   hour: 21,
   minute: 0,
   dayOffset: 1,
-};
+  until: 'none',
+  untilDate: shiftDay(localDate(), 29),
+});
 
 /** Le formulaire d'un rendez-vous existant, vu depuis le fuseau de ce téléphone (c'est lui qui sera enregistré). */
 function draftFrom(g: Gathering): Draft {
   const base: Draft = {
-    ...EMPTY,
+    ...emptyDraft(),
     title: g.title,
     description: g.description,
     durationMin: g.durationMin,
@@ -79,7 +95,9 @@ function draftFrom(g: Gathering): Draft {
   const p = zonedParts(start.getTime(), zone);
   const iso = `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
   const offset = Math.min(ONCE_MAX_DAYS, Math.max(0, daysSince(localDate(), iso)));
-  return { ...base, weekday: p.weekday, hour: p.hour, minute: p.minute, dayOffset: offset };
+  const weekdays = g.recurrence === 'weekly' && g.timezone ? weekdaysInZone(g.weekdays, start, g.timezone, zone) : base.weekdays;
+  const ends = g.endsOn ? { until: 'date' as const, untilDate: g.endsOn } : { until: 'none' as const };
+  return { ...base, weekdays, hour: p.hour, minute: p.minute, dayOffset: offset, ...ends };
 }
 
 /** Le moment d'un rendez-vous ponctuel, à l'heure du téléphone. */
@@ -88,13 +106,34 @@ function onceDate(draft: Draft): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + draft.dayOffset, draft.hour, draft.minute, 0, 0);
 }
 
+/** Le dernier jour d'un hebdomadaire d'après « Pendant » (à partir d'aujourd'hui), ou null s'il n'a pas de fin. */
+function endsOnOf(draft: Draft): string | null {
+  if (draft.recurrence !== 'weekly' || draft.until === 'none') return null;
+  if (draft.until === 'date') return draft.untilDate;
+  const choice = ENDS_CHOICES.find((c) => c.id === draft.until);
+  return choice ? lastDayFor(choice, localDate()) : null;
+}
+
+/** L'hebdomadaire que décrit le formulaire, dans le fuseau de ce téléphone. */
+function weeklyOf(draft: Draft): Schedule {
+  return {
+    recurrence: 'weekly',
+    weekdays: draft.weekdays,
+    localTime: `${String(draft.hour).padStart(2, '0')}:${String(draft.minute).padStart(2, '0')}`,
+    timezone: deviceTimeZone(),
+    startsAt: null,
+    endsOn: endsOnOf(draft),
+    durationMin: draft.durationMin,
+  };
+}
+
 export default function RendezVousScreen() {
   const { C, styles } = useThemed(stylesFor);
   const params = useLocalSearchParams<{ id?: string | string[]; gathering?: string | string[] }>();
   const groupId = firstParam(params.id);
   const gatheringId = firstParam(params.gathering);
   const gate = useGroupGate();
-  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
   // En modification, on attend de connaître le rendez-vous pour préremplir.
   const [loading, setLoading] = useState(!!gatheringId);
   const [busy, setBusy] = useState(false);
@@ -123,7 +162,9 @@ export default function RendezVousScreen() {
   const descriptionError = gatheringDescriptionProblem(draft.description);
   const when = draft.recurrence === 'once' ? onceDate(draft) : null;
   const onceError = when ? onceProblem(when) : null;
-  const canSave = !titleProblem(draft.title) && !descriptionError && !onceError;
+  const weekly = weeklyOf(draft);
+  const endsError = draft.recurrence === 'weekly' ? endsOnProblem(weekly, localDate()) : null;
+  const canSave = !titleProblem(draft.title) && !descriptionError && !onceError && !endsError;
 
   const save = async () => {
     if (busy || !canSave) return;
@@ -135,9 +176,10 @@ export default function RendezVousScreen() {
       durationMin: draft.durationMin,
       recurrence: draft.recurrence,
       prayerKind: draft.prayerKind,
-      weekday: draft.weekday,
+      weekdays: draft.weekdays,
       hour: draft.hour,
       minute: draft.minute,
+      endsOn: weekly.endsOn,
       startsAt: when,
     };
     const result = gatheringId ? await updateGathering(gatheringId, input) : await createGathering(groupId, input);
@@ -151,9 +193,10 @@ export default function RendezVousScreen() {
   };
 
   // Les 61 prochains jours, aujourd'hui compris.
-  const today = new Date();
+  const todayDate = new Date();
+  const today = localDate(todayDate);
   const days = Array.from({ length: ONCE_MAX_DAYS + 1 }, (_, k) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + k);
+    const d = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() + k);
     return { k, label: `${WEEKDAYS[d.getDay()].slice(0, 3)}. ${shortDate(localDate(d))}` };
   });
 
@@ -208,12 +251,8 @@ export default function RendezVousScreen() {
 
       {draft.recurrence === 'weekly' ? (
         <>
-          <Text style={styles.section}>Jour</Text>
-          <View style={styles.chips}>
-            {WEEK_ORDER.map((day) => (
-              <Chip key={day} label={capital(WEEKDAYS[day])} on={draft.weekday === day} onPress={() => set({ weekday: day })} />
-            ))}
-          </View>
+          <Text style={styles.section}>Jours</Text>
+          <WeekdayChips days={draft.weekdays} onChange={(weekdays) => set({ weekdays })} />
         </>
       ) : (
         <>
@@ -241,11 +280,30 @@ export default function RendezVousScreen() {
           onPlus={() => set({ minute: (draft.minute + 5) % 60 })}
         />
       </View>
-      <Text style={styles.hint}>
-        {draft.recurrence === 'weekly'
-          ? `${capital(WEEKDAYS[draft.weekday])}, ${timeLabel(draft.hour, draft.minute)}, heure de ce téléphone (${deviceTimeZone()}). Les membres d’un autre fuseau la voient à leur heure, avec l’heure d’origine.`
-          : `${timeLabel(draft.hour, draft.minute)}, heure de ce téléphone.`}
-      </Text>
+      {draft.recurrence === 'weekly' ? (
+        <>
+          <Text style={styles.section}>Pendant</Text>
+          <View style={styles.chips}>
+            {ENDS_CHOICES.map((choice) => (
+              <Chip key={choice.id} label={choice.label} on={draft.until === choice.id} onPress={() => set({ until: choice.id })} />
+            ))}
+            <Chip label="Choisir la date de fin" on={draft.until === 'date'} onPress={() => set({ until: 'date' })} />
+          </View>
+          {draft.until === 'date' ? (
+            <DateStepper
+              label="Dernier jour"
+              value={draft.untilDate}
+              min={today}
+              max={addMonths(today, ENDS_MAX_MONTHS)}
+              onChange={(untilDate) => set({ untilDate })}
+            />
+          ) : null}
+          <Text style={styles.hint}>{weeklySummary(weekly)}</Text>
+          {endsError ? <Text style={styles.error}>{endsError}</Text> : null}
+        </>
+      ) : (
+        <Text style={styles.hint}>{timeLabel(draft.hour, draft.minute)}, heure de ce téléphone.</Text>
+      )}
       {onceError ? <Text style={styles.error}>{onceError}</Text> : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -254,13 +312,14 @@ export default function RendezVousScreen() {
   );
 }
 
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  const { styles } = useThemed(stylesFor);
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
-      <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
-    </Pressable>
-  );
+/** « Les mardis, jeudis et samedis de 10 h à 10 h 15, jusqu’au 30 novembre, heure de ce téléphone (Europe/Paris). » */
+function weeklySummary(rdv: Schedule): string {
+  const zone = deviceTimeZone();
+  const next = nextOccurrences(rdv, new Date(), 1)[0];
+  const text = next ? recurrenceText(rdv, next, zone) : '';
+  return text
+    ? `${text}, heure de ce téléphone (${zone}). Les membres d’un autre fuseau la voient à leur heure, avec l’heure d’origine.`
+    : '';
 }
 
 function Stepper({ label, value, onMinus, onPlus }: { label: string; value: string; onMinus: () => void; onPlus: () => void }) {
@@ -285,10 +344,6 @@ const stylesFor = (C: Palette) =>
   StyleSheet.create({
     section: { color: C.text, fontSize: 18, fontWeight: '800', marginTop: 20, marginBottom: 8 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: C.line },
-    chipOn: { backgroundColor: C.gold, borderColor: C.gold },
-    chipText: { color: C.text, fontWeight: '700', fontSize: 14 },
-    chipTextOn: { color: C.onGold },
     steppers: { flexDirection: 'row', gap: 12 },
     stepper: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 12, gap: 6, alignItems: 'center' },
     stepperLabel: { color: C.muted, fontSize: 13, fontWeight: '700' },

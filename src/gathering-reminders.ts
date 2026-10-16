@@ -10,8 +10,8 @@ import { supabase } from './supabase';
 // Les occurrences se calculent sur le téléphone (nextOccurrences) ; la liste des rendez-vous vient de my_gatherings.
 //
 // Budget iOS (64 notifications programmées en tout) : 15 rendez-vous x 2 occurrences = 30 au plus, plus 15 rappels
-// quotidiens au plus (src/reminder.ts), 9 rappels de neuvaine au plus (src/novena-reminders.ts) et 3 rappels de Rosaire vivant
-// au plus (src/rosary-reminders.ts) = 57, marge de 7.
+// quotidiens au plus (src/reminder.ts), 9 rappels de neuvaine au plus (src/novena-reminders.ts), 3 rappels de Rosaire vivant
+// au plus (src/rosary-reminders.ts) et 3 rappels de chaîne d'adoration au plus (src/adoration-reminders.ts) = 60, marge de 4.
 
 const PREFIX = 'gathering-';
 const CHANNEL = 'rendez-vous-priere';

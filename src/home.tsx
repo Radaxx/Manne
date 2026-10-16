@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdorationHourTile, useMyAdorationSlots } from './adoration-ui';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
 import { useAuth } from './auth';
@@ -14,6 +15,7 @@ import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
 import { UpcomingGatheringCards, useUpcomingGatherings } from './gathering-ui';
 import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys';
 import { liturgicalDay } from './liturgical-year';
+import { useMyRosaries } from './living-rosary-ui';
 import { RunningNovenaCards, useRunningNovenas } from './novena-ui';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
@@ -105,6 +107,10 @@ export function HomeScreen() {
   const meetings = useUpcomingGatherings(status === 'signedIn' && !!profile);
   // Mes neuvaines de groupe en cours aujourd'hui : même règle, masqué s'il n'y en a pas.
   const novenas = useRunningNovenas(status === 'signedIn' && !!profile);
+  // Mon heure d'adoration (chaîne d'un groupe) : même règle.
+  const adoration = useMyAdorationSlots(status === 'signedIn' && !!profile);
+  // Mon Rosaire vivant : il suffit à ouvrir la section, même sans rendez-vous ni neuvaine.
+  const rosaries = useMyRosaries(status === 'signedIn' && !!profile);
   const { data: mass, error: massError } = useMass();
   const now = new Date();
   const hour = now.getHours();
@@ -159,7 +165,7 @@ export function HomeScreen() {
   const readPlan = (s: PlanStatus) => router.push(`/plan/${s.plan.id}`);
   const step = unseenSteps(progress)[0];
   const greet = hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour';
-  const inGroups = meetings.length > 0 || novenas.length > 0;
+  const inGroups = meetings.length > 0 || novenas.length > 0 || adoration.length > 0 || rosaries.length > 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -359,6 +365,7 @@ export function HomeScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.cards}>
               <UpcomingGatheringCards items={meetings} />
               <RunningNovenaCards items={novenas} />
+              <AdorationHourTile items={adoration} />
             </ScrollView>
           </>
         ) : null}

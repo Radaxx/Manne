@@ -19,7 +19,7 @@ import { supabase } from './supabase';
 //
 // Budget iOS (64 notifications programmées en tout) : un seul Rosaire vivant rappelé x 3 jours = 3 au plus, plus 15 rappels
 // quotidiens (src/reminder.ts), 30 rappels de rendez-vous (src/gathering-reminders.ts) et 9 rappels de neuvaine
-// (src/novena-reminders.ts) = 57, marge de 7.
+// (src/novena-reminders.ts) et 3 rappels de chaîne d'adoration (src/adoration-reminders.ts) = 60, marge de 4.
 
 const PREFIX = 'rosary-';
 const CHANNEL = 'rosaire-vivant';

@@ -307,14 +307,14 @@ export function UpcomingGatheringCards({ items }: { items: Upcoming[] }) {
 
 const stylesFor = (C: Palette) =>
   StyleSheet.create({
-    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
+    card: { backgroundColor: C.card, borderRadius: 20, padding: 20, gap: 8 },
     title: { color: C.text, fontSize: 18, fontWeight: '800' },
     when: { color: C.gold, fontSize: 15, fontWeight: '700' },
     hint: { color: C.muted, fontSize: 13, lineHeight: 18 },
     description: { color: C.text, fontSize: 15, lineHeight: 22 },
     kind: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     count: { color: C.muted, fontSize: 14, fontWeight: '700' },
-    live: { backgroundColor: C.highlight, borderRadius: 12, padding: 12, gap: 10, borderLeftWidth: 3, borderLeftColor: C.gold },
+    live: { backgroundColor: C.highlight, borderRadius: 14, padding: 14, gap: 10 },
     liveHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     liveTitle: { color: C.gold, fontSize: 14, fontWeight: '800' },
     liveEnd: { color: C.muted, fontSize: 13 },
