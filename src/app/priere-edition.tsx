@@ -1,8 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
+import { updatePrayerCopy, useMyShowcase } from '../showcase-store';
 import { useApp } from '../storage';
 import { useThemed } from '../theme';
 
@@ -14,11 +15,23 @@ export default function PrayerEditor() {
   const existing = progress.customPrayers.find((p) => p.id === id);
   const [title, setTitle] = useState(existing?.title ?? '');
   const [text, setText] = useState(existing?.text ?? '');
+  const mine = useMyShowcase();
   const canSave = title.trim().length > 0 && text.trim().length > 0;
 
   const save = () => {
     if (!canSave) return;
     const savedId = saveCustomPrayer({ id: existing?.id, title: title.trim(), text: text.trim() });
+    if (existing) {
+      // L'enregistrement local ne dépend pas du réseau : si la copie affichée ne suit pas, on le dit.
+      void updatePrayerCopy({ id: savedId, title: title.trim(), text: text.trim() }).then((result) => {
+        if (result && !result.ok) {
+          Alert.alert(
+            'Ton profil n’est pas à jour',
+            'Ta prière est enregistrée sur ce téléphone, mais la copie affichée sur ton profil n’a pas pu être mise à jour. Modifie-la de nouveau quand tu as du réseau.',
+          );
+        }
+      });
+    }
     if (existing) {
       if (router.canGoBack()) router.back();
       else router.replace(`/priere/${savedId}`);
@@ -65,6 +78,9 @@ export default function PrayerEditor() {
         <Text style={styles.hint}>
           Une ligne vide sépare deux paragraphes. Ta prière est enregistrée avec ton chemin et te suit sur tes autres appareils si tu relies
           un compte.
+          {mine.canShow
+            ? ' Elle reste privée tant que tu ne l’affiches pas sur ton profil : depuis la prière, tu peux en montrer une copie aux personnes que tu suis.'
+            : ''}
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

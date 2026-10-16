@@ -7,6 +7,8 @@ import type { Palette } from '../../appearance';
 import { useAccount, useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
 import { Button, SettingsButton } from '../../profile-ui';
+import { ShowcaseSections } from '../../showcase-sections';
+import { useMyShowcase } from '../../showcase-store';
 import { useApp } from '../../storage';
 import { useThemed } from '../../theme';
 
@@ -17,6 +19,7 @@ export default function ProfilScreen() {
   const { progress } = useApp();
   const { configured, status, profile, profileLoaded, profileOffline, refreshProfile } = useAuth();
   const account = useAccount();
+  const mine = useMyShowcase();
 
   // Les compteurs bougent quand on revient d'une liste ou du profil d'un autre.
   useFocusEffect(
@@ -99,8 +102,12 @@ export default function ProfilScreen() {
         )}
         {body}
         {streak}
+        {profile && status === 'signedIn' && mine.showcase ? <ShowcaseSections showcase={mine.showcase} mine /> : null}
         {profile && status === 'signedIn' ? <Button label="Modifier mon profil" onPress={() => router.push('/profil/modifier')} /> : null}
         <Button label="Mon chemin" kind="secondary" onPress={() => router.push('/compte')} />
+        {profile && status === 'signedIn' ? (
+          <Button label="Personnes bloquées" kind="quiet" onPress={() => router.push('/profil/bloques')} />
+        ) : null}
         {status === 'signedIn' ? (
           <>
             <Text style={styles.section}>Compte</Text>

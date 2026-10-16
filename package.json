@@ -46,6 +46,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs seed",
+    "seed:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs reset",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

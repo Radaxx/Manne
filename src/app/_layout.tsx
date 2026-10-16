@@ -7,6 +7,8 @@ import { AuthProvider } from '../auth';
 import { EchoHost } from '../echoes';
 import { liturgicalDay } from '../liturgical-year';
 import { scheduleReminders } from '../reminder';
+import { removedKeys, type ShowcasePassage } from '../showcase';
+import { dropPassageCopies } from '../showcase-store';
 import { ProgressProvider, useApp } from '../storage';
 import { supabase } from '../supabase';
 import { syncProgress } from '../sync';
@@ -46,6 +48,21 @@ function ProgressSync() {
   return null;
 }
 
+/**
+ * Un passage qui n'est plus gardé (depuis la lecture, un fil ou un autre appareil) perd sa copie sur le profil.
+ * On ne réagit qu'aux retraits vus pendant la session : le chargement initial ne retire jamais rien.
+ */
+function ShowcaseSync() {
+  const { loaded, progress } = useApp();
+  const known = useRef<ShowcasePassage[] | null>(null);
+  useEffect(() => {
+    if (!loaded) return;
+    if (known.current) void dropPassageCopies(removedKeys(known.current, progress.saved));
+    known.current = progress.saved;
+  }, [loaded, progress.saved]);
+  return null;
+}
+
 /** Le rappel part aujourd'hui tant que la journée n'est pas faite et que l'heure est encore devant. */
 function ReminderSync() {
   const { loaded, progress } = useApp();
@@ -76,6 +93,7 @@ function ThemedShell() {
         <StatusBar style={palette.statusBar} />
         <ReminderSync />
         <ProgressSync />
+        <ShowcaseSync />
         <EchoHost />
         <Stack
           screenOptions={{
@@ -112,6 +130,7 @@ function ThemedShell() {
           <Stack.Screen name="profil/modifier" options={{ title: 'Modifier mon profil' }} />
           <Stack.Screen name="profil/abonnes" options={{ title: 'Abonnés' }} />
           <Stack.Screen name="profil/abonnements" options={{ title: 'Abonnements' }} />
+          <Stack.Screen name="profil/bloques" options={{ title: 'Personnes bloquées' }} />
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>

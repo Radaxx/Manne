@@ -89,6 +89,18 @@ npm run build:ios
 
 Les dossiers `android/` et `ios/` sont générés (CNG) : après un changement de `app.json`, les régénérer avec `npx expo prebuild`.
 
+## Données de test
+
+Pour essayer profils, abonnements, vitrine et blocage sur un téléphone, `scripts/seed-dev.mjs` crée six comptes de test (`dev_marie`, `dev_pierre`, `dev_claire`, `dev_jean`, `dev_therese`, `dev_paul`) avec profil, passages, prières, intentions et abonnements entre eux. Mettre `SUPABASE_SERVICE_ROLE_KEY` et `SEED_EMAIL` (votre adresse : les comptes utilisent `prenom+manne-dev_marie@…`) dans `.env.local`, jamais dans `.env`.
+
+```bash
+npm run seed -- --me votre_pseudo   # crée ou met à jour les comptes ; ils suivent votre profil (sauf dev_therese)
+npm run seed:reset                  # supprime les comptes de test et leurs données
+node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs code dev_marie   # code de connexion
+```
+
+À n'utiliser que sur un projet de dev : la commande crée de vrais comptes sur le projet Supabase distant. Elle n'écrit jamais depuis votre compte et le reset ne supprime que les adresses `+manne-dev_`.
+
 ## Vérifier
 
 ```bash

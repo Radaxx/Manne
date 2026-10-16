@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from '../appearance';
 import { listIntentions, postIntention, reportIntention, type SharedIntention, setCarry, withdrawIntention } from '../community';
 import { haptic } from '../haptics';
+import { setIntentionShown, useMyShowcase } from '../showcase-store';
+import { ShowSwitch } from '../showcase-ui';
 import { useThemed } from '../theme';
 
 const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 1 ? '1 personne la porte' : `${n} personnes la portent`);
@@ -30,6 +32,8 @@ export default function IntentionsScreen() {
   const [draft, setDraft] = useState(prefill);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [onProfile, setOnProfile] = useState(false);
+  const mine = useMyShowcase();
 
   useEffect(() => {
     if (prefill) setDraft(prefill);
@@ -64,6 +68,12 @@ export default function IntentionsScreen() {
       return;
     }
     setDraft('');
+    const wantsProfile = onProfile;
+    setOnProfile(false);
+    if (wantsProfile && typeof result.data === 'string') {
+      const shown = await setIntentionShown(result.data, true);
+      if (!shown.ok) setNotice(`Ton intention est confiée, mais elle n’est pas affichée sur ton profil. ${shown.message}`);
+    }
     await load();
   };
 
@@ -92,7 +102,10 @@ export default function IntentionsScreen() {
         onPress: () => {
           void withdrawIntention(id).then((result) => {
             if (!result.ok) setNotice(result.message);
-            else void load();
+            else {
+              void mine.refresh();
+              void load();
+            }
           });
         },
       },
@@ -131,9 +144,16 @@ export default function IntentionsScreen() {
               <Text style={styles.count}>{carried(item.carries)}</Text>
               <View style={styles.row}>
                 {item.mine ? (
-                  <Pressable onPress={() => withdraw(item.id)} hitSlop={8} accessibilityLabel="Retirer ton intention">
-                    <Text style={styles.link}>Retirer</Text>
-                  </Pressable>
+                  <>
+                    {mine.ready ? (
+                      <View style={{ flex: 1 }}>
+                        <ShowSwitch on={mine.isIntentionShown(item.id)} change={(next) => setIntentionShown(item.id, next)} />
+                      </View>
+                    ) : null}
+                    <Pressable onPress={() => withdraw(item.id)} hitSlop={8} accessibilityLabel="Retirer ton intention">
+                      <Text style={styles.link}>Retirer</Text>
+                    </Pressable>
+                  </>
                 ) : (
                   <>
                     <Pressable
@@ -154,6 +174,22 @@ export default function IntentionsScreen() {
           ))}
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </ScrollView>
+        {mine.canShow ? (
+          <Pressable
+            onPress={() => setOnProfile((on) => !on)}
+            style={styles.profileCheck}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: onProfile }}
+          >
+            <Ionicons name={onProfile ? 'checkbox' : 'square-outline'} size={22} color={onProfile ? C.gold : C.muted} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileCheckLabel}>Afficher aussi sur mon profil</Text>
+              <Text style={styles.profileCheckHint}>
+                Elle reste anonyme dans le fil, mais s’affiche sur ton profil pour les personnes que tu suis.
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
         <View style={styles.composer}>
           <TextInput
             value={draft}
@@ -203,6 +239,9 @@ const stylesFor = (C: Palette) =>
     carryTextOn: { color: C.onGold },
     link: { color: C.faint, fontSize: 13, fontWeight: '700' },
     notice: { color: C.red, fontSize: 14, textAlign: 'center' },
+    profileCheck: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingTop: 10 },
+    profileCheckLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
+    profileCheckHint: { color: C.faint, fontSize: 13, lineHeight: 18, marginTop: 1 },
     composer: {
       flexDirection: 'row',
       alignItems: 'flex-end',

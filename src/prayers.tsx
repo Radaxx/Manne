@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
+import { Alert, Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
 import type { Palette } from './appearance';
@@ -10,6 +10,8 @@ import { SERIF } from './cards';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
 import { biometricName, lockSupported } from './lock';
 import { sessionLabel } from './rosary';
+import { dropPrayerCopy, setPrayerShown, useMyShowcase } from './showcase-store';
+import { ShowcaseInvite, ShowSwitch } from './showcase-ui';
 import { type CustomPrayer, useActions, useApp } from './storage';
 import { usePalette, useThemed } from './theme';
 
@@ -327,13 +329,24 @@ function Rosary() {
   );
 }
 
-function CustomActions({ id }: { id: string }) {
+function CustomActions({ id, title, text }: { id: string; title: string; text: string }) {
   const { C, styles } = useThemed(stylesFor);
   const { deleteCustomPrayer } = useActions();
+  const mine = useMyShowcase();
   // Supprimer est définitif : on demande une seconde confirmation.
   const [confirm, setConfirm] = useState(false);
   return (
     <View style={styles.actions}>
+      <View style={styles.showcase}>
+        <ShowcaseInvite />
+        {mine.ready ? (
+          <ShowSwitch
+            on={mine.isPrayerShown(id)}
+            change={(next) => setPrayerShown({ id, title, text }, next)}
+            hint="Les personnes que tu suis voient une copie du titre et du texte. Elle suit tes modifications et disparaît si tu supprimes la prière."
+          />
+        ) : null}
+      </View>
       <Pressable onPress={() => router.push({ pathname: '/priere-edition', params: { id } })} style={styles.actionBtn}>
         <Ionicons name="create-outline" size={17} color={C.text} />
         <Text style={styles.actionText}>Modifier</Text>
@@ -342,6 +355,14 @@ function CustomActions({ id }: { id: string }) {
         onPress={() => {
           if (!confirm) return setConfirm(true);
           deleteCustomPrayer(id);
+          void dropPrayerCopy(id).then((result) => {
+            if (result && !result.ok) {
+              Alert.alert(
+                'Ton profil n’est pas à jour',
+                'Ta prière est supprimée de ce téléphone, mais sa copie est encore affichée sur ton profil. Retire-la depuis ton profil quand tu as du réseau.',
+              );
+            }
+          });
           if (router.canGoBack()) router.back();
           else router.replace('/prieres');
         }}
@@ -376,7 +397,7 @@ export function PrayerScreen({ id }: { id: string }) {
         {prayer.scripture ? <ScriptureText scripture={prayer.scripture} translation={translation} /> : null}
         {prayer.rosary ? <Rosary /> : null}
         {prayer.note ? <Text style={styles.note}>{prayer.note}</Text> : null}
-        {prayer.custom ? <CustomActions id={prayer.id} /> : null}
+        {prayer.custom ? <CustomActions id={prayer.id} title={prayer.title} text={prayer.text ?? ''} /> : null}
       </ScrollView>
     </>
   );
@@ -506,6 +527,7 @@ const stylesFor = (C: Palette) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: C.line,
     },
+    showcase: { width: '100%' },
     actionBtn: {
       flexDirection: 'row',
       alignItems: 'center',

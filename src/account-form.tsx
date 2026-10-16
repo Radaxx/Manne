@@ -107,7 +107,7 @@ export function LinkedAccount({ account }: { account: ReturnType<typeof useAccou
   const confirmDelete = () =>
     Alert.alert(
       'Supprimer ton compte ?',
-      'Ton compte est effacé pour de bon, avec ce qu’il garde en ligne : ton profil, tes abonnements, ta progression synchronisée, tes j’aime, tes échos et tes intentions confiées. ' +
+      'Ton compte est effacé pour de bon, avec ce qu’il garde en ligne : ton profil et ce que tu y affiches, tes abonnements et tes blocages, ta progression synchronisée, tes j’aime, tes échos et tes intentions confiées. ' +
         'Sur ce téléphone, ton chemin (lecture, plans, prières, passages gardés, prénom) est aussi effacé, comme à la déconnexion. ' +
         'La liste de ta confession, qui n’a jamais quitté ce téléphone, y reste, ainsi que tes réglages.',
       [

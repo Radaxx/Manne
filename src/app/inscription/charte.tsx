@@ -14,7 +14,7 @@ const WHO_SEES = [
   'Quelqu’un qui connaît ton pseudo exact voit ton pseudo.',
   'Ta bio, ta paroisse et le nombre de tes abonnés et de tes abonnements ne sont visibles que par les personnes que tu suis.',
   'Quand tu suis quelqu’un, tu lui ouvres ton profil.',
-  'Ta progression, tes prières et ta confession ne sont pas sur ton profil.',
+  'Ta progression et ta confession ne sont jamais sur ton profil. Tes passages, tes prières et tes intentions n’y apparaissent que si tu choisis de les afficher.',
 ];
 
 const CHARTER = [

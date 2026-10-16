@@ -53,7 +53,7 @@ export function initials(handle: string): string {
   return (chars[0] + chars[chars.length - 1]).toUpperCase();
 }
 
-function asRecord(row: unknown): Record<string, unknown> | null {
+export function asRecord(row: unknown): Record<string, unknown> | null {
   return row && typeof row === 'object' ? (row as Record<string, unknown>) : null;
 }
 
@@ -108,7 +108,9 @@ export function readOther(row: unknown): OtherProfile | null {
 
 function failureMessage(message: string) {
   if (message.includes('déjà pris')) return 'Ce pseudo est déjà pris.';
-  if (message.includes('Trop d')) return message;
+  if (message.includes('Trop d') || message.includes('Tu affiches') || message.includes('Tu as déjà')) return message;
+  if (message.includes('bloquee')) return 'Tu as bloqué cette personne. Débloque-la pour la suivre.';
+  if (message.includes('passage')) return 'Ce passage ne peut pas être affiché.';
   if (message.includes('pseudo')) return 'Ce pseudo ne convient pas. Choisis-en un autre.';
   if (message.includes('longueur')) return 'Un des champs est trop long.';
   if (message.includes('charte')) return 'Accepte la charte pour créer ton profil.';
@@ -118,10 +120,10 @@ function failureMessage(message: string) {
   return 'Ça n’a pas pu partir. Réessaie quand tu as du réseau.';
 }
 
-type Result = { ok: true; data: unknown } | { ok: false; message: string };
+export type Result = { ok: true; data: unknown } | { ok: false; message: string };
 
 /** Profil et abonnements demandent un compte relié : une session anonyme n'y a aucun accès. */
-async function call(fn: string, args?: Record<string, unknown>): Promise<Result> {
+export async function call(fn: string, args?: Record<string, unknown>): Promise<Result> {
   const client = supabase;
   if (!client) return { ok: false, message: 'Les profils ne sont pas reliés pour le moment.' };
   try {
@@ -136,7 +138,7 @@ async function call(fn: string, args?: Record<string, unknown>): Promise<Result>
   }
 }
 
-function readRows<T>(data: unknown, read: (row: unknown) => T | null): T[] {
+export function readRows<T>(data: unknown, read: (row: unknown) => T | null): T[] {
   return Array.isArray(data) ? data.flatMap((row) => read(row) ?? []) : [];
 }
 

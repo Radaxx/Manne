@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
 import { haptic } from '../../haptics';
 import { follow, getProfile, type OtherProfile, unfollow } from '../../profile';
 import { Button } from '../../profile-ui';
+import { blockPerson, EMPTY_SHOWCASE, fetchShowcase, type Showcase } from '../../showcase';
+import { ShowcaseSections } from '../../showcase-sections';
 import { useThemed } from '../../theme';
 
 export default function AutreProfil() {
@@ -18,6 +20,7 @@ export default function AutreProfil() {
   const [other, setOther] = useState<OtherProfile | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showcase, setShowcase] = useState<Showcase>(EMPTY_SHOWCASE);
 
   const load = useCallback(async () => {
     const result = await getProfile(handle);
@@ -28,6 +31,13 @@ export default function AutreProfil() {
     }
     setError(null);
     setOther(result.profile);
+    // La vitrine suit la même règle que le profil : le serveur n'envoie rien si la personne ne te suit pas.
+    if (result.profile?.visible) {
+      const shown = await fetchShowcase(handle);
+      setShowcase(shown.ok ? shown.showcase : EMPTY_SHOWCASE);
+    } else {
+      setShowcase(EMPTY_SHOWCASE);
+    }
   }, [handle]);
 
   useFocusEffect(
@@ -68,6 +78,31 @@ export default function AutreProfil() {
     setBusy(false);
   };
 
+  const block = () => {
+    Alert.alert(
+      `Bloquer @${other.handle} ?`,
+      `Vous ne vous suivrez plus, et @${other.handle} ne pourra plus te trouver ni voir ton profil.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Bloquer',
+          style: 'destructive',
+          onPress: () => {
+            void blockPerson(other.handle).then((result) => {
+              if (!result.ok) {
+                setError(result.message);
+                return;
+              }
+              haptic('success');
+              if (router.canGoBack()) router.back();
+              else router.replace('/profil');
+            });
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <View style={styles.identity}>
@@ -101,6 +136,8 @@ export default function AutreProfil() {
         <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit.</Text>
       )}
 
+      {other.visible ? <ShowcaseSections showcase={showcase} mine={false} /> : null}
+
       {mine ? (
         <>
           <Button
@@ -118,6 +155,7 @@ export default function AutreProfil() {
         </View>
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Button label={`Bloquer @${other.handle}`} kind="quiet" onPress={block} />
     </ScrollView>
   );
 }
