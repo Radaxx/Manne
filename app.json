@@ -11,7 +11,10 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.radaxx.manne",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
     "android": {
@@ -56,6 +59,7 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-web-browser",
+      "./plugins/with-debug-cleartext.js",
       [
         "expo-build-properties",
         {

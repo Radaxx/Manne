@@ -1,12 +1,12 @@
 // Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions, groupes de prière, rendez-vous et neuvaines de groupe,
-// écrits directement dans le projet Supabase DISTANT avec la clé service_role (qui contourne la RLS).
-// À n'utiliser que sur un projet de dev : `seed` crée de vrais comptes auth.
+// écrits avec la clé service_role (qui contourne la RLS).
+// `seed`, `reset` et `code` visent la base LOCALE (`npm run db:local`). Ils refusent le projet de production.
+// `reviewer` et `reviewer-remove` visent uniquement la production (compte Play), via `.env.production.local`.
 //
 // Variables (chargées par les scripts npm via --env-file) :
-//   EXPO_PUBLIC_SUPABASE_URL     dans .env
-//   SUPABASE_SERVICE_ROLE_KEY    dans .env.local (gitignoré), jamais dans .env
-//   SEED_EMAIL                   dans .env.local : votre adresse ; les comptes de test en dérivent
-//                                (a@b.fr -> a+manne-dev_marie@b.fr), les mails arrivent chez vous
+//   seed / reset / code : EXPO_PUBLIC_SUPABASE_URL dans .env, SUPABASE_SERVICE_ROLE_KEY et SEED_EMAIL dans .env.local
+//   reviewer            : les trois dans .env.production.local
+//   SEED_EMAIL          : votre adresse ; les comptes de test en dérivent (a@b.fr -> a+manne-dev_marie@b.fr)
 //
 // Usage : node scripts/seed-dev.mjs seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test
 //         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
@@ -17,6 +17,9 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const PREFIX = 'dev_';
+
+// Hôte public du projet de production. `seed` / `reset` / `code` refusent de l'écrire.
+const PRODUCTION_HOST = 'xvrdrrtqzfjeqznsxjjd.supabase.co';
 
 // Compte de démonstration pour la validation Google Play : il se connecte avec « Accès relecteur » (adresse et mot de passe).
 // Son pseudo n'a pas le préfixe `dev_` : `reset` ne le touche pas, seule `reviewer-remove` le supprime.
@@ -368,9 +371,11 @@ async function allUsers(admin) {
 }
 
 function setup() {
-  const url = env('EXPO_PUBLIC_SUPABASE_URL', '.env');
-  const key = env('SUPABASE_SERVICE_ROLE_KEY', '.env.local (jamais dans .env)');
-  const base = env('SEED_EMAIL', '.env.local');
+  const reviewer = process.argv[2] === 'reviewer' || process.argv[2] === 'reviewer-remove';
+  const where = reviewer ? '.env.production.local' : '.env.local (jamais dans .env)';
+  const url = env('EXPO_PUBLIC_SUPABASE_URL', reviewer ? '.env.production.local' : '.env');
+  const key = env('SUPABASE_SERVICE_ROLE_KEY', where);
+  const base = env('SEED_EMAIL', where);
   if (!/^[^@\s+]+@[^@\s]+\.[^@\s]+$/.test(base)) {
     fail('SEED_EMAIL doit être une adresse simple, sans « + » (par exemple prenom@exemple.fr).');
   }
@@ -378,6 +383,18 @@ function setup() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return { admin, base, host: new URL(url).host };
+}
+
+/** `seed`, `reset` et `code` restent sur la base locale. Le compte Play reste sur la production. */
+function assertTarget(command, host) {
+  const prod = host.split(':')[0] === PRODUCTION_HOST;
+  const reviewer = command === 'reviewer' || command === 'reviewer-remove';
+  if (prod && !reviewer) {
+    fail(`« ${command} » refuse le projet de production. Lancez npm run db:local, puis réessayez.`);
+  }
+  if (!prod && reviewer) {
+    fail(`« ${command} » n’écrit que sur ${PRODUCTION_HOST}. Le script charge .env.production.local.`);
+  }
 }
 
 async function seed(admin, base, meHandle, rdvIn) {
@@ -910,9 +927,9 @@ function help() {
                          --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
-  reviewer               crée ou met à jour le compte de démonstration de Google Play (adresse + mot de passe affichés une fois)
-  reviewer-remove        supprime le compte de démonstration
-Via npm : npm run seed -- --me votre_pseudo   |   npm run seed:reset`);
+  reviewer               crée ou met à jour le compte de démonstration de Google Play, sur la production seulement
+  reviewer-remove        supprime le compte de démonstration, sur la production seulement
+Via npm : npm run db:local   |   npm run seed -- --me votre_pseudo   |   npm run seed:reset`);
 }
 
 const [command, ...args] = process.argv.slice(2);
@@ -921,6 +938,7 @@ if (!['seed', 'reset', 'code', 'reviewer', 'reviewer-remove'].includes(command))
   process.exit(command ? 1 : 0);
 }
 const { admin, base, host } = setup();
+assertTarget(command, host);
 console.log(`Projet : ${host}\n`);
 if (command === 'seed') {
   const i = args.indexOf('--me');

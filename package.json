@@ -48,9 +48,10 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "db:local": "supabase start && node scripts/use-local-db.mjs",
     "seed": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs seed",
-    "seed:reviewer": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs reviewer",
-    "seed:reviewer-remove": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs reviewer-remove",
+    "seed:reviewer": "node --env-file-if-exists=.env.production.local scripts/seed-dev.mjs reviewer",
+    "seed:reviewer-remove": "node --env-file-if-exists=.env.production.local scripts/seed-dev.mjs reviewer-remove",
     "seed:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs reset",
     "start": "expo start",
     "android": "expo run:android",
