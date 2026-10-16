@@ -12,8 +12,9 @@ import { useThemed } from '../../theme';
 
 const WHO_SEES = [
   'Quelqu’un qui connaît ton pseudo exact voit ton pseudo.',
-  'Ta bio, ta paroisse et le nombre de tes abonnés et de tes abonnements ne sont visibles que par les personnes que tu suis.',
+  'Ta bio, ta paroisse et le nombre de tes abonnés et de tes abonnements ne sont visibles que par les personnes que tu suis et les membres de tes groupes.',
   'Quand tu suis quelqu’un, tu lui ouvres ton profil.',
+  'Les membres d’un groupe voient ton pseudo, et ton profil s’ouvre à eux comme aux personnes que tu suis. Ce que tu écris dans un groupe n’est vu que par ses membres.',
   'Ta progression et ta confession ne sont jamais sur ton profil. Tes passages, tes prières et tes intentions n’y apparaissent que si tu choisis de les afficher.',
 ];
 

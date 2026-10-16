@@ -343,7 +343,7 @@ function CustomActions({ id, title, text }: { id: string; title: string; text: s
           <ShowSwitch
             on={mine.isPrayerShown(id)}
             change={(next) => setPrayerShown({ id, title, text }, next)}
-            hint="Les personnes que tu suis voient une copie du titre et du texte. Elle suit tes modifications et disparaît si tu supprimes la prière."
+            hint="Les personnes que tu suis et les membres de tes groupes voient une copie du titre et du texte. Elle suit tes modifications et disparaît si tu supprimes la prière."
           />
         ) : null}
       </View>

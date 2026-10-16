@@ -12,7 +12,7 @@ export type MyProfile = {
 /** La carte minimale d'une personne : tout ce que montre une recherche ou une liste. */
 export type ProfileCard = { handle: string };
 export type FoundProfile = ProfileCard & { following: boolean };
-/** Le profil d'un autre. Bio, paroisse et compteurs sont nuls tant que la personne ne te suit pas. */
+/** Le profil d'un autre. Bio, paroisse et compteurs sont nuls tant que la personne ne te suit pas et que vous n'êtes dans aucun groupe commun. */
 export type OtherProfile = ProfileCard & {
   bio: string | null;
   parish: string | null;
@@ -108,6 +108,30 @@ export function readOther(row: unknown): OtherProfile | null {
 
 function failureMessage(message: string) {
   if (message.includes('déjà pris')) return 'Ce pseudo est déjà pris.';
+  // Groupes : messages français du serveur (limites, refus), repris tels quels.
+  if (
+    message.includes('Ce groupe') ||
+    message.includes('Tu es déjà') ||
+    message.includes('Tu es le propriétaire') ||
+    message.includes('Cette personne') ||
+    message.includes('Code d’invitation')
+  ) {
+    return message;
+  }
+  if (message.includes('groupe_inconnu')) return 'Ce groupe n’existe pas, ou tu n’en fais pas partie.';
+  if (message.includes('intention_inconnue')) return 'Cette intention n’est plus disponible.';
+  if (message.includes('interdit')) return 'Tu n’as pas le droit de faire ça dans ce groupe.';
+  if (message.includes('pas_ephemere')) return 'On n’entre pas dans ce groupe sans invitation ou sans demande.';
+  if (message.includes('pas_de_demande')) return 'Ce groupe n’accepte pas de demande : il faut un code d’invitation.';
+  if (message.includes('ta_intention')) return 'C’est ta propre intention.';
+  if (message.includes('nom_invalide')) return 'Le nom du groupe fait entre 3 et 60 caractères.';
+  if (message.includes('type_invalide')) return 'Ce type de groupe n’existe pas.';
+  if (message.includes('fin_invalide')) return 'La date de fin doit être dans le futur, à un an au plus.';
+  if (message.includes('role_invalide')) return 'Ce rôle n’existe pas.';
+  if (message.includes('recherche')) return 'Écris au moins 2 caractères pour chercher un groupe.';
+  if (message.includes('proprio')) return 'Ce n’est pas possible pour le propriétaire du groupe, ni pour toi-même.';
+  if (message.includes('cible')) return 'Cette personne n’est pas dans ce groupe.';
+  if (message.includes('Déjà signalé')) return 'Tu l’as déjà signalée.';
   if (message.includes('Trop d') || message.includes('Tu affiches') || message.includes('Tu as déjà')) return message;
   if (message.includes('bloquee')) return 'Tu as bloqué cette personne. Débloque-la pour la suivre.';
   if (message.includes('passage')) return 'Ce passage ne peut pas être affiché.';

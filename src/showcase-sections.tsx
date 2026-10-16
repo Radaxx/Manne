@@ -33,7 +33,9 @@ export function ShowcaseSections({ showcase, mine }: { showcase: Showcase; mine:
   return (
     <View>
       {mine ? (
-        <Text style={styles.lead}>Ces éléments sont visibles par les personnes que tu suis. Rien n’est affiché sans ton choix.</Text>
+        <Text style={styles.lead}>
+          Ces éléments sont visibles par les personnes que tu suis et les membres de tes groupes. Rien n’est affiché sans ton choix.
+        </Text>
       ) : null}
 
       {mine || passages.length > 0 ? (

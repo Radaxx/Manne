@@ -42,7 +42,9 @@ export default function ProfilScreen() {
     body = (
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Crée ton profil</Text>
-        <Text style={styles.muted}>Choisis un pseudo, retrouve des proches et ouvre-leur ton profil en les suivant.</Text>
+        <Text style={styles.muted}>
+          Choisis un pseudo, retrouve des proches et ouvre-leur ton profil en les suivant. Les membres de tes groupes y ont aussi accès.
+        </Text>
         <Button label="Créer mon profil" onPress={() => router.push('/inscription')} />
       </View>
     );

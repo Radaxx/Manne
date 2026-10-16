@@ -1,4 +1,4 @@
-// Données de test pour le développement : comptes, profils, abonnements, vitrine et intentions,
+// Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions et groupes de prière,
 // écrits directement dans le projet Supabase DISTANT avec la clé service_role (qui contourne la RLS).
 // À n'utiliser que sur un projet de dev : `seed` crée de vrais comptes auth.
 //
@@ -9,8 +9,9 @@
 //                                (a@b.fr -> a+manne-dev_marie@b.fr), les mails arrivent chez vous
 //
 // Usage : node scripts/seed-dev.mjs seed [--me <pseudo>]   crée ou met à jour les comptes de test
-//         node scripts/seed-dev.mjs reset                  supprime les comptes de test
+//         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
 //         node scripts/seed-dev.mjs code <pseudo>          code de connexion d'un compte de test
+import { randomInt } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const PREFIX = 'dev_';
@@ -126,6 +127,86 @@ const CARRIES = [
 
 // Qui suit l'utilisateur avec --me : tous sauf dev_therese (cas « profil fermé »). dev_paul sert au test du blocage.
 const FOLLOW_ME = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_paul'];
+
+// Groupes de test (recréés à chaque `seed`, supprimés par `reset`). Les pseudos sont ceux de HANDLES.
+//   members : [pseudo, rôle] ; `me` s'ajoute comme simple membre de la fraternité seulement (option --me).
+//   requests : demandes en attente. intentions : [auteur, texte, { thanks }] ; `thanks` présent = exaucée.
+//   carries : [qui porte, rang de l'intention dans la liste du groupe].
+const DAY = 86_400_000;
+const GROUPS = [
+  {
+    name: 'Fraternité de test',
+    description: 'Un petit groupe privé : on y entre avec le code.',
+    kind: 'fraternite',
+    members: [
+      ['dev_marie', 'owner'],
+      ['dev_pierre', 'member'],
+      ['dev_claire', 'member'],
+    ],
+    includeMe: true,
+    requests: [],
+    intentions: [
+      ['dev_marie', 'Pour notre fraternité, que nous restions fidèles à nous retrouver chaque mois.'],
+      ['dev_pierre', 'Pour mon père, hospitalisé cette semaine.'],
+      [
+        'dev_claire',
+        'Pour mes examens de janvier, que je les passe avec calme.',
+        { thanks: 'Merci : je les ai réussis, et vos prières m’ont portée !' },
+      ],
+    ],
+    carries: [
+      ['dev_pierre', 0],
+      ['dev_claire', 0],
+      ['dev_marie', 1],
+      ['dev_claire', 1],
+    ],
+  },
+  {
+    name: 'Paroisse de test',
+    description: 'Une communauté trouvable par son nom : on envoie une demande.',
+    kind: 'communaute',
+    members: [
+      ['dev_jean', 'owner'],
+      ['dev_therese', 'moderator'],
+      ['dev_marie', 'member'],
+    ],
+    includeMe: false,
+    requests: ['dev_paul'],
+    intentions: [
+      ['dev_jean', 'Pour la préparation de la fête paroissiale.'],
+      ['dev_therese', 'Pour les familles qui ont perdu un proche cette année.'],
+    ],
+    carries: [
+      ['dev_marie', 0],
+      ['dev_jean', 1],
+    ],
+  },
+  {
+    name: 'Neuvaine de test',
+    description: 'Neuf jours de prière ensemble, puis le groupe se termine.',
+    kind: 'ephemere',
+    endsInDays: 9,
+    members: [
+      ['dev_claire', 'owner'],
+      ['dev_pierre', 'member'],
+      ['dev_paul', 'member'],
+    ],
+    includeMe: false,
+    requests: [],
+    intentions: [
+      ['dev_claire', 'Pour l’unité des chrétiens, pendant ces neuf jours.'],
+      ['dev_paul', 'Pour trouver ma place dans une communauté.'],
+    ],
+    carries: [
+      ['dev_pierre', 0],
+      ['dev_pierre', 1],
+    ],
+  },
+];
+const GROUP_NAMES = GROUPS.map((g) => g.name);
+// 8 caractères sans 0, O, 1 ni I : l'alphabet du serveur (cf. new_invite_code, migration 008).
+const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const inviteCode = () => Array.from({ length: 8 }, () => INVITE_ALPHABET[randomInt(INVITE_ALPHABET.length)]).join('');
 
 function fail(message) {
   console.error(`Erreur : ${message}`);
@@ -267,6 +348,8 @@ async function seed(admin, base, meHandle) {
     'Abonnements',
   );
 
+  const groupSummary = await seedGroups(admin, ids, me);
+
   console.log('Comptes de test prêts :');
   for (const handle of HANDLES) console.log(`  ${handle.padEnd(12)} ${emailFor(base, handle)}`);
   if (me) {
@@ -276,6 +359,86 @@ async function seed(admin, base, meHandle) {
   } else {
     console.log('\nSans --me, personne ne suit votre compte. Relancez avec : -- --me votre_pseudo');
   }
+
+  console.log('\nGroupes de test (supprimés et recréés à chaque seed) :');
+  for (const line of groupSummary) console.log(`  ${line}`);
+  if (me) {
+    console.log(
+      `\nSeule écriture à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} ». Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
+    );
+  } else {
+    console.log('\nSans --me, vous n’êtes membre d’aucun groupe de test.');
+  }
+}
+
+/** Recrée les groupes de test avec leurs membres, demandes, intentions et « je la porte ». Renvoie les lignes du résumé. */
+async function seedGroups(admin, ids, me) {
+  const idList = Object.values(ids);
+  const old = await admin.from('groups').delete().in('name', GROUP_NAMES).in('created_by', idList);
+  check(old.error, 'Nettoyage des groupes');
+
+  const now = Date.now();
+  const summary = [];
+  for (const group of GROUPS) {
+    const code = inviteCode();
+    const { data, error } = await admin
+      .from('groups')
+      .insert({
+        name: group.name,
+        description: group.description,
+        kind: group.kind,
+        invite_code: code,
+        ends_at: group.endsInDays ? new Date(now + group.endsInDays * DAY).toISOString() : null,
+        created_by: ids[group.members.find(([, role]) => role === 'owner')[0]],
+      })
+      .select('id')
+      .single();
+    check(error, `Création de « ${group.name} »`);
+    const groupId = data.id;
+
+    // joined_at échelonné : le plus ancien membre passe en premier si la propriété doit être réattribuée.
+    const members = group.members.map(([handle, role], i) => ({
+      group_id: groupId,
+      user_id: ids[handle],
+      role,
+      joined_at: new Date(now - (10 - i) * DAY).toISOString(),
+    }));
+    if (me && group.includeMe) {
+      members.push({ group_id: groupId, user_id: me.id, role: 'member', joined_at: new Date(now - DAY).toISOString() });
+    }
+    check((await admin.from('group_members').insert(members)).error, `Membres de « ${group.name} »`);
+
+    if (group.requests.length) {
+      const requests = group.requests.map((handle) => ({ group_id: groupId, user_id: ids[handle] }));
+      check((await admin.from('group_requests').insert(requests)).error, `Demandes de « ${group.name} »`);
+    }
+
+    const rows = group.intentions.map(([handle, body, answered], rank) => ({
+      group_id: groupId,
+      user_id: ids[handle],
+      body,
+      created_at: new Date(now - (rank + 1) * 3_600_000).toISOString(),
+      answered_at: answered ? new Date(now - 1_800_000).toISOString() : null,
+      thanks: answered?.thanks ?? null,
+    }));
+    const { data: inserted, error: insErr } = await admin.from('group_intentions').insert(rows).select('id, body');
+    check(insErr, `Intentions de « ${group.name} »`);
+    // On retrouve chaque intention par son texte, sans compter sur l'ordre des lignes renvoyées.
+    const idByBody = new Map(inserted.map((row) => [row.body, row.id]));
+    const carries = group.carries.map(([by, rank]) => ({
+      user_id: ids[by],
+      intention_id: idByBody.get(group.intentions[rank][1]),
+    }));
+    check((await admin.from('group_carries').insert(carries)).error, `Intentions portées de « ${group.name} »`);
+
+    const who = group.members.map(([handle, role]) => `${handle} (${role})`).join(', ');
+    summary.push(
+      `${group.name} — ${group.kind}${group.endsInDays ? `, fin dans ${group.endsInDays} jours` : ''}`,
+      `    code : ${code}   lien : manne://rejoindre/${code}`,
+      `    membres : ${who}${me && group.includeMe ? `, ${me.handle} (member)` : ''}${group.requests.length ? ` ; demande en attente : ${group.requests.join(', ')}` : ''}`,
+    );
+  }
+  return summary;
 }
 
 async function reset(admin, base) {
@@ -289,6 +452,21 @@ async function reset(admin, base) {
     targets.push(user);
   }
   if (!targets.length) return console.log('Aucun compte de test à supprimer.');
+  // Les groupes de test d'abord : si l'un d'eux compte votre adhésion (--me), supprimer son propriétaire de test
+  // vous en ferait le propriétaire au lieu de le supprimer.
+  check(
+    (
+      await admin
+        .from('groups')
+        .delete()
+        .in('name', GROUP_NAMES)
+        .in(
+          'created_by',
+          targets.map((u) => u.id),
+        )
+    ).error,
+    'Suppression des groupes de test',
+  );
   // daily_posts n'a pas de clé étrangère : on le vide à part.
   check(
     (
@@ -325,8 +503,9 @@ async function code(admin, base, handle) {
 
 function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
-  seed [--me <pseudo>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')})
-                         --me : ces comptes suivent votre profil (sauf dev_therese)
+  seed [--me <pseudo>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test
+                         --me : ces comptes suivent votre profil (sauf dev_therese) et vous entrez
+                         comme simple membre dans « ${GROUPS[0].name} »
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
 Via npm : npm run seed -- --me votre_pseudo   |   npm run seed:reset`);

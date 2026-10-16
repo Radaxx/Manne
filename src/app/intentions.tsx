@@ -185,7 +185,7 @@ export default function IntentionsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.profileCheckLabel}>Afficher aussi sur mon profil</Text>
               <Text style={styles.profileCheckHint}>
-                Elle reste anonyme dans le fil, mais s’affiche sur ton profil pour les personnes que tu suis.
+                Elle reste anonyme dans le fil, mais s’affiche sur ton profil pour les personnes que tu suis et les membres de tes groupes.
               </Text>
             </View>
           </Pressable>

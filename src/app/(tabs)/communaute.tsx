@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { GroupRow, openGroup } from '../../group-ui';
+import { type GroupCard, listMyGroups, type MyGroup, searchGroups } from '../../groups';
 import { type FoundProfile, findProfile, listFollowing, normalizeHandle, type ProfileCard } from '../../profile';
 import { Button, openProfile, PersonRow } from '../../profile-ui';
 import { useThemed } from '../../theme';
@@ -20,21 +22,36 @@ export default function CommunauteScreen() {
   // `undefined` : pas de recherche faite ; `null` : personne ne porte ce pseudo.
   const [found, setFound] = useState<FoundProfile | null | undefined>(undefined);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [groups, setGroups] = useState<MyGroup[] | null>(null);
+  const [groupsOffline, setGroupsOffline] = useState<string | null>(null);
+  const [groupQuery, setGroupQuery] = useState('');
+  const [groupSearching, setGroupSearching] = useState(false);
+  // `undefined` : pas de recherche faite.
+  const [groupResults, setGroupResults] = useState<GroupCard[] | undefined>(undefined);
+  const [groupError, setGroupError] = useState<string | null>(null);
   const hasProfile = status === 'signedIn' && !!profile;
 
   const load = useCallback(async () => {
     if (!hasProfile) {
       setFollowing(null);
+      setGroups(null);
       return;
     }
-    const result = await listFollowing();
-    if (!result.ok) {
-      setOffline(result.message);
+    const [people, mine] = await Promise.all([listFollowing(), listMyGroups()]);
+    if (!people.ok) {
+      setOffline(people.message);
       setFollowing([]);
-      return;
+    } else {
+      setOffline(null);
+      setFollowing(people.people);
     }
-    setOffline(null);
-    setFollowing(result.people);
+    if (!mine.ok) {
+      setGroupsOffline(mine.message);
+      setGroups([]);
+    } else {
+      setGroupsOffline(null);
+      setGroups(mine.groups);
+    }
   }, [hasProfile]);
 
   useFocusEffect(
@@ -58,6 +75,21 @@ export default function CommunauteScreen() {
     setFound(result.found);
   };
 
+  const searchGroup = async () => {
+    const text = groupQuery.trim();
+    if (text.length < 2 || groupSearching) return;
+    setGroupSearching(true);
+    setGroupError(null);
+    const result = await searchGroups(text);
+    setGroupSearching(false);
+    if (!result.ok) {
+      setGroupError(result.message);
+      setGroupResults(undefined);
+      return;
+    }
+    setGroupResults(result.groups);
+  };
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -76,7 +108,10 @@ export default function CommunauteScreen() {
           ) : !hasProfile ? (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Crée ton profil</Text>
-              <Text style={styles.muted}>Choisis un pseudo pour retrouver des proches et les suivre.</Text>
+              <Text style={styles.muted}>
+                Choisis un pseudo pour retrouver des proches, les suivre et rejoindre des groupes de prière. Les membres d’un groupe voient
+                ton pseudo.
+              </Text>
               <Button
                 label="Créer mon profil"
                 onPress={() => router.push(status === 'signedIn' ? '/inscription/pseudo' : '/inscription')}
@@ -84,6 +119,66 @@ export default function CommunauteScreen() {
             </View>
           ) : (
             <>
+              <Text style={[styles.section, { marginTop: 8 }]}>Mes groupes</Text>
+              {groups === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 12 }} /> : null}
+              {groupsOffline ? <Text style={styles.muted}>{groupsOffline}</Text> : null}
+              {groups && groups.length === 0 && !groupsOffline ? (
+                <Text style={styles.muted}>Tu n’es dans aucun groupe pour l’instant.</Text>
+              ) : null}
+              {groups?.map((group) => (
+                <GroupRow
+                  key={group.id}
+                  name={group.name}
+                  kind={group.kind}
+                  memberCount={group.memberCount}
+                  note={group.ended ? 'terminé' : undefined}
+                  badge={group.pendingRequests}
+                  onPress={() => openGroup(group.id)}
+                />
+              ))}
+              <Button label="Créer un groupe" onPress={() => router.push('/groupe/nouveau')} />
+              <Button label="Rejoindre avec un code" kind="secondary" onPress={() => router.push('/groupe/rejoindre')} />
+
+              <Text style={styles.section}>Trouver un groupe par son nom</Text>
+              <Text style={styles.muted}>
+                On trouve les communautés et les groupes éphémères. Une fraternité reste introuvable : on y entre avec son code.
+              </Text>
+              <View style={styles.searchRow}>
+                <TextInput
+                  value={groupQuery}
+                  onChangeText={(value) => {
+                    setGroupQuery(value);
+                    setGroupResults(undefined);
+                  }}
+                  onSubmitEditing={() => void searchGroup()}
+                  placeholder="Nom du groupe"
+                  placeholderTextColor={C.faint}
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  style={styles.input}
+                />
+                <Pressable
+                  onPress={() => void searchGroup()}
+                  disabled={groupQuery.trim().length < 2 || groupSearching}
+                  accessibilityLabel="Chercher un groupe"
+                  style={[styles.searchBtn, (groupQuery.trim().length < 2 || groupSearching) && { opacity: 0.4 }]}
+                >
+                  {groupSearching ? <ActivityIndicator color={C.onGold} /> : <Ionicons name="search" size={20} color={C.onGold} />}
+                </Pressable>
+              </View>
+              {groupError ? <Text style={styles.error}>{groupError}</Text> : null}
+              {groupResults && groupResults.length === 0 ? <Text style={styles.muted}>Aucun groupe avec ce nom.</Text> : null}
+              {groupResults?.map((group) => (
+                <GroupRow
+                  key={group.id}
+                  name={group.name}
+                  kind={group.kind}
+                  memberCount={group.memberCount}
+                  note={group.myStatus === 'member' ? 'tu en fais partie' : group.myStatus === 'requested' ? 'demande envoyée' : undefined}
+                  onPress={() => openGroup(group.id)}
+                />
+              ))}
+
               <Text style={styles.section}>Trouver quelqu’un par son pseudo</Text>
               <View style={styles.searchRow}>
                 <TextInput

@@ -79,7 +79,7 @@ export default function PrayerEditor() {
           Une ligne vide sépare deux paragraphes. Ta prière est enregistrée avec ton chemin et te suit sur tes autres appareils si tu relies
           un compte.
           {mine.canShow
-            ? ' Elle reste privée tant que tu ne l’affiches pas sur ton profil : depuis la prière, tu peux en montrer une copie aux personnes que tu suis.'
+            ? ' Elle reste privée tant que tu ne l’affiches pas sur ton profil : depuis la prière, tu peux en montrer une copie aux personnes que tu suis et aux membres de tes groupes.'
             : ''}
         </Text>
       </ScrollView>

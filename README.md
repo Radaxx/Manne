@@ -91,15 +91,15 @@ Les dossiers `android/` et `ios/` sont générés (CNG) : après un changement d
 
 ## Données de test
 
-Pour essayer profils, abonnements, vitrine et blocage sur un téléphone, `scripts/seed-dev.mjs` crée six comptes de test (`dev_marie`, `dev_pierre`, `dev_claire`, `dev_jean`, `dev_therese`, `dev_paul`) avec profil, passages, prières, intentions et abonnements entre eux. Mettre `SUPABASE_SERVICE_ROLE_KEY` et `SEED_EMAIL` (votre adresse : les comptes utilisent `prenom+manne-dev_marie@…`) dans `.env.local`, jamais dans `.env`.
+Pour essayer profils, abonnements, vitrine, blocage et groupes de prière sur un téléphone, `scripts/seed-dev.mjs` crée six comptes de test (`dev_marie`, `dev_pierre`, `dev_claire`, `dev_jean`, `dev_therese`, `dev_paul`) avec profil, passages, prières, intentions et abonnements entre eux, et trois groupes : « Fraternité de test » (privée, propriétaire `dev_marie`, membres `dev_pierre` et `dev_claire`), « Paroisse de test » (communauté, propriétaire `dev_jean`, modérateur `dev_therese`, une demande en attente de `dev_paul`) et « Neuvaine de test » (groupe éphémère qui se termine dans 9 jours, propriétaire `dev_claire`), avec quelques intentions, dont une exaucée avec son action de grâce, et des « je la porte ». Les groupes sont supprimés et recréés à chaque `seed` ; leurs codes d’invitation (et liens `manne://rejoindre/…`) s’affichent à la fin. Mettre `SUPABASE_SERVICE_ROLE_KEY` et `SEED_EMAIL` (votre adresse : les comptes utilisent `prenom+manne-dev_marie@…`) dans `.env.local`, jamais dans `.env`.
 
 ```bash
-npm run seed -- --me votre_pseudo   # crée ou met à jour les comptes ; ils suivent votre profil (sauf dev_therese)
-npm run seed:reset                  # supprime les comptes de test et leurs données
+npm run seed -- --me votre_pseudo   # crée ou met à jour les comptes et les groupes ; ils suivent votre profil (sauf dev_therese) et vous entrez dans la fraternité de test (pas dans la paroisse : testez la demande)
+npm run seed:reset                  # supprime les comptes de test, leurs groupes et leurs données
 node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs code dev_marie   # code de connexion
 ```
 
-À n'utiliser que sur un projet de dev : la commande crée de vrais comptes sur le projet Supabase distant. Elle n'écrit jamais depuis votre compte et le reset ne supprime que les adresses `+manne-dev_`.
+À n'utiliser que sur un projet de dev : la commande crée de vrais comptes sur le projet Supabase distant. Elle n’écrit à votre nom que votre adhésion à la fraternité de test (avec `--me`) ; le reset ne supprime que les adresses `+manne-dev_` et les groupes de test.
 
 ## Vérifier
 
@@ -111,13 +111,13 @@ npm test          # Jest (jest-expo) : synchro, validation de la progression, pl
 
 Les tests sont dans `__tests__/` (fichiers `*-test.ts`) ; `jest.setup.js` remplace AsyncStorage par un stockage en mémoire.
 
-Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer dans l’ordre les fichiers de `supabase/migrations/` (`001_community.sql`, `002_account.sql`, `003_adopt_cleanup.sql`). Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app ; il doit s’ouvrir sur le téléphone qui l’a demandé (flux PKCE : un lien forgé n’ouvre aucune session). La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
+Pour les j’aime, les échos, les intentions et le compte : copier `.env.example` vers `.env` (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), activer les connexions anonymes, le rattachement manuel (Manual linking), Apple et Google, ajouter `manne://auth/callback` aux URL de redirection, et appliquer dans l’ordre les fichiers de `supabase/migrations/` (`001_community.sql` à `008_groups.sql`). Le mail de confirmation est celui de Supabase, un lien qui revient dans l’app ; il doit s’ouvrir sur le téléphone qui l’a demandé (flux PKCE : un lien forgé n’ouvre aucune session). La clé est la clé publishable (`sb_publishable_…`), jamais la clé secrète.
 
 Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS : `supabase functions deploy news --no-verify-jwt`. Elle relit les flux au plus toutes les 30 minutes ; l’app garde la dernière liste 30 minutes, et l’affiche encore hors connexion. Le téléphone ne contacte que Supabase : les sites d’actualité ne voient une requête que quand on ouvre un article.
 
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, saint du jour, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, compte, réglages, rappel
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, saint du jour, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, groupes de prière (`groupe/`, `rejoindre/`), compte, réglages, rappel
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager

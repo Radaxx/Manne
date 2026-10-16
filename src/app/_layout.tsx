@@ -131,6 +131,12 @@ function ThemedShell() {
           <Stack.Screen name="profil/abonnes" options={{ title: 'Abonnés' }} />
           <Stack.Screen name="profil/abonnements" options={{ title: 'Abonnements' }} />
           <Stack.Screen name="profil/bloques" options={{ title: 'Personnes bloquées' }} />
+          <Stack.Screen name="groupe/nouveau" options={{ title: 'Créer un groupe' }} />
+          <Stack.Screen name="groupe/rejoindre" options={{ title: 'Rejoindre avec un code' }} />
+          <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />
+          <Stack.Screen name="groupe/membres" options={{ title: 'Membres' }} />
+          <Stack.Screen name="groupe/reglages" options={{ title: 'Réglages du groupe' }} />
+          <Stack.Screen name="rejoindre/[code]" options={{ title: 'Rejoindre un groupe' }} />
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>

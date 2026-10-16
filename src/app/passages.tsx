@@ -18,8 +18,8 @@ export default function PassagesScreen() {
       {progress.saved.length > 0 ? <ShowcaseInvite /> : null}
       {mine.ready && progress.saved.length > 0 ? (
         <Text style={styles.hint}>
-          Tu peux afficher des passages sur ton profil. Les personnes que tu suis les voient ; seule la référence est partagée, chacun lit
-          le texte dans sa traduction.
+          Tu peux afficher des passages sur ton profil. Les personnes que tu suis et les membres de tes groupes les voient ; seule la
+          référence est partagée, chacun lit le texte dans sa traduction.
         </Text>
       ) : null}
       {progress.saved.length === 0 ? (

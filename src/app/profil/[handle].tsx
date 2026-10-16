@@ -31,7 +31,7 @@ export default function AutreProfil() {
     }
     setError(null);
     setOther(result.profile);
-    // La vitrine suit la même règle que le profil : le serveur n'envoie rien si la personne ne te suit pas.
+    // La vitrine suit la même règle que le profil : le serveur n'envoie rien si la personne ne te suit pas et que vous n'avez aucun groupe en commun.
     if (result.profile?.visible) {
       const shown = await fetchShowcase(handle);
       setShowcase(shown.ok ? shown.showcase : EMPTY_SHOWCASE);
@@ -133,7 +133,7 @@ export default function AutreProfil() {
           </View>
         </View>
       ) : (
-        <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit.</Text>
+        <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit ou que vous êtes dans un même groupe.</Text>
       )}
 
       {other.visible ? <ShowcaseSections showcase={showcase} mine={false} /> : null}
