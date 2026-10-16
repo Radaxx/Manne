@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -419,6 +420,16 @@ export function HomeScreen() {
         )}
 
         <Text style={styles.credits}>Textes liturgiques © AELF · Bibles Louis Segond 1910 et Crampon 1923</Text>
+        <Pressable
+          onPress={() => WebBrowser.openBrowserAsync('https://fr.tipeee.com/manne').catch(() => {})}
+          hitSlop={8}
+          style={({ pressed }) => [styles.donate, pressed && styles.pressed]}
+          accessibilityRole="link"
+          accessibilityLabel="Soutenir Manne sur Tipeee"
+        >
+          <Ionicons name="heart-outline" size={13} color={C.gold} />
+          <Text style={styles.donateText}>Soutenir Manne</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -540,4 +551,14 @@ const stylesFor = (C: Palette) =>
     track: { height: 4, borderRadius: 2, backgroundColor: C.track, overflow: 'hidden' },
     fill: { height: '100%' },
     credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 32 },
+    donate: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      alignSelf: 'center',
+      marginTop: 14,
+      minHeight: 10,
+    },
+    donateText: { color: C.gold, fontSize: 13, fontWeight: '600' },
   });
