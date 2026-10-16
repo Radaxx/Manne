@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { type Palette, paletteFor } from '../appearance';
+import { AuthProvider } from '../auth';
 import { EchoHost } from '../echoes';
 import { liturgicalDay } from '../liturgical-year';
 import { scheduleReminders } from '../reminder';
@@ -116,7 +117,9 @@ function ThemedShell() {
 export default function RootLayout() {
   return (
     <ProgressProvider>
-      <ThemedShell />
+      <AuthProvider>
+        <ThemedShell />
+      </AuthProvider>
     </ProgressProvider>
   );
 }

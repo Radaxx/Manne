@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
-import { currentUserId, supabase } from './supabase';
+import { currentUserId } from './auth/session';
+import { supabase } from './supabase';
 
 const QUEUE_KEY = 'manne/community/likes';
 

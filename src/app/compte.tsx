@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { useAccount } from '../auth';
 import { TOTAL_CHAPTERS } from '../bible';
@@ -28,6 +28,7 @@ export default function CompteScreen() {
   // Le texte en cours de frappe ; hors saisie, le champ suit toujours le prénom de la progression.
   const [draft, setDraft] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [keyboard, setKeyboard] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const accountY = useRef(0);
@@ -70,6 +71,18 @@ export default function CompteScreen() {
     }, 50);
     return () => clearTimeout(timer);
   }, [keyboard]);
+
+  const confirmDelete = () =>
+    Alert.alert(
+      'Supprimer ton compte ?',
+      'Ton compte est effacé pour de bon, avec ce qu’il garde en ligne : ta progression synchronisée, tes j’aime, tes échos et tes intentions confiées. ' +
+        'Sur ce téléphone, ton chemin (lecture, plans, prières, passages gardés, prénom) est aussi effacé, comme à la déconnexion. ' +
+        'La liste de ta confession, qui n’a jamais quitté ce téléphone, y reste, ainsi que tes réglages.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: () => void account.deleteAccount(resetAccountData) },
+      ],
+    );
 
   const open = (href: string, book?: number) => {
     if (book) selectBook(book);
@@ -260,7 +273,36 @@ export default function CompteScreen() {
               <Text style={styles.cardTitle}>Retrouver ce chemin sur un autre téléphone</Text>
               <Text style={styles.muted}>Relie une adresse, Apple ou Google. Ce que tu as déjà lu et prié suit le compte.</Text>
               {account.phase.kind === 'link' ? (
-                <Text style={styles.muted}>Un lien a été envoyé à {account.phase.email}. Ouvre-le depuis ce téléphone.</Text>
+                <>
+                  <Text style={styles.muted}>Un lien a été envoyé à {account.phase.email}. Ouvre-le depuis ce téléphone.</Text>
+                  <TextInput
+                    value={code}
+                    onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
+                    onFocus={showAccount}
+                    placeholder="Code reçu par e-mail"
+                    placeholderTextColor={C.faint}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    autoCorrect={false}
+                    style={styles.input}
+                  />
+                  <Pressable onPress={() => account.verifyCode(code)} disabled={account.busy} style={styles.btn}>
+                    <Text style={styles.btnText}>Valider le code</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setCode('');
+                      account.changeEmail();
+                    }}
+                    disabled={account.busy}
+                    hitSlop={8}
+                    style={styles.quiet}
+                  >
+                    <Text style={styles.link}>Changer d’adresse</Text>
+                  </Pressable>
+                </>
               ) : (
                 <>
                   <TextInput
@@ -307,6 +349,9 @@ export default function CompteScreen() {
                 style={styles.secondary}
               >
                 <Text style={styles.secondaryText}>Se déconnecter</Text>
+              </Pressable>
+              <Pressable onPress={confirmDelete} disabled={account.busy} hitSlop={8} style={styles.quiet}>
+                <Text style={styles.danger}>Supprimer mon compte</Text>
               </Pressable>
               {account.error ? <Text style={styles.error}>{account.error}</Text> : null}
             </View>
@@ -382,6 +427,8 @@ const stylesFor = (C: Palette) =>
     btnText: { color: C.onGold, fontWeight: '800', fontSize: 15 },
     secondary: { borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: C.line },
     secondaryText: { color: C.text, fontWeight: '700', fontSize: 15 },
+    quiet: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
+    danger: { color: C.red, fontSize: 14, fontWeight: '700' },
     error: { color: C.red, fontSize: 14, marginTop: 8 },
     pressed: { opacity: 0.75 },
   });

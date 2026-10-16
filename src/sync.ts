@@ -1,5 +1,6 @@
+import { currentUserId } from './auth/session';
 import { type Progress, prepareStored, today } from './storage';
-import { currentUserId, supabase } from './supabase';
+import { supabase } from './supabase';
 import { currentStreak, type DayLog, EMPTY_DAY } from './today';
 
 /** Ce qui part dans le cloud : la date de confession oui, la liste et le verrou non. */

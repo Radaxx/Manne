@@ -237,12 +237,22 @@ otp_expiry = 3600
 # Use a production-ready SMTP server
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
+# host = "smtp-relay.brevo.com"
 # port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
+# user = "env(BREVO_SMTP_LOGIN)"
+# pass = "env(BREVO_SMTP_KEY)"
 # admin_email = "admin@email.com"
-# sender_name = "Admin"
+# sender_name = "Manne"
+
+# Adresse déjà utilisée (signInWithOtp) : le code {{ .Token }} et le lien de connexion.
+[auth.email.template.magic_link]
+subject = "{{ .Token }} est ton code de connexion Manne"
+content_path = "./supabase/templates/magic_link.html"
+
+# Nouvelle adresse à relier au compte (updateUser) : le code {{ .Token }} et le lien de confirmation.
+[auth.email.template.email_change]
+subject = "{{ .Token }} est ton code pour relier ton adresse à Manne"
+content_path = "./supabase/templates/email_change.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
