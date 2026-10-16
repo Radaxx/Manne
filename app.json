@@ -55,7 +55,17 @@
       "expo-font",
       "expo-secure-store",
       "expo-apple-authentication",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a"],
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "scheme": "manne",
     "backgroundColor": "#0d0e12",
