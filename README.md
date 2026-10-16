@@ -99,6 +99,8 @@ npm run seed:reset                  # supprime les comptes de test, leurs groupe
 node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs code dev_marie   # code de connexion
 ```
 
+**Compte de démonstration pour Google Play** : la connexion par e-mail envoie un code qui expire en une heure, que le relecteur de Google ne peut pas recevoir. L'écran de liaison de compte propose donc « Accès relecteur » (adresse et mot de passe). `npm run seed:reviewer` crée ou met à jour le compte (pseudo `relecteur`, profil, un passage, une intention, abonnements aux comptes de test s'ils existent) et affiche son mot de passe une seule fois : à coller dans la Play Console (Accès à l'application), jamais dans le dépôt. `REVIEWER_PASSWORD` dans `.env.local` en impose un (12 caractères au moins). `npm run seed:reviewer-remove` le supprime, `seed:reset` n'y touche pas.
+
 À n'utiliser que sur un projet de dev : la commande crée de vrais comptes sur le projet Supabase distant. Elle n’écrit à votre nom que votre adhésion à la fraternité de test (avec `--me`) ; le reset ne supprime que les adresses `+manne-dev_` et les groupes de test.
 
 ## Vérifier

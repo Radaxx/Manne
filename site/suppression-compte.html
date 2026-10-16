@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Supprimer mon compte et mes données — Manne</title>
+<meta name="description" content="Comment supprimer ton compte Manne et les données qui y sont attachées, depuis l’application ou par e-mail.">
+<style>
+  :root {
+    --bg: #f6f2ea; --card: #ffffff; --text: #1d1b17; --muted: #5d574c; --line: #ddd5c6;
+    --gold: #8a5a00; --todo-bg: #ffe27a; --todo-text: #3a2a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0e12; --card: #16181f; --text: #ece8de; --muted: #a29d90; --line: #2a2d37;
+      --gold: #f2b544; --todo-bg: #5c4500; --todo-text: #ffe9a8;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  h1 { font: 700 2rem/1.2 Georgia, "Times New Roman", serif; margin: 1.5rem 0 .25rem; }
+  h2 { font-size: 1.25rem; margin: 2.25rem 0 .5rem; color: var(--gold); }
+  p, li { margin: .5rem 0; }
+  ul, ol { padding-left: 1.25rem; }
+  a { color: var(--gold); }
+  .kicker { color: var(--gold); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem; margin: 1rem 0; }
+  .card p:first-child, .card ul:first-child, .card ol:first-child { margin-top: 0; }
+  .card p:last-child, .card ul:last-child, .card ol:last-child { margin-bottom: 0; }
+  .todo { background: var(--todo-bg); color: var(--todo-text); padding: 0 .3em; border-radius: 4px; font-weight: 700; }
+  nav { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
+  footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<main>
+  <nav aria-label="Pages">
+    <a href="confidentialite.html">Politique de confidentialité</a>
+    <a href="suppression-compte.html" aria-current="page">Supprimer mon compte et mes données</a>
+  </nav>
+
+  <p class="kicker">Manne</p>
+  <h1>Supprimer mon compte et mes données</h1>
+  <p class="muted">Dernière mise à jour : 16 octobre 2026.</p>
+
+  <p>Tu peux supprimer ton compte Manne et les données qui y sont attachées à tout moment. Le plus simple et le plus rapide est de le faire dans l’application ; si tu ne peux pas, une demande par e-mail est possible.</p>
+
+  <h2>Dans l’application (recommandé)</h2>
+  <div class="card">
+    <ol>
+      <li>Ouvre Manne, puis ton <strong>profil</strong> (l’icône de profil en haut de l’accueil) ou <strong>Mon chemin</strong>.</li>
+      <li>Va à la section <strong>Compte</strong>.</li>
+      <li>Touche <strong>Supprimer mon compte</strong>.</li>
+      <li>Lis le message, puis confirme avec <strong>Supprimer</strong>.</li>
+    </ol>
+    <p>Il faut du réseau : si l’opération échoue, l’application te le dit et rien n’est supprimé. Réessaie une fois connecté.</p>
+  </div>
+  <p><strong>Tu ne vois pas « Supprimer mon compte » ?</strong> Ce bouton apparaît quand un compte est relié (e-mail, Apple ou Google). Si tu utilises Manne sans compte relié (session anonyme), relie d’abord une adresse e-mail, Apple ou Google dans la section <strong>Compte</strong>, puis supprime le compte : tout ce que tu avais fait avant reste attaché au compte et sera donc supprimé avec lui.</p>
+
+  <h2>Ce qui est supprimé</h2>
+  <p>La suppression est <strong>définitive</strong> et efface, sur nos serveurs :</p>
+  <ul>
+    <li>ton <strong>compte</strong> (identifiant, adresse e-mail ou lien avec Apple ou Google) ;</li>
+    <li>ta <strong>progression synchronisée</strong> : marque-pages, plans, journal et série, versets aimés et gardés, prénom, prières écrites, intentions d’adoration, réglages ;</li>
+    <li>ton <strong>profil</strong> (pseudo, bio, paroisse), ta <strong>vitrine</strong> (passages, prières, intentions affichés), tes <strong>abonnements</strong>, tes abonnés et tes <strong>blocages</strong> ;</li>
+    <li>tes <strong>j’aime</strong> (les compteurs baissent en conséquence), tes <strong>échos</strong>, tes <strong>intentions confiées</strong> et ce que tu portais, tes <strong>signalements</strong> ;</li>
+    <li>tes <strong>appartenances aux groupes</strong>, tes demandes d’adhésion, tes <strong>intentions de groupe</strong>. Si tu étais propriétaire d’un groupe, la propriété passe à un autre membre (le plus ancien modérateur, sinon le plus ancien membre) ; s’il n’y a plus de membre, le groupe est supprimé ;</li>
+    <li>le <strong>compteur quotidien</strong> d’actions lié à ton compte.</li>
+  </ul>
+  <p>Rien de ce qui est listé ci-dessus ne reste sur nos serveurs. Nous ne conservons aucune sauvegarde de la base : une fois supprimées, tes données ne subsistent pas dans une copie. Supabase peut seulement garder quelques journaux techniques de connexion (comme l’adresse IP).</p>
+
+  <h2>Ce qui reste sur ton téléphone</h2>
+  <ul>
+    <li>Ton chemin sur le téléphone (lecture, plans, prières, passages gardés, prénom) est <strong>effacé</strong> en même temps que le compte.</li>
+    <li>La <strong>liste de ta confession</strong>, qui n’a jamais quitté le téléphone, ainsi que tes <strong>réglages</strong> (apparence, traduction, rappel), y restent. Pour tout effacer, désinstalle l’application.</li>
+    <li>Si tu utilises Manne sur <strong>plusieurs téléphones</strong>, déconnecte-toi des autres (Compte → Se déconnecter) avant de supprimer le compte : sinon ils gardent leur copie locale, qui pourrait être renvoyée ensuite sous une nouvelle session anonyme.</li>
+    <li>Si tu t’étais connecté avec Apple ou Google, tu peux aussi retirer l’accès de Manne depuis les réglages de ton compte Apple ou Google.</li>
+  </ul>
+
+  <h2>Par e-mail</h2>
+  <div class="card">
+    <p>Tu n’as plus accès à l’application ? Écris à <a href="mailto:radaxx.studio@gmail.com?subject=Suppression%20de%20mon%20compte%20Manne">radaxx.studio@gmail.com</a> avec l’objet « Suppression de mon compte Manne », en indiquant :</p>
+    <ul>
+      <li>l’<strong>adresse e-mail</strong> reliée à ton compte (ou, pour Apple, l’adresse que tu avais choisie de partager) ;</li>
+      <li>si tu en as un, ton <strong>pseudo</strong> Manne.</li>
+    </ul>
+    <p>Pour nous assurer que la demande vient bien de toi, écris depuis cette adresse : nous pouvons te demander une confirmation avant de supprimer. Nous traitons la demande et te répondons dans un délai d’un mois au plus.</p>
+    <p class="muted">Une session anonyme jamais reliée n’a ni adresse ni pseudo : nous ne pouvons pas la retrouver à partir d’un e-mail. Utilise alors le chemin dans l’application, décrit plus haut.</p>
+  </div>
+
+  <h2>En savoir plus</h2>
+  <p>Ce que nous collectons, pourquoi et pour combien de temps : <a href="confidentialite.html">Politique de confidentialité</a>.</p>
+
+  <footer>
+    <p class="muted">Contact : radaxx.studio@gmail.com</p>
+  </footer>
+</main>
+</body>
+</html>

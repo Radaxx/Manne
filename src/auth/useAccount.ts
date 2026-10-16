@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from './AuthProvider';
 import type { LinkBranch } from './errors';
-import { deleteAccount, linkApple, linkGoogle, sendEmail, signOut, verifyCode } from './providers';
+import { deleteAccount, linkApple, linkGoogle, sendEmail, signInWithPassword, signOut, verifyCode } from './providers';
 
 /** `link` : l'e-mail est parti ; `branch` dit si l'adresse est nouvelle ou déjà un compte, pour valider le bon code. */
 export type AccountPhase = { kind: 'ready' } | { kind: 'link'; email: string; branch: LinkBranch };
@@ -67,6 +67,7 @@ export function useAccount() {
       setError(null);
       setPhase({ kind: 'ready' });
     },
+    signInWithPassword: (email: string, password: string) => run(() => signInWithPassword(email.trim(), password)),
     linkApple: () => run(() => linkApple()),
     linkGoogle: () => run(() => linkGoogle()),
     signOut: (hooks: SignOutHooks) =>

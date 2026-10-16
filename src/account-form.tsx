@@ -24,6 +24,8 @@ export function AccountForm({
   const { progress, setDisplayName } = useApp();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [reviewer, setReviewer] = useState(false);
+  const [password, setPassword] = useState('');
 
   return (
     <View style={styles.card}>
@@ -93,6 +95,41 @@ export function AccountForm({
       <Pressable onPress={() => account.linkGoogle()} disabled={account.busy} style={styles.secondary}>
         <Text style={styles.secondaryText}>Continuer avec Google</Text>
       </Pressable>
+      {reviewer ? (
+        <>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            onFocus={onFieldFocus}
+            placeholder="Adresse e-mail"
+            placeholderTextColor={C.faint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="username"
+            style={styles.input}
+          />
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            onFocus={onFieldFocus}
+            placeholder="Mot de passe"
+            placeholderTextColor={C.faint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            textContentType="password"
+            style={styles.input}
+          />
+          <Pressable onPress={() => account.signInWithPassword(email, password)} disabled={account.busy} style={styles.secondary}>
+            <Text style={styles.secondaryText}>Se connecter</Text>
+          </Pressable>
+        </>
+      ) : (
+        <Pressable onPress={() => setReviewer(true)} hitSlop={8} style={styles.quiet}>
+          <Text style={styles.link}>Accès relecteur</Text>
+        </Pressable>
+      )}
       {account.busy && <ActivityIndicator color={C.gold} />}
       {account.error ? <Text style={styles.error}>{account.error}</Text> : null}
     </View>
