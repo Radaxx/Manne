@@ -10,6 +10,7 @@ import { SERIF } from '../../cards';
 import { UpcomingGatheringRows, useUpcomingGatherings } from '../../gathering-ui';
 import { GroupRow, openGroup } from '../../group-ui';
 import { type GroupCard, listMyGroups, type MyGroup, searchGroups } from '../../groups';
+import { LivingRosaryRows, useMyRosaries } from '../../living-rosary-ui';
 import { RunningNovenaRows, useRunningNovenas } from '../../novena-ui';
 import { type FoundProfile, findProfile, listFollowing, normalizeHandle, type ProfileCard } from '../../profile';
 import { Button, openProfile, PersonRow } from '../../profile-ui';
@@ -40,6 +41,8 @@ export default function CommunauteScreen() {
   const upcoming = useUpcomingGatherings(hasProfile);
   // Mes neuvaines de groupe en cours aujourd'hui : section masquée s'il n'y en a pas.
   const novenas = useRunningNovenas(hasProfile);
+  // Mes Rosaires vivants (où j'ai une place) : mêmes règles.
+  const rosaries = useMyRosaries(hasProfile);
 
   const load = useCallback(async () => {
     if (!hasProfile) {
@@ -117,7 +120,7 @@ export default function CommunauteScreen() {
     inputRef.current?.focus();
   };
 
-  const inUpcoming = upcoming.length > 0 || novenas.length > 0;
+  const inUpcoming = upcoming.length > 0 || novenas.length > 0 || rosaries.length > 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -158,7 +161,7 @@ export default function CommunauteScreen() {
                   <View style={styles.benefitIcon}>
                     <Ionicons name="calendar-outline" size={18} color={C.gold} />
                   </View>
-                  <Text style={styles.benefitText}>Prier ensemble : rendez-vous et neuvaines</Text>
+                  <Text style={styles.benefitText}>Prier ensemble : rendez-vous, neuvaines et Rosaire vivant</Text>
                 </View>
               </View>
               <Button
@@ -248,6 +251,8 @@ export default function CommunauteScreen() {
                     <UpcomingGatheringRows items={upcoming} />
                     {upcoming.length > 0 && novenas.length > 0 ? <View style={styles.divider} /> : null}
                     <RunningNovenaRows items={novenas} />
+                    {rosaries.length > 0 && (upcoming.length > 0 || novenas.length > 0) ? <View style={styles.divider} /> : null}
+                    <LivingRosaryRows items={rosaries} />
                   </View>
                 </>
               ) : null}

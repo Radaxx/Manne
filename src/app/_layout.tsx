@@ -14,10 +14,13 @@ import { groupIdFromUrl, syncGatheringReminders } from '../gathering-reminders';
 import { onGatheringsChanged } from '../gatherings';
 import { openGroup } from '../group-ui';
 import { liturgicalDay } from '../liturgical-year';
+import { onRosariesChanged } from '../living-rosary';
+import { openRosary } from '../living-rosary-ui';
 import { novenaIdFromUrl, syncNovenaReminders } from '../novena-reminders';
 import { openNovena } from '../novena-ui';
 import { onNovenasChanged } from '../novenas';
 import { notificationsSupported, scheduleReminders } from '../reminder';
+import { rosaryIdFromUrl, syncRosaryReminders } from '../rosary-reminders';
 import { removedKeys, type ShowcasePassage } from '../showcase';
 import { dropPassageCopies } from '../showcase-store';
 import { ProgressProvider, useApp } from '../storage';
@@ -144,7 +147,34 @@ function NovenaSync() {
   return null;
 }
 
-/** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
+/**
+ * Le rappel du Rosaire vivant (« Me rappeler ma dizaine chaque jour ») est reprogrammé au lancement, au retour de l'app au
+ * premier plan, quand le compte ou le profil change, et après chaque dizaine cochée, rappel réglé, place prise ou quittée.
+ * Sans compte relié ni profil, tous les rappels `rosary-…` sont annulés (les autres rappels ne sont pas touchés). Hors ligne,
+ * on garde ce qui est programmé.
+ */
+function RosarySync() {
+  const { status, userId, profile, profileLoaded, profileOffline } = useAuth();
+  const profileMissing = status === 'signedIn' && profileLoaded && !profileOffline && !profile;
+  const waiting = status === 'signedIn' && !profileLoaded;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance la synchro quand on change de compte
+  useEffect(() => {
+    if (!notificationsSupported || waiting) return;
+    const sync = () => syncRosaryReminders({ profileMissing }).catch(() => {});
+    sync();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sync();
+    });
+    const off = onRosariesChanged(sync);
+    return () => {
+      sub.remove();
+      off();
+    };
+  }, [waiting, profileMissing, userId, status]);
+  return null;
+}
+
+/** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine, celui du Rosaire vivant ouvre le Rosaire. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
 function NotificationLinks() {
   useEffect(() => {
     if (!notificationsSupported) return;
@@ -154,6 +184,11 @@ function NotificationLinks() {
       const novena = novenaIdFromUrl(url);
       if (novena) {
         openNovena(novena);
+        return;
+      }
+      const rosary = rosaryIdFromUrl(url);
+      if (rosary) {
+        openRosary(rosary);
         return;
       }
       const id = groupIdFromUrl(url);
@@ -186,6 +221,7 @@ function ThemedShell() {
         <ReminderSync />
         <GatheringSync />
         <NovenaSync />
+        <RosarySync />
         <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
@@ -233,6 +269,7 @@ function ThemedShell() {
           <Stack.Screen name="groupe/rendez-vous" options={{ title: 'Rendez-vous' }} />
           <Stack.Screen name="groupe/neuvaine-nouvelle" options={{ title: 'Lancer une neuvaine' }} />
           <Stack.Screen name="neuvaine/[id]" options={{ title: 'Neuvaine' }} />
+          <Stack.Screen name="rosaire/[id]" options={{ title: 'Rosaire vivant' }} />
           <Stack.Screen name="groupe/membres" options={{ title: 'Membres' }} />
           <Stack.Screen name="groupe/reglages" options={{ title: 'Réglages du groupe' }} />
           {/* Pas de geste de retour : on ne quitte pas la salle par erreur, le bouton « Quitter la salle » suffit. */}

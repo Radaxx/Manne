@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
+import { LivingRosaryTiles, useMyRosaries } from './living-rosary-ui';
 import {
   dayOfLabel,
   finishersLabel,
@@ -175,9 +176,13 @@ function DaySegments({ myDays }: { myDays: number[] }) {
   );
 }
 
-/** Mes neuvaines en cours en cartes à faire défiler (l'accueil) : un toucher ouvre la neuvaine. */
+/**
+ * Mes neuvaines en cours en cartes à faire défiler (l'accueil) : un toucher ouvre la neuvaine. Suivies de mes Rosaires vivants
+ * (une carte chacun) : l'accueil n'a pas à les connaître, ce bloc partagé les lit lui-même.
+ */
 export function RunningNovenaCards({ items }: { items: MyNovena[] }) {
   const { C, styles } = useThemed(stylesFor);
+  const rosaries = useMyRosaries(true);
   const now = new Date();
   return (
     <>
@@ -208,6 +213,7 @@ export function RunningNovenaCards({ items }: { items: MyNovena[] }) {
           </Pressable>
         );
       })}
+      <LivingRosaryTiles items={rosaries} />
     </>
   );
 }

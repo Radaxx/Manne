@@ -1,4 +1,4 @@
-// Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions, groupes de prière, rendez-vous et neuvaines de groupe,
+// Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions, groupes de prière, rendez-vous, neuvaines et Rosaire vivant de groupe,
 // écrits avec la clé service_role (qui contourne la RLS).
 // `seed`, `reset` et `code` visent la base LOCALE (`npm run db:local`). Ils refusent le projet de production.
 // `reviewer` et `reviewer-remove` visent uniquement la production (compte Play), via `.env.production.local`.
@@ -171,6 +171,9 @@ const FOLLOW_ME = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_pau
 //   novenas : neuvaines de groupe. `startDaysAgo` : jours écoulés depuis le jour 1 (négatif : commence dans le futur,
 //   -1 = demain), dans `timezone` ; `prayed` : pseudo -> jours priés (jamais un jour futur) ; modèle `personnalisee` :
 //   `customPrayer` (texte écrit pour le test) et `passageSet` facultatif. Rien n'est écrit au nom de `me` (ni jour prié, ni rappel).
+//   rosaries : Rosaire vivant du groupe (un seul actif). `startMonthsAgo` : mois écoulés depuis le mois de départ, dans `timezone` ;
+//   `places` : pseudo -> [équipe, place de base 0 à 19] (le mystère du mois est (place + mois écoulés) mod 20) ; `prayedToday` :
+//   pseudos qui ont coché leur dizaine aujourd'hui (jour de `timezone`). `me` n'a JAMAIS de place : à prendre depuis l'app.
 const DAY = 86_400_000;
 const GROUPS = [
   {
@@ -237,6 +240,14 @@ const GROUPS = [
         startDaysAgo: -1,
         timezone: 'Europe/Paris',
         prayed: {},
+      },
+    ],
+    rosaries: [
+      {
+        timezone: 'Europe/Paris',
+        startMonthsAgo: 1,
+        places: { dev_marie: [1, 1], dev_pierre: [1, 5], dev_claire: [1, 12] },
+        prayedToday: ['dev_marie', 'dev_claire'],
       },
     ],
   },
@@ -518,7 +529,7 @@ async function seed(admin, base, meHandle, rdvIn) {
   for (const line of groupSummary) console.log(`  ${line}`);
   if (me) {
     console.log(
-      `\nÉcritures à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} » et à « ${GROUPS[2].name} », et votre inscription aux rendez-vous de « ${GROUPS[0].name} » (« Je participe »). Aucun jour de neuvaine n’est coché ni aucun rappel de neuvaine réglé à votre nom. Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
+      `\nÉcritures à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} » et à « ${GROUPS[2].name} », et votre inscription aux rendez-vous de « ${GROUPS[0].name} » (« Je participe »). Aucun jour de neuvaine n’est coché, aucun rappel de neuvaine réglé et aucune place prise dans le Rosaire vivant à votre nom. Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
     );
   } else {
     console.log('\nSans --me, vous n’êtes membre d’aucun groupe de test.');
@@ -595,6 +606,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
 
     const meetings = await seedGatherings(admin, group, groupId, ids, me, now, rdvIn);
     const novenas = await seedNovenas(admin, group, groupId, ids, now);
+    const rosaries = await seedRosaries(admin, group, groupId, ids, now);
 
     const who = group.members.map(([handle, role]) => `${handle} (${role})`).join(', ');
     summary.push(
@@ -603,6 +615,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
       `    membres : ${who}${me && group.includeMe ? `, ${me.handle} (member)` : ''}${group.requests.length ? ` ; demande en attente : ${group.requests.join(', ')}` : ''}`,
       ...meetings,
       ...novenas,
+      ...rosaries,
     );
   }
   return summary;
@@ -756,6 +769,40 @@ async function seedNovenas(admin, group, groupId, ids, now) {
     const who = Object.entries(novena.prayed).map(([handle, days]) => `${handle} (${days.join(', ')})`);
     lines.push(
       `    neuvaine : ${novena.title} (${novena.model}) — début ${startDate}, ${novena.timezone}, ${current}${who.length ? ` ; jours priés : ${who.join(', ')}` : ''}`,
+    );
+  }
+  return lines;
+}
+
+/**
+ * Recrée le Rosaire vivant d'un groupe (le groupe vient d'être recréé : rien d'ancien). Rien n'est écrit au nom de
+ * l'utilisateur (--me) : il n'a pas de place. Renvoie les lignes du résumé.
+ */
+async function seedRosaries(admin, group, groupId, ids, now) {
+  const owner = ids[group.members.find(([, role]) => role === 'owner')[0]];
+  const lines = [];
+  for (const rosary of group.rosaries ?? []) {
+    const today = dateIn(rosary.timezone, now, 0);
+    const [year, month] = today.split('-').map(Number);
+    const startMonth = new Date(Date.UTC(year, month - 1 - rosary.startMonthsAgo, 1)).toISOString().slice(0, 10);
+    const { data, error } = await admin
+      .from('group_rosaries')
+      .insert({ group_id: groupId, start_month: startMonth, timezone: rosary.timezone, created_by: owner })
+      .select('id')
+      .single();
+    check(error, `Rosaire vivant de « ${group.name} »`);
+    const places = Object.entries(rosary.places).map(([handle, [team, slot]]) => ({
+      rosary_id: data.id,
+      user_id: ids[handle],
+      team,
+      slot,
+    }));
+    check((await admin.from('rosary_members').insert(places)).error, `Places du Rosaire vivant de « ${group.name} »`);
+    const prayed = rosary.prayedToday.map((handle) => ({ rosary_id: data.id, user_id: ids[handle], day: today }));
+    if (prayed.length) check((await admin.from('rosary_decades').insert(prayed)).error, `Dizaines du Rosaire vivant de « ${group.name} »`);
+    const who = Object.entries(rosary.places).map(([handle, [team, slot]]) => `${handle} (équipe ${team}, place ${slot})`);
+    lines.push(
+      `    rosaire vivant : début ${startMonth}, ${rosary.timezone} — ${who.join(', ')} ; dizaine cochée aujourd’hui (${today}) : ${rosary.prayedToday.join(', ') || 'personne'}`,
     );
   }
   return lines;
@@ -921,7 +968,7 @@ async function removeReviewer(admin, base) {
 
 function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
-  seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous et deux neuvaines
+  seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous, deux neuvaines et un Rosaire vivant
                          --me : ces comptes suivent votre profil (sauf dev_therese) et vous entrez
                          comme simple membre dans « ${GROUPS[0].name} » et inscrit à ses rendez-vous
                          --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)

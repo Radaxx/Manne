@@ -107,6 +107,15 @@ export function readOther(row: unknown): OtherProfile | null {
 }
 
 function failureMessage(message: string) {
+  // Rosaire vivant : messages français du serveur, avant « déjà pris » (« Ce mystère est déjà pris » n'est pas un pseudo).
+  if (
+    message.includes('Ce Rosaire') ||
+    message.includes('Ce mystère') ||
+    message.includes('Tu participes déjà') ||
+    message.includes('Trop de Rosaires')
+  ) {
+    return message;
+  }
   if (message.includes('déjà pris')) return 'Ce pseudo est déjà pris.';
   // Groupes : messages français du serveur (limites, refus), repris tels quels.
   if (
@@ -131,6 +140,9 @@ function failureMessage(message: string) {
   if (message.includes('type_invalide')) return 'Ce type de groupe n’existe pas.';
   if (message.includes('fin_invalide')) return 'La date de fin doit être dans le futur, à un an au plus.';
   if (message.includes('rdv_inconnu')) return 'Ce rendez-vous n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('rosaire_inconnu')) return 'Ce Rosaire vivant n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('pas_participant')) return 'Tu ne participes pas à ce Rosaire vivant.';
+  if (message.includes('mystere_invalide')) return 'Ce mystère n’existe pas.';
   if (message.includes('neuvaine_inconnue')) return 'Cette neuvaine n’existe plus, ou tu n’as pas accès à ce groupe.';
   if (message.includes('modele_invalide')) return 'Ce modèle de neuvaine n’existe pas.';
   if (message.includes('intention_invalide')) return 'L’intention de la neuvaine fait entre 1 et 280 caractères.';

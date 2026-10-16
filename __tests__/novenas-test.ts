@@ -36,6 +36,7 @@ import {
   withDayPrayed,
 } from '../src/novenas';
 import { DAILY_REMINDERS_MAX } from '../src/reminder';
+import { ROSARY_REMINDERS_MAX } from '../src/rosary-reminders';
 
 const paris = { startDate: '2026-10-20', timezone: 'Europe/Paris' };
 const at = (iso: string) => new Date(iso);
@@ -241,12 +242,14 @@ describe('rappels', () => {
     expect(planNovenaReminders([mine({ myDays: [1, 2, 3, 4, 5, 6, 7, 8, 9] })], now, 'Europe/Paris')).toEqual([]);
   });
 
-  it('budget iOS : rappel quotidien + rendez-vous + neuvaines tiennent dans 64', () => {
+  it('budget iOS : rappel quotidien + rendez-vous + neuvaines + Rosaire vivant tiennent dans 64', () => {
     expect(DAILY_REMINDERS_MAX).toBe(15);
     expect(GATHERING_REMINDERS_MAX).toBe(30);
     expect(NOVENA_REMINDERS_MAX).toBe(9);
-    expect(DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX).toBe(54);
-    expect(DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX).toBeLessThanOrEqual(64);
+    expect(ROSARY_REMINDERS_MAX).toBe(3);
+    const total = DAILY_REMINDERS_MAX + GATHERING_REMINDERS_MAX + NOVENA_REMINDERS_MAX + ROSARY_REMINDERS_MAX;
+    expect(total).toBe(57);
+    expect(total).toBeLessThanOrEqual(64);
   });
 
   it('lit l’adresse d’une notification de neuvaine sans confondre avec un groupe', () => {

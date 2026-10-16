@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Palette } from '../appearance';
 import { rosaryMaterial } from '../appearance';
 import { SERIF } from '../cards';
 import { MYSTERIES, prayerById } from '../data/prayers';
+import { firstParam } from '../groups';
 import { haptic } from '../haptics';
+import { chapeletTarget, setDecadePrayed } from '../living-rosary';
 import { PrayerText } from '../prayers';
 import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, type RosaryStep, rosarySteps, sessionLabel } from '../rosary';
 import { Rosary3D } from '../rosary3d';
@@ -220,9 +222,37 @@ function Praying({ session, onDone, onExit }: { session: RosarySession; onDone: 
   );
 }
 
-function Finished({ decade, intention, onAgain }: { decade: boolean; intention: string; onAgain: () => void }) {
+function Finished({
+  decade,
+  intention,
+  rosaryId,
+  onAgain,
+}: {
+  decade: boolean;
+  intention: string;
+  /** Une dizaine priée pour le Rosaire vivant de ce groupe : on propose de la cocher. */
+  rosaryId: string | null;
+  onAgain: () => void;
+}) {
   const { C, styles } = useThemed(stylesFor);
   const { progress } = useApp();
+  const [ticking, setTicking] = useState<'idle' | 'busy' | 'done'>('idle');
+  const [tickError, setTickError] = useState<string | null>(null);
+  const living = decade && rosaryId !== null;
+  const tick = async () => {
+    if (!rosaryId || ticking !== 'idle') return;
+    setTicking('busy');
+    setTickError(null);
+    const result = await setDecadePrayed(rosaryId, true);
+    if (!result.ok) {
+      setTickError(result.message);
+      setTicking('idle');
+      return;
+    }
+    haptic('success');
+    setTicking('done');
+  };
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/prieres'));
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.scroll, { alignItems: 'center', paddingTop: 50 }]}>
       <View style={styles.doneIcon}>
@@ -236,11 +266,21 @@ function Finished({ decade, intention, onAgain }: { decade: boolean; intention: 
           ? 'C’est la première fois que tu pries le chapelet avec Manne.'
           : `${progress.rosary.count} chapelets et dizaines priés avec Manne.`}
       </Text>
-      <Pressable
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/prieres'))}
-        style={[styles.btn, { marginTop: 28, alignSelf: 'stretch' }]}
-      >
-        <Text style={styles.btnText}>Revenir aux prières</Text>
+      {living ? (
+        <Pressable
+          onPress={() => void tick()}
+          disabled={ticking !== 'idle'}
+          style={[styles.btn, { marginTop: 28, alignSelf: 'stretch' }, ticking !== 'idle' && { opacity: 0.6 }]}
+        >
+          <Ionicons name={ticking === 'done' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={C.onGold} />
+          <Text style={styles.btnText}>
+            {ticking === 'done' ? 'Dizaine cochée dans le Rosaire vivant' : 'J’ai prié ma dizaine du Rosaire vivant'}
+          </Text>
+        </Pressable>
+      ) : null}
+      {tickError ? <Text style={[styles.warn, { color: C.red }]}>{tickError}</Text> : null}
+      <Pressable onPress={back} style={[styles.btn, living && styles.btnGhost, { marginTop: living ? 10 : 28, alignSelf: 'stretch' }]}>
+        <Text style={living ? styles.btnGhostText : styles.btnText}>{living ? 'Revenir au Rosaire vivant' : 'Revenir aux prières'}</Text>
       </Pressable>
       <Pressable onPress={onAgain} style={[styles.btn, styles.btnGhost, { marginTop: 10, alignSelf: 'stretch' }]}>
         <Text style={styles.btnGhostText}>Prier encore</Text>
@@ -249,13 +289,14 @@ function Finished({ decade, intention, onAgain }: { decade: boolean; intention: 
   );
 }
 
-function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
+function Setup({ onStart, initial }: { onStart: (s: RosarySession) => void; initial: { set: number; decade: number } | null }) {
   const { C, styles } = useThemed(stylesFor);
   const { progress, setRosaryPrefs, setRosarySession } = useApp();
   const { session, fatima, texts, last, count } = progress.rosary;
-  const [set, setSet] = useState(todaySet());
-  const [single, setSingle] = useState(false);
-  const [decade, setDecade] = useState(0);
+  // Venu du Rosaire vivant avec un chapelet déjà commencé : la dizaine du mois est préparée, rien ne démarre sans toucher.
+  const [set, setSet] = useState(initial?.set ?? todaySet());
+  const [single, setSingle] = useState(initial !== null);
+  const [decade, setDecade] = useState(initial?.decade ?? 0);
   const [intention, setIntention] = useState('');
   const weekday = new Date().getDay();
 
@@ -397,9 +438,22 @@ function Setup({ onStart }: { onStart: (s: RosarySession) => void }) {
 
 export default function ChapeletScreen() {
   const { progress, setRosarySession, completeRosary } = useApp();
-  const [mode, setMode] = useState<'setup' | 'praying' | 'done'>('setup');
-  const [finished, setFinished] = useState<RosarySession | null>(null);
+  // `/chapelet?serie=<0 à 3>&dizaine=<1 à 5>` (&rosaire=<id>) : une dizaine précise, ouverte depuis le Rosaire vivant. Sans
+  // ces paramètres, ou s'ils sont invalides, l'écran se comporte comme avant.
+  const params = useLocalSearchParams<{ serie?: string | string[]; dizaine?: string | string[]; rosaire?: string | string[] }>();
+  const target = chapeletTarget(firstParam(params.serie), firstParam(params.dizaine));
+  const rosaryId = target ? (/^[0-9a-fA-F-]{8,40}$/.test(firstParam(params.rosaire)) ? firstParam(params.rosaire) : null) : null;
   const session = progress.rosary.session;
+  // Sans chapelet en cours, la dizaine démarre toute seule ; sinon on prépare l'écran de départ (il avertit qu'il remplacera le chapelet en cours).
+  const [mode, setMode] = useState<'setup' | 'praying' | 'done'>(target && !session ? 'praying' : 'setup');
+  const [finished, setFinished] = useState<RosarySession | null>(null);
+  const launched = useRef(false);
+  const { fatima } = progress.rosary;
+  useEffect(() => {
+    if (!target || launched.current || session) return;
+    launched.current = true;
+    setRosarySession({ set: target.set, decade: target.decade, fatima, step: 0, intention: '', day: today() });
+  }, [target, session, fatima, setRosarySession]);
   // Les boutons d'en-tête n'existent que pendant la prière.
   const noHeaderActions = <Stack.Screen options={{ headerRight: () => null }} />;
 
@@ -407,7 +461,7 @@ export default function ChapeletScreen() {
     return (
       <>
         {noHeaderActions}
-        <Finished decade={finished.decade !== null} intention={finished.intention} onAgain={() => setMode('setup')} />
+        <Finished decade={finished.decade !== null} intention={finished.intention} rosaryId={rosaryId} onAgain={() => setMode('setup')} />
       </>
     );
   }
@@ -428,6 +482,7 @@ export default function ChapeletScreen() {
     <>
       {noHeaderActions}
       <Setup
+        initial={target && session && mode === 'setup' && !launched.current ? { set: target.set, decade: target.decade } : null}
         onStart={(s) => {
           setRosarySession(s);
           setMode('praying');

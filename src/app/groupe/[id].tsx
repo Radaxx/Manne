@@ -17,6 +17,7 @@ import type { Palette } from '../../appearance';
 import { AllowNotifications, ExactAlarmNote, GatheringCard, useReminderPermission } from '../../gathering-ui';
 import {
   cancelGathering,
+  deviceTimeZone,
   type Gathering,
   gatheringsChanged,
   listGatherings,
@@ -55,6 +56,8 @@ import {
   withdrawGroupIntention,
 } from '../../groups';
 import { haptic } from '../../haptics';
+import { getGroupRosary, type LivingRosary, startRosary } from '../../living-rosary';
+import { LivingRosaryCard, openRosary } from '../../living-rosary-ui';
 import { NovenaCard } from '../../novena-ui';
 import { listNovenas, MAX_ACTIVE_NOVENAS, type Novena, novenaDay, novenasChanged } from '../../novenas';
 import { Button, openProfile } from '../../profile-ui';
@@ -71,6 +74,7 @@ export default function GroupeScreen() {
   const [intentions, setIntentions] = useState<GroupIntention[]>([]);
   const [gatherings, setGatherings] = useState<Gathering[]>([]);
   const [novenas, setNovenas] = useState<Novena[]>([]);
+  const [rosary, setRosary] = useState<LivingRosary | null>(null);
   const reminders = useReminderPermission();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -95,17 +99,25 @@ export default function GroupeScreen() {
     setError(null);
     setGroup(result.group);
     if (result.group?.myStatus === 'member') {
-      const [listed, meetings, nine] = await Promise.all([listGroupIntentions(id), listGatherings(id), listNovenas(id)]);
+      const [listed, meetings, nine, living] = await Promise.all([
+        listGroupIntentions(id),
+        listGatherings(id),
+        listNovenas(id),
+        getGroupRosary(id),
+      ]);
       if (listed.ok) setIntentions(listed.intentions);
       else setNotice(listed.message);
       if (meetings.ok) setGatherings((local) => mergeServer(local, meetings.gatherings, inflight.current));
       else setNotice(meetings.message);
       if (nine.ok) setNovenas(nine.novenas);
       else setNotice(nine.message);
+      if (living.ok) setRosary(living.rosary);
+      else setNotice(living.message);
     } else {
       setIntentions([]);
       setGatherings([]);
       setNovenas([]);
+      setRosary(null);
     }
   }, [id]);
 
@@ -256,6 +268,35 @@ export default function GroupeScreen() {
     }
   };
 
+  const launchRosary = () => {
+    Alert.alert(
+      'Lancer un Rosaire vivant ?',
+      `Chaque participant prie une dizaine par jour, et son mystère change chaque mois. Le Rosaire commence ce mois-ci ; le jour et le mois changent à minuit dans le fuseau de ton téléphone (${deviceTimeZone()}). Tous les membres du groupe pourront y prendre un mystère.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Lancer',
+          onPress: () => {
+            if (busy) return;
+            setBusy(true);
+            setNotice(null);
+            void startRosary(group.id).then(async (result) => {
+              if (!result.ok) {
+                setNotice(result.message);
+                setBusy(false);
+                return;
+              }
+              haptic('success');
+              await load();
+              setBusy(false);
+              if (typeof result.data === 'string') openRosary(result.data);
+            });
+          },
+        },
+      ],
+    );
+  };
+
   const leave = () => {
     if (group.myRole === 'owner') {
       Alert.alert(
@@ -400,6 +441,12 @@ export default function GroupeScreen() {
                   <Text style={styles.hint}>Ce groupe a déjà {MAX_ACTIVE_NOVENAS} neuvaines en cours.</Text>
                 ) : null}
               </>
+            ) : null}
+
+            <Text style={styles.section}>Rosaire vivant</Text>
+            {rosary ? <LivingRosaryCard rosary={rosary} /> : <Text style={styles.muted}>Pas de Rosaire vivant pour l’instant.</Text>}
+            {moderator && !group.ended && !rosary ? (
+              <Button label="Lancer un Rosaire vivant" kind="secondary" onPress={launchRosary} />
             ) : null}
 
             {group.ended ? null : (
