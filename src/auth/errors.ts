@@ -65,10 +65,13 @@ export function otpType(branch: LinkBranch): 'email_change' | 'email' {
   return branch === 'new' ? 'email_change' : 'email';
 }
 
-/** Les six chiffres, sans les espaces que le clavier ou le collage peuvent ajouter. Null si ce n'est pas un code. */
+/** Supabase règle la longueur du code entre 6 et 10 chiffres selon le projet : on accepte toute la plage. */
+export const CODE_MAX = 10;
+
+/** Les chiffres du code, sans les espaces que le clavier ou le collage peuvent ajouter. Null si ce n'est pas un code. */
 export function cleanCode(input: string): string | null {
   const code = input.replace(/\s/g, '');
-  return /^\d{6}$/.test(code) ? code : null;
+  return /^\d{6,10}$/.test(code) ? code : null;
 }
 
 /** Message d'un code refusé par verifyOtp. */

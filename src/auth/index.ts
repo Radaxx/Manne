@@ -1,6 +1,6 @@
 // API publique de l'authentification. Les modules qui ne dépendent que de la session (community, sync)
 // importent ./auth/session directement, pour éviter le cycle community ↔ auth.
-export { AuthProvider, type AuthState, useAuth } from './AuthProvider';
+export { type AuthContextValue, AuthProvider, type AuthState, useAuth } from './AuthProvider';
 export { openAuthUrl } from './adoption';
 export type { LinkBranch } from './errors';
 export { currentUserId, ensureSession } from './session';

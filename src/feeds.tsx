@@ -5,6 +5,8 @@ import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState
 import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReadingChrome } from './appearance';
+import { useAuth } from './auth';
+import { Avatar } from './avatar';
 import { bookMeta, chapterSource, loadPassage, passageLabel, type TranslationId, translationName } from './bible';
 import { CultureCard, FactCard, NewsCard, PauseCard, PersonCard, QuizCard, ReflectionCard, VerseCard } from './cards';
 import { ChapterReader, TopScrim, useReadingChrome } from './chapter';
@@ -198,6 +200,7 @@ function FeedScreen({
 }) {
   const insets = useSafeAreaInsets();
   const api = useApp();
+  const { profile } = useAuth();
   const { progress } = api;
   const [height, setHeight] = useState(0);
   const [chapter, setChapter] = useState<Passage | null>(null);
@@ -240,9 +243,8 @@ function FeedScreen({
           <View style={styles.side}>{left}</View>
           <Text style={[styles.title, { color: ink }]}>{title}</Text>
           <View style={[styles.side, styles.topRight]}>
-            <Pressable onPress={() => router.push('/compte')} hitSlop={8} accessibilityLabel="Mon compte" style={styles.streak}>
-              <Ionicons name="flame" size={15} color={accent} />
-              <Text style={[styles.streakText, { color: ink }]}>{progress.streak}</Text>
+            <Pressable onPress={() => router.push('/profil')} hitSlop={8} accessibilityLabel="Mon profil">
+              <Avatar handle={profile?.handle} size={30} tint={{ ink, fill: 'rgba(0,0,0,0.25)' }} />
             </Pressable>
             <Pressable onPress={() => setShowSaved(true)} hitSlop={10} accessibilityLabel="Mes versets">
               <Ionicons name="bookmarks-outline" size={21} color={ink} />
@@ -361,16 +363,6 @@ const styles = StyleSheet.create({
   booksBtn: { alignSelf: 'flex-start' },
   title: { color: '#fff', fontSize: 17, fontWeight: '700' },
   topRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 12 },
-  streak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  streakText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   goalTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 10, overflow: 'hidden' },
   goalFill: { height: '100%', backgroundColor: '#ffd166' },
   goalText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 6, fontWeight: '600' },

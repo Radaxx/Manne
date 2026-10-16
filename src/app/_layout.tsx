@@ -106,6 +106,12 @@ function ThemedShell() {
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
           <Stack.Screen name="compte" options={{ title: 'Compte' }} />
+          <Stack.Screen name="inscription" options={{ headerShown: false }} />
+          <Stack.Screen name="profil/index" options={{ title: 'Profil' }} />
+          <Stack.Screen name="profil/[handle]" options={{ title: 'Profil' }} />
+          <Stack.Screen name="profil/modifier" options={{ title: 'Modifier mon profil' }} />
+          <Stack.Screen name="profil/abonnes" options={{ title: 'Abonnés' }} />
+          <Stack.Screen name="profil/abonnements" options={{ title: 'Abonnements' }} />
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>

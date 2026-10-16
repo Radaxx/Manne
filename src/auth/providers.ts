@@ -76,7 +76,7 @@ export async function verifyCode(email: string, input: string, branch: LinkBranc
   const client = supabase;
   if (!client) return { error: 'Supabase n’est pas configuré.' };
   const token = cleanCode(input);
-  if (!token) return { error: 'Le code compte 6 chiffres.' };
+  if (!token) return { error: 'Recopie le code reçu par e-mail en entier.' };
   const { error } = await client.auth.verifyOtp({ email, token, type: otpType(branch) });
   if (error) return { error: otpMessage(error) };
   if (branch === 'new') return { error: null };

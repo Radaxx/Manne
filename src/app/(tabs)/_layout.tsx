@@ -26,6 +26,7 @@ export default function TabLayout() {
       <Tabs.Screen name="lecture" options={{ title: 'Lecture', tabBarIcon: icon('book-outline', 'book') }} />
       <Tabs.Screen name="prieres" options={{ title: 'Prières', tabBarIcon: icon('rose-outline', 'rose') }} />
       <Tabs.Screen name="decouvrir" options={{ title: 'Découvrir', tabBarIcon: icon('compass-outline', 'compass') }} />
+      <Tabs.Screen name="communaute" options={{ title: 'Communauté', tabBarIcon: icon('people-outline', 'people') }} />
     </Tabs>
   );
 }

@@ -1,4 +1,5 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getMyProfile, type MyProfile } from '../profile';
 import { supabase } from '../supabase';
 
 export type AuthState = {
@@ -12,7 +13,19 @@ export type AuthState = {
 const configured = supabase != null;
 const INITIAL: AuthState = { configured, status: configured ? 'anonymous' : 'unconfigured', userId: null, email: null };
 
-const AuthContext = createContext<AuthState | null>(null);
+/** L'état de la session, plus le profil du compte relié (nul sans compte relié ou sans profil créé). */
+export type AuthContextValue = AuthState & {
+  profile: MyProfile | null;
+  /** Vrai quand le profil du compte courant est connu (toujours vrai sans compte relié : rien à charger). */
+  profileLoaded: boolean;
+  /** Vrai si le profil n'a pas pu être lu (réseau) : `profile` nul ne veut alors pas dire « pas de profil ». */
+  profileOffline: boolean;
+  refreshProfile: () => Promise<void>;
+};
+
+type LoadedProfile = { userId: string; profile: MyProfile | null; offline: boolean };
+
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 function fromUser(user: { id: string; is_anonymous?: boolean; email?: string | null } | null): AuthState {
   if (!configured) return INITIAL;
@@ -50,10 +63,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  const [loadedProfile, setLoadedProfile] = useState<LoadedProfile | null>(null);
+  const { status, userId } = state;
+
+  const refreshProfile = useCallback(async () => {
+    if (status !== 'signedIn' || !userId) return;
+    const result = await getMyProfile();
+    setLoadedProfile({ userId, profile: result.ok ? result.profile : null, offline: !result.ok });
+  }, [status, userId]);
+
+  // Le profil se recharge à chaque changement de compte ; un autre compte ne voit jamais celui du précédent.
+  useEffect(() => {
+    if (status !== 'signedIn' || !userId) {
+      setLoadedProfile(null);
+      return;
+    }
+    let alive = true;
+    void getMyProfile().then((result) => {
+      if (alive) setLoadedProfile({ userId, profile: result.ok ? result.profile : null, offline: !result.ok });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [status, userId]);
+
+  const value = useMemo<AuthContextValue>(() => {
+    const current = status === 'signedIn' && loadedProfile?.userId === userId ? loadedProfile : null;
+    return {
+      ...state,
+      profile: current?.profile ?? null,
+      profileLoaded: status !== 'signedIn' || current !== null,
+      profileOffline: current?.offline ?? false,
+      refreshProfile,
+    };
+  }, [state, status, userId, loadedProfile, refreshProfile]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth(): AuthState {
+export function useAuth(): AuthContextValue {
   const state = useContext(AuthContext);
   if (!state) throw new Error('useAuth doit être utilisé dans <AuthProvider>');
   return state;

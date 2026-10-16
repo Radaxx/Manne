@@ -90,20 +90,23 @@ describe('adoptionMessage', () => {
   });
 });
 
-describe('code à 6 chiffres', () => {
+describe('code reçu par e-mail', () => {
   it('choisit le type verifyOtp selon la branche', () => {
     expect(otpType('new')).toBe('email_change');
     expect(otpType('existing')).toBe('email');
   });
 
-  it('accepte six chiffres, espaces ignorés', () => {
+  it('accepte de 6 à 10 chiffres, espaces ignorés', () => {
     expect(cleanCode('123456')).toBe('123456');
+    expect(cleanCode('12345678')).toBe('12345678');
+    expect(cleanCode('1234 5678')).toBe('12345678');
+    expect(cleanCode('1234567890')).toBe('1234567890');
     expect(cleanCode(' 123 456 ')).toBe('123456');
   });
 
   it('refuse le reste', () => {
     expect(cleanCode('12345')).toBeNull();
-    expect(cleanCode('1234567')).toBeNull();
+    expect(cleanCode('12345678901')).toBeNull();
     expect(cleanCode('12a456')).toBeNull();
     expect(cleanCode('')).toBeNull();
   });

@@ -5,6 +5,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
+import { useAuth } from './auth';
+import { Avatar } from './avatar';
 import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
 import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
@@ -107,6 +109,7 @@ function PlanCard({ status, t, onRead }: { status: PlanStatus; t: TranslationId;
 export function HomeScreen() {
   const { C, styles } = useThemed(stylesFor);
   const api = useApp();
+  const { profile } = useAuth();
   const { progress } = api;
   const { data: mass, error: massError } = useMass();
   const now = new Date();
@@ -180,9 +183,8 @@ export function HomeScreen() {
                 color={progress.reminder.enabled ? C.gold : C.muted}
               />
             </Pressable>
-            <Pressable onPress={() => router.push('/compte')} hitSlop={10} accessibilityLabel="Mon compte" style={styles.streak}>
-              <Ionicons name="flame" size={16} color={C.gold} />
-              <Text style={styles.streakText}>{progress.streak}</Text>
+            <Pressable onPress={() => router.push('/profil')} hitSlop={10} accessibilityLabel="Mon profil">
+              <Avatar handle={profile?.handle} size={36} />
             </Pressable>
           </View>
         </View>
@@ -423,16 +425,6 @@ const stylesFor = (C: Palette) =>
     stepNext: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 4 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    streak: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: C.card,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 999,
-    },
-    streakText: { color: C.text, fontWeight: '700', fontSize: 15 },
     liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
     colorDot: { width: 10, height: 10, borderRadius: 5 },
     liturgyText: { color: C.muted, fontSize: 14, flexShrink: 1 },
