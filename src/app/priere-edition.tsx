@@ -1,10 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { updatePrayerCopy, useMyShowcase } from '../showcase-store';
 import { useApp } from '../storage';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 
 /** Écrire ou modifier une prière personnelle. */

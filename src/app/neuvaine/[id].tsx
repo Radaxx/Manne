@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { bookMeta, chapterSource, loadPassage, passageLabel, translationName } from '../../bible';
 import { SERIF } from '../../cards';
@@ -38,6 +38,7 @@ import { Button } from '../../profile-ui';
 import { formatTime, notificationsSupported } from '../../reminder';
 import { ChapterSheet } from '../../sheets';
 import { useApp } from '../../storage';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 const hhmm = (hour: number, minute: number) => `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;

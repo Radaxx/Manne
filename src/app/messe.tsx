@@ -1,9 +1,10 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { LITURGICAL_COLORS, plainText, useMass } from '../aelf';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { MassBody } from '../liturgy';
 import { useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 import { liveLog } from '../today';
 

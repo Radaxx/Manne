@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { longDate } from '../dates';
 import { authenticate, biometricName, lockAvailability, lockSupported } from '../lock';
 import { today, useApp } from '../storage';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 import { agoPhrase } from '../today';
 

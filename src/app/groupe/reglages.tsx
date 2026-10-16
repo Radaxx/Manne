@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { Avatar } from '../../avatar';
 import { NeedProfile, useGroupGate } from '../../group-ui';
@@ -22,6 +22,7 @@ import {
 } from '../../groups';
 import { haptic } from '../../haptics';
 import { Button, Field, FormScreen } from '../../profile-ui';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 export default function ReglagesGroupe() {

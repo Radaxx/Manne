@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, PanResponder, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { type Mass, type MassReading, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
@@ -25,6 +25,7 @@ import {
 } from './data/mass-guide';
 import { prayerById } from './data/prayers';
 import { LiturgyText } from './liturgy';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 type Phase = 'choice' | 'intro' | 'live';

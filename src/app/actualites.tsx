@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { dayLabel, localDate } from '../dates';
 import { type NewsItem, publishedAgo, useNews } from '../news';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

@@ -1,8 +1,9 @@
 import { Fragment, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { type Mass, parseHtml, plainText } from './aelf';
 import type { Palette } from './appearance';
 import { SERIF } from './cards';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 export { DARK as C } from './appearance';

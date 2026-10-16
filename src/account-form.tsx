@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import type { useAccount } from './auth';
 import { CODE_MAX } from './auth/errors';
 import { useApp } from './storage';
 import { syncProgress } from './sync';
+import { Text, TextInput } from './text';
 import { useThemed } from './theme';
 
 /** Le formulaire de liaison d'un compte (e-mail et code, Apple, Google), partagé par « Compte » et l'inscription. */

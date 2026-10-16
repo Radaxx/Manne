@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { ACCENT_OPTIONS, type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
 import { SERIF } from '../cards';
 import { liturgicalDay, SEASONS } from '../liturgical-year';
 import { formatTime } from '../reminder';
 import { TranslationPicker } from '../sheets';
 import { today, useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 /** La couleur du jour, et ce qu'elle donne pour l'accent. */

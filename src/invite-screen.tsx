@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import { NeedProfile, openGroup, useGroupGate } from './group-ui';
 import {
@@ -15,6 +15,7 @@ import {
 } from './groups';
 import { haptic } from './haptics';
 import { Button, FormScreen } from './profile-ui';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 const UNKNOWN = 'Code d’invitation inconnu.';

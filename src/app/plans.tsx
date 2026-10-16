@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { PLANS, planChapters, planStatus } from '../plans';
 import { today, useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 export default function PlansScreen() {

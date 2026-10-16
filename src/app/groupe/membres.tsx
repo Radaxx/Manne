@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { Avatar } from '../../avatar';
 import { NeedProfile, useGroupGate } from '../../group-ui';
@@ -18,6 +18,7 @@ import {
 } from '../../groups';
 import { haptic } from '../../haptics';
 import { openProfile } from '../../profile-ui';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 type Action = {

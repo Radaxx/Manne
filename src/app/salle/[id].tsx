@@ -12,8 +12,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import type { Palette } from '../../appearance';
@@ -39,6 +37,7 @@ import {
   untilStartMs,
   useRoom,
 } from '../../room';
+import { Text, TextInput } from '../../text';
 import { useThemed } from '../../theme';
 
 // La salle de prière en direct d'un rendez-vous (supabase/migrations/010_prayer_room.sql, src/room.ts).

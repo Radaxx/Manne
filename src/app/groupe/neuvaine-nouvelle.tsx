@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
 import type { Palette } from '../../appearance';
 import { CUSTOM_SHORT, NOVENAS, novenaModelTitle, PASSAGE_SET_DATA } from '../../data/novenas';
 import { dayLabel, shiftDay, shortDate, WEEKDAYS } from '../../dates';
@@ -24,6 +24,7 @@ import {
   startNovena,
 } from '../../novenas';
 import { Button, Field, FormScreen, Lead } from '../../profile-ui';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 type ModelChoice = { id: NovenaModel; title: string; short: string };

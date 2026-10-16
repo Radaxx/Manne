@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AccountForm, LinkedAccount } from '../account-form';
 import type { Palette } from '../appearance';
 import { useAccount } from '../auth';
@@ -10,6 +10,7 @@ import { SERIF } from '../cards';
 import { planById, planStatus } from '../plans';
 import { SettingsButton } from '../profile-ui';
 import { today, useApp } from '../storage';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 import { agoPhrase, bibleShare, bookShares, reachedSteps, resumeTarget, todayTasks, weekStrip } from '../today';
 

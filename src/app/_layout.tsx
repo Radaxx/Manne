@@ -1,11 +1,15 @@
+import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { type Palette, paletteFor } from '../appearance';
 import { AuthProvider, useAuth } from '../auth';
 import { EchoHost } from '../echoes';
+import { FONT_FILES } from '../font-files';
+import { fontFace } from '../fonts';
 import { groupIdFromUrl, syncGatheringReminders } from '../gathering-reminders';
 import { onGatheringsChanged } from '../gatherings';
 import { openGroup } from '../group-ui';
@@ -189,6 +193,7 @@ function ThemedShell() {
         <Stack
           screenOptions={{
             headerTintColor: palette.text,
+            headerTitleStyle: { fontFamily: fontFace('sans', 700, false) },
             headerStyle: { backgroundColor: palette.bg },
             headerShadowVisible: false,
             headerBackTitle: 'Retour',
@@ -241,7 +246,17 @@ function ThemedShell() {
   );
 }
 
+// Le splash reste affiché le temps de charger les polices : pas de flash de police système.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
+  const [fontsLoaded, fontsError] = useFonts(FONT_FILES);
+  const ready = fontsLoaded || !!fontsError;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+  // Une police qui ne charge pas ne bloque pas l'app : le texte reprend la police du téléphone.
+  if (!ready) return null;
   return (
     <ProgressProvider>
       <AuthProvider>

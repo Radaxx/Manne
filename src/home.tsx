@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, router } from 'expo-router';
-import { type ReactNode, useMemo } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { currentOffice, LITURGICAL_COLORS, OFFICES, plainText, useMass } from './aelf';
 import type { Palette } from './appearance';
@@ -10,41 +10,30 @@ import { Avatar } from './avatar';
 import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
 import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
-import { UpcomingGatheringRows, useUpcomingGatherings } from './gathering-ui';
+import { UpcomingGatheringCards, useUpcomingGatherings } from './gathering-ui';
 import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys';
 import { liturgicalDay } from './liturgical-year';
-import { RunningNovenaRows, useRunningNovenas } from './novena-ui';
+import { RunningNovenaCards, useRunningNovenas } from './novena-ui';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
 import { saintKicker, saintOfDay } from './saints';
+import { SectionHead } from './section';
 import { readingPosition, today, useApp } from './storage';
+import { Text } from './text';
 import { useThemed } from './theme';
 import { todayLine, unseenSteps } from './today';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function SectionTitle({ children, action }: { children: string; action?: { label: string; onPress: () => void } }) {
-  const { styles } = useThemed(stylesFor);
-  return (
-    <View style={styles.sectionHead}>
-      <Text style={styles.sectionTitle}>{children}</Text>
-      {action && (
-        <Pressable onPress={action.onPress} hitSlop={8}>
-          <Text style={styles.sectionAction}>{action.label}</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
-function Card({ children, onPress, style }: { children: ReactNode; onPress?: () => void; style?: object }) {
-  const { styles } = useThemed(stylesFor);
-  return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.card, style, pressed && styles.pressed]}>
-      {children}
-    </Pressable>
-  );
-}
+/** Les initiales du nom d'un saint (« Marguerite-Marie Alacoque » → « MM »). */
+const monogram = (name: string) =>
+  name
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0))
+    .join('')
+    .toUpperCase();
 
 function Bar({ value, color }: { value: number; color?: string }) {
   const { C, styles } = useThemed(stylesFor);
@@ -56,55 +45,53 @@ function Bar({ value, color }: { value: number; color?: string }) {
   );
 }
 
-function PlanCard({ status, t, onRead }: { status: PlanStatus; t: TranslationId; onRead: () => void }) {
+/** Un plan de lecture dans la carte « Ma lecture » : sa progression, la lecture du jour et le bouton pour la lire. */
+function PlanBlock({ status, t, onRead }: { status: PlanStatus; t: TranslationId; onRead: () => void }) {
   const { C, styles } = useThemed(stylesFor);
-  const { plan, day, done, total, today: todays, todayDone, todayComplete, behind, ahead, finished, next, nextVerse } = status;
+  const { plan, day, done, total, today: todays, todayComplete, behind, ahead, finished, next, nextVerse } = status;
+  const percent = Math.round((done / total) * 100);
   return (
-    <Card onPress={finished ? undefined : onRead}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.cardTitle}>{plan.title}</Text>
-        <Text style={styles.muted}>
-          Jour {day + 1}/{plan.days}
-        </Text>
+    <View style={styles.block}>
+      <View style={styles.planHead}>
+        <View style={styles.percent}>
+          <Text style={styles.percentText}>{percent} %</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{plan.title}</Text>
+          <Text style={styles.muted}>
+            Jour {day + 1} sur {plan.days}
+            {finished ? '' : behind > 0 ? ` · ${behind} chapitre${behind > 1 ? 's' : ''} de retard, pas de panique` : ' · à jour'}
+          </Text>
+        </View>
       </View>
-      <Bar value={done / total} />
       {finished ? (
         <Text style={[styles.planToday, { color: C.gold }]}>Plan terminé — {total} chapitres lus. Bravo !</Text>
       ) : (
         <>
-          <View style={styles.rowBetween}>
+          <View style={styles.planRow}>
             {todayComplete ? (
               <Text style={styles.planToday}>
                 <Text style={styles.ok}>Lecture du jour faite ✓</Text>
                 {ahead > 0 ? ` · ${ahead} chapitre${ahead > 1 ? 's' : ''} d’avance` : ''}
               </Text>
             ) : (
-              <>
-                <Text style={styles.planToday}>
-                  Aujourd’hui : <Text style={styles.strong}>{formatRange(todays, t)}</Text>
-                </Text>
-                <Text style={styles.muted}>
-                  {todayDone}/{todays.length}
-                </Text>
-              </>
+              <Text style={styles.planToday}>
+                Aujourd’hui : <Text style={styles.strong}>{formatRange(todays, t)}</Text>
+              </Text>
             )}
-          </View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.small}>
-              {behind > 0
-                ? `${behind} chapitre${behind > 1 ? 's' : ''} de retard, pas de panique`
-                : next
-                  ? `Reprendre : ${bookMeta(next.book, t).name} ${next.chapter}${nextVerse > 1 ? `, v. ${nextVerse}` : ''}`
-                  : ''}
-            </Text>
-            <View style={styles.readBtn}>
+            <Pressable onPress={onRead} style={({ pressed }) => [styles.readBtn, pressed && styles.pressed]} accessibilityRole="button">
               <Text style={styles.readBtnText}>{todayComplete ? 'Continuer' : 'Lire'}</Text>
               <Ionicons name="arrow-forward" size={14} color={C.onGold} />
-            </View>
+            </Pressable>
           </View>
+          {next ? (
+            <Text
+              style={styles.small}
+            >{`Reprendre : ${bookMeta(next.book, t).name} ${next.chapter}${nextVerse > 1 ? `, v. ${nextVerse}` : ''}`}</Text>
+          ) : null}
         </>
       )}
-    </Card>
+    </View>
   );
 }
 
@@ -171,25 +158,26 @@ export function HomeScreen() {
   const readPlan = (s: PlanStatus) => router.push(`/plan/${s.plan.id}`);
   const step = unseenSteps(progress)[0];
   const greet = hour < 5 || hour >= 18 ? 'Bonsoir' : 'Bonjour';
+  const inGroups = meetings.length > 0 || novenas.length > 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* En-tête : salutation, date et jour liturgique */}
+        {/* En-tête : salutation, date, jour liturgique et série de jours */}
         <View style={styles.header}>
           <Text style={styles.greeting}>
             {greet}
             {progress.displayName ? `, ${progress.displayName}` : ''}
           </Text>
           <View style={styles.headerRight}>
-            <Pressable onPress={() => router.push('/rappel')} hitSlop={10} accessibilityLabel="Rappel quotidien" style={styles.bell}>
+            <Pressable onPress={() => router.push('/rappel')} hitSlop={6} accessibilityLabel="Rappel quotidien" style={styles.bell}>
               <Ionicons
                 name={progress.reminder.enabled ? 'notifications' : 'notifications-outline'}
-                size={19}
+                size={20}
                 color={progress.reminder.enabled ? C.gold : C.muted}
               />
             </Pressable>
-            <Pressable onPress={() => router.push('/profil')} hitSlop={10} accessibilityLabel="Mon profil">
+            <Pressable onPress={() => router.push('/profil')} hitSlop={6} accessibilityLabel="Mon profil" style={styles.avatar}>
               <Avatar handle={profile?.handle} size={36} />
             </Pressable>
           </View>
@@ -197,23 +185,6 @@ export function HomeScreen() {
         <Text style={styles.date}>
           {capitalize(WEEKDAYS[now.getDay()])} {now.getDate()} {MONTHS[now.getMonth()]}
         </Text>
-        <Pressable onPress={() => router.push('/compte')} style={({ pressed }) => [styles.todayLine, pressed && styles.pressed]}>
-          <Text style={styles.todayText}>{todayLine(progress)}</Text>
-          <Ionicons name="chevron-forward" size={16} color={C.gold} />
-        </Pressable>
-        {step ? (
-          <Pressable
-            onPress={() => {
-              api.seeMilestone(step.id);
-              if (step.book) api.selectBook(step.book);
-              router.push(step.href as Href);
-            }}
-            style={({ pressed }) => [styles.step, pressed && styles.pressed]}
-          >
-            <Text style={styles.stepTitle}>{step.title}</Text>
-            <Text style={styles.stepNext}>{step.next}</Text>
-          </Pressable>
-        ) : null}
         {/* Le jour liturgique : celui de l'AELF (avec les saints) en ligne, sinon le calendrier calculé ici */}
         <Pressable
           onPress={() => router.push('/annee-liturgique')}
@@ -232,18 +203,78 @@ export function HomeScreen() {
           </Text>
           <Ionicons name="chevron-forward" size={14} color={C.muted} />
         </Pressable>
+        <Pressable onPress={() => router.push('/compte')} style={({ pressed }) => [styles.todayLine, pressed && styles.pressed]}>
+          <Ionicons name="flame-outline" size={16} color={C.gold} />
+          <Text style={styles.todayText}>{todayLine(progress)}</Text>
+        </Pressable>
+        {step ? (
+          <Pressable
+            onPress={() => {
+              api.seeMilestone(step.id);
+              if (step.book) api.selectBook(step.book);
+              router.push(step.href as Href);
+            }}
+            style={({ pressed }) => [styles.step, pressed && styles.pressed]}
+          >
+            <Text style={styles.stepTitle}>{step.title}</Text>
+            <Text style={styles.stepNext}>{step.next}</Text>
+          </Pressable>
+        ) : null}
+
+        {/* Prier maintenant : l'office de l'heure, en grand, et les autres à portée de main */}
+        <View style={styles.hero}>
+          <View style={styles.heroTop}>
+            <View style={styles.officeIcon}>
+              <Ionicons name={office.icon as keyof typeof Ionicons.glyphMap} size={28} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kickerAccent}>MAINTENANT</Text>
+              <Text style={styles.officeName}>{office.name}</Text>
+              <Text style={styles.muted}>
+                {office.hint} · environ {office.minutes} min
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => router.push(`/office/${office.id}`)}
+            style={({ pressed }) => [styles.heroBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.heroBtnText}>Commencer la prière</Text>
+            <Ionicons name="arrow-forward" size={18} color={C.onGold} />
+          </Pressable>
+          <Text style={styles.heroLabel}>AUTRES OFFICES</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.chips}>
+            {OFFICES.filter((o) => o.id !== office.id).map((o) => (
+              <Pressable
+                key={o.id}
+                onPress={() => router.push(`/office/${o.id}`)}
+                style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+              >
+                <Ionicons name={o.icon as keyof typeof Ionicons.glyphMap} size={16} color={C.gold} />
+                <Text style={styles.chipText}>{o.id === 'lectures' ? 'Lectures' : o.name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Le parcours de l'Avent ou du Carême : annoncé trois semaines avant, puis un jour à la fois */}
         {journey?.phase === 'pendant' ? (
-          <Card onPress={() => router.push(journey.href)} style={styles.journeyCard}>
+          <Pressable
+            onPress={() => router.push(journey.href)}
+            style={({ pressed }) => [styles.card, styles.journeyCard, pressed && styles.pressed]}
+          >
             <Text style={styles.journeyKicker}>
               {journey.short.toUpperCase()} · JOUR {journey.index + 1} SUR {journey.total} · {journey.theme.toUpperCase()}
             </Text>
             <Text style={styles.officeName}>{journey.title}</Text>
             <Text style={styles.muted}>{journey.done ? 'Jour vécu ✓' : 'Un passage, une méditation, un geste pour aujourd’hui.'}</Text>
-          </Card>
+          </Pressable>
         ) : journey?.phase === 'avant' ? (
-          <Card onPress={() => router.push(journey.href)} style={styles.journeyCard}>
+          <Pressable
+            onPress={() => router.push(journey.href)}
+            style={({ pressed }) => [styles.card, styles.journeyCard, pressed && styles.pressed]}
+          >
             <Text style={styles.journeyKicker}>PARCOURS · {journey.short.toUpperCase()}</Text>
             <Text style={styles.officeName}>
               {journey.wait === 1
@@ -253,70 +284,123 @@ export function HomeScreen() {
             <Text style={styles.muted}>
               Le {journey.start} : chaque jour jusqu’à {journey.feast}, un passage, une méditation et un geste.
             </Text>
-          </Card>
+          </Pressable>
         ) : null}
 
-        {/* Le saint du jour, avec quelques lignes de sa vie */}
+        {/* Aujourd'hui : l'Évangile de la messe, puis le saint du jour */}
+        <SectionHead title="Aujourd’hui" />
+        <Pressable onPress={() => router.push('/messe')} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+          {gospel ? (
+            <>
+              <Text style={styles.kicker}>Évangile · {gospel.ref}</Text>
+              {gospel.titre ? <Text style={styles.gospelTitle}>{plainText(gospel.titre)}</Text> : null}
+              <Text style={styles.gospelText} numberOfLines={4}>
+                {plainText(gospel.contenu).replaceAll('\n', ' ')}
+              </Text>
+              <View style={styles.linkRow}>
+                <Text style={styles.link}>Lire la suite</Text>
+                <Ionicons name="arrow-forward" size={16} color={C.gold} />
+              </View>
+            </>
+          ) : massError ? (
+            <Text style={styles.muted}>Les textes du jour n’ont pas pu être chargés. Vérifie ta connexion.</Text>
+          ) : (
+            <ActivityIndicator color={C.muted} style={{ paddingVertical: 24 }} />
+          )}
+        </Pressable>
         {saint ? (
-          <Card onPress={() => router.push('/saints')} style={styles.saintCard}>
-            <Text style={styles.journeyKicker}>{saintKicker(saint).toUpperCase()}</Text>
-            <Text style={styles.saintName}>{saint.name}</Text>
-            {saint.title ? <Text style={styles.muted}>{saint.title}</Text> : null}
-            <Text style={styles.saintLife} numberOfLines={3}>
-              {saint.life}
-            </Text>
-          </Card>
+          <Pressable onPress={() => router.push('/saints')} style={({ pressed }) => [styles.saint, pressed && styles.pressed]}>
+            <View style={styles.monogram}>
+              <Text style={styles.monogramText}>{monogram(saint.name)}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.journeyKicker}>{saintKicker(saint).toUpperCase()}</Text>
+              <Text style={styles.saintName}>{saint.name}</Text>
+              {saint.title ? <Text style={styles.muted}>{saint.title}</Text> : null}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </Pressable>
         ) : null}
 
-        {/* Mes prochains rendez-vous de groupe (masqué s'il n'y en a pas) */}
-        {meetings.length > 0 ? (
-          <>
-            <SectionTitle>Prochains rendez-vous</SectionTitle>
-            <UpcomingGatheringRows items={meetings} />
-          </>
-        ) : null}
-
-        {/* Mes neuvaines de groupe en cours (masqué s'il n'y en a pas) */}
-        {novenas.length > 0 ? (
-          <>
-            <SectionTitle>Neuvaines en cours</SectionTitle>
-            <RunningNovenaRows items={novenas} />
-          </>
-        ) : null}
-
-        {/* Prier maintenant : l'office de l'heure, et les autres à portée de main */}
-        <SectionTitle>Prier maintenant</SectionTitle>
-        <Card onPress={() => router.push(`/office/${office.id}`)} style={styles.officeCard}>
-          <View style={styles.officeIcon}>
-            <Ionicons name={office.icon as keyof typeof Ionicons.glyphMap} size={26} color={C.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.officeName}>{office.name}</Text>
-            <Text style={styles.muted}>
-              {office.hint} · environ {office.minutes} min
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={C.muted} />
-        </Card>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {OFFICES.filter((o) => o.id !== office.id).map((o) => (
-            <Pressable
-              key={o.id}
-              onPress={() => router.push(`/office/${o.id}`)}
-              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-            >
-              <Ionicons name={o.icon as keyof typeof Ionicons.glyphMap} size={15} color={C.muted} />
-              <Text style={styles.chipText}>{o.id === 'lectures' ? 'Lectures' : o.name}</Text>
+        {/* Ma lecture : les plans en cours, puis la lecture libre */}
+        <SectionHead title="Ma lecture" action={{ label: plans.length ? 'Gérer' : 'Choisir', onPress: () => router.push('/plans') }} />
+        <View style={styles.reading}>
+          {plans.length === 0 ? (
+            <Pressable onPress={() => router.push('/plans')} style={({ pressed }) => [styles.block, pressed && styles.pressed]}>
+              <Text style={styles.cardTitle}>Commence un plan</Text>
+              <Text style={styles.muted}>
+                Les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Un peu chaque jour, à ton rythme.
+              </Text>
+              <Text style={styles.link}>Voir les plans</Text>
             </Pressable>
-          ))}
-        </ScrollView>
+          ) : (
+            plans.map((s) => <PlanBlock key={s.plan.id} status={s} t={progress.translation} onRead={() => readPlan(s)} />)
+          )}
+          <View style={styles.divider} />
+          <Pressable onPress={() => router.navigate('/lecture')} style={({ pressed }) => [styles.free, pressed && styles.pressed]}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.freeKicker}>LECTURE LIBRE</Text>
+              <Text style={styles.cardTitle}>
+                {book.name} {pos.chapter}
+                <Text style={styles.freeVerse}> · verset {pos.verse}</Text>
+              </Text>
+              <Bar value={bookDone} color={C.muted} />
+              <Text style={styles.small}>{Math.round(bookDone * 100)} % du livre</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </Pressable>
+        </View>
+
+        {/* Mes prochains rendez-vous et mes neuvaines de groupe (masqué s'il n'y en a pas) */}
+        {inGroups ? (
+          <>
+            <SectionHead title="Avec ton groupe" action={{ label: 'Communauté', onPress: () => router.navigate('/communaute') }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.cards}>
+              <UpcomingGatheringCards items={meetings} />
+              <RunningNovenaCards items={novenas} />
+            </ScrollView>
+          </>
+        ) : null}
+
+        {/* À portée de main */}
+        <SectionHead title="À portée de main" />
+        <View style={styles.tiles}>
+          <Pressable onPress={() => router.push('/suivre-messe')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+            <Ionicons name="walk-outline" size={24} color={C.gold} />
+            <View>
+              <Text style={styles.tileTitle}>Suivre la messe</Text>
+              <Text style={styles.tileSub}>Le déroulé pas à pas</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => router.push('/intentions')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+            <Ionicons name="heart-outline" size={24} color={C.gold} />
+            <View>
+              <Text style={styles.tileTitle}>Intentions confiées</Text>
+              <Text style={styles.tileSub}>Porter une prière</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => router.push('/genealogie')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+            <Ionicons name="git-network-outline" size={24} color={C.gold} />
+            <View>
+              <Text style={styles.tileTitle}>D’Adam à Jésus</Text>
+              <Text style={styles.tileSub}>L’arbre généalogique</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => router.push('/annee-liturgique')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+            <Ionicons name="calendar-outline" size={24} color={C.gold} />
+            <View>
+              <Text style={styles.tileTitle}>Année liturgique</Text>
+              <Text style={styles.tileSub}>Temps, fêtes et couleurs</Text>
+            </View>
+          </Pressable>
+        </View>
 
         {/* Prières épinglées : accès en un geste */}
-        <SectionTitle action={{ label: 'Toutes', onPress: () => router.navigate('/prieres') }}>Mes prières</SectionTitle>
+        <SectionHead title="Mes prières" action={{ label: 'Toutes', onPress: () => router.navigate('/prieres') }} />
         {pinnedPrayers.length === 0 ? (
-          <Card onPress={() => router.navigate('/prieres')}>
+          <Pressable onPress={() => router.navigate('/prieres')} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
             <Text style={styles.muted}>Épingle tes prières préférées pour les retrouver ici.</Text>
-          </Card>
+          </Pressable>
         ) : (
           <View style={styles.prayerGrid}>
             {pinnedPrayers.map((p) => (
@@ -325,7 +409,7 @@ export function HomeScreen() {
                 onPress={() => router.push(`/priere/${p.id}`)}
                 style={({ pressed }) => [styles.prayerChip, pressed && styles.pressed]}
               >
-                <Ionicons name="rose-outline" size={15} color={C.gold} />
+                <Ionicons name="pin" size={14} color={C.gold} />
                 <Text style={styles.prayerChipText} numberOfLines={1}>
                   {p.title}
                 </Text>
@@ -333,92 +417,6 @@ export function HomeScreen() {
             ))}
           </View>
         )}
-
-        <SectionTitle>Intentions confiées</SectionTitle>
-        <Card onPress={() => router.push('/intentions')} style={styles.officeCard}>
-          <View style={styles.officeIcon}>
-            <Ionicons name="people-outline" size={26} color={C.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.officeName}>Porter une prière</Text>
-            <Text style={styles.muted}>Confie une intention, ou porte celle de quelqu’un.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={C.muted} />
-        </Card>
-
-        <SectionTitle>Messe du jour</SectionTitle>
-        <Card onPress={() => router.push('/suivre-messe')} style={styles.officeCard}>
-          <View style={styles.officeIcon}>
-            <Ionicons name="walk-outline" size={26} color={C.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.officeName}>Suivre la messe</Text>
-            <Text style={styles.muted}>Le déroulé, pour une première fois ou pour ne pas se perdre.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={C.muted} />
-        </Card>
-
-        {/* Parole du jour : l'Évangile de la messe */}
-        <SectionTitle action={{ label: 'Toutes les lectures', onPress: () => router.push('/messe') }}>Évangile du jour</SectionTitle>
-        <Card onPress={() => router.push('/messe')}>
-          {gospel ? (
-            <>
-              <Text style={styles.kicker}>{gospel.ref}</Text>
-              {gospel.titre ? <Text style={styles.gospelTitle}>{plainText(gospel.titre)}</Text> : null}
-              <Text style={styles.gospelText} numberOfLines={4}>
-                {plainText(gospel.contenu).replaceAll('\n', ' ')}
-              </Text>
-              <Text style={styles.link}>Lire la suite</Text>
-            </>
-          ) : massError ? (
-            <Text style={styles.muted}>Les textes du jour n’ont pas pu être chargés. Vérifie ta connexion.</Text>
-          ) : (
-            <ActivityIndicator color={C.muted} style={{ paddingVertical: 24 }} />
-          )}
-        </Card>
-
-        {/* Plans de lecture */}
-        <SectionTitle action={{ label: plans.length ? 'Gérer' : 'Choisir', onPress: () => router.push('/plans') }}>
-          Mes plans de lecture
-        </SectionTitle>
-        {plans.length === 0 ? (
-          <Card onPress={() => router.push('/plans')}>
-            <Text style={styles.cardTitle}>Commence un plan</Text>
-            <Text style={styles.muted}>
-              Les Évangiles en 30 jours, les Psaumes, toute la Bible en un an… Un peu chaque jour, à ton rythme.
-            </Text>
-            <Text style={styles.link}>Voir les plans</Text>
-          </Card>
-        ) : (
-          plans.map((s) => <PlanCard key={s.plan.id} status={s} t={progress.translation} onRead={() => readPlan(s)} />)
-        )}
-
-        {/* Reprendre la lecture libre */}
-        <SectionTitle>Continuer ma lecture</SectionTitle>
-        <Card onPress={() => router.navigate('/lecture')}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>
-              {book.name} {pos.chapter}
-              <Text style={styles.muted}> · verset {pos.verse}</Text>
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={C.muted} />
-          </View>
-          <Bar value={bookDone} color={C.muted} />
-          <Text style={styles.small}>{Math.round(bookDone * 100)} % du livre</Text>
-        </Card>
-
-        {/* L'arbre généalogique : d'Adam et Ève à Jésus */}
-        <SectionTitle>Arbre généalogique</SectionTitle>
-        <Card onPress={() => router.push('/genealogie')} style={styles.officeCard}>
-          <View style={styles.officeIcon}>
-            <Ionicons name="git-network-outline" size={26} color={C.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.officeName}>D’Adam à Jésus</Text>
-            <Text style={styles.muted}>Les patriarches, les rois, les femmes que Matthieu nomme, jusqu’à Joseph et Marie.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={C.muted} />
-        </Card>
 
         <Text style={styles.credits}>Textes liturgiques © AELF · Bibles Louis Segond 1910 et Crampon 1923</Text>
       </ScrollView>
@@ -430,98 +428,116 @@ const stylesFor = (C: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     scroll: { padding: 20, paddingBottom: 40 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     greeting: { color: C.muted, fontSize: 15, fontWeight: '600' },
-    date: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40 },
-    todayLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-    todayText: { color: C.gold, fontSize: 15, fontWeight: '700', flexShrink: 1 },
-    step: {
-      backgroundColor: C.cardHi,
-      borderRadius: 14,
-      padding: 14,
-      marginTop: 14,
-      borderWidth: 1,
-      borderColor: 'rgba(255,209,102,0.25)',
-    },
-    stepTitle: { color: C.text, fontSize: 16, fontWeight: '800' },
-    stepNext: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 4 },
+    date: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40, marginTop: 4 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    liturgy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+    bell: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    avatar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    liturgy: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
     colorDot: { width: 10, height: 10, borderRadius: 5 },
-    liturgyText: { color: C.muted, fontSize: 14, flexShrink: 1 },
-    journeyCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
-    saintCard: { marginTop: 12 },
-    saintName: { color: C.text, fontFamily: SERIF, fontSize: 21, lineHeight: 27, fontWeight: '700' },
-    saintLife: { color: C.text, fontSize: 15, lineHeight: 22 },
-    journeyKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', marginBottom: 4 },
-    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 30, marginBottom: 10 },
-    sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800' },
-    sectionAction: { color: C.gold, fontSize: 14, fontWeight: '600' },
-    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8, marginBottom: 10 },
-    pressed: { opacity: 0.7 },
-    officeCard: {
+    liturgyText: { color: C.muted, fontSize: 14, lineHeight: 20, flex: 1 },
+    todayLine: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 14,
-      backgroundColor: C.cardHi,
-      borderWidth: 1,
-      borderColor: 'rgba(255,209,102,0.25)',
+      alignSelf: 'flex-start',
+      gap: 8,
+      minHeight: 36,
+      paddingHorizontal: 14,
+      borderRadius: 18,
+      backgroundColor: C.highlight,
+      marginTop: 14,
     },
-    officeIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: 'rgba(255,209,102,0.1)',
+    todayText: { color: C.gold, fontSize: 14, fontWeight: '700', flexShrink: 1 },
+    step: { backgroundColor: C.cardHi, borderRadius: 14, padding: 14, marginTop: 14, borderWidth: 1, borderColor: C.line },
+    stepTitle: { color: C.text, fontSize: 16, fontWeight: '800' },
+    stepNext: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 4 },
+    hero: { backgroundColor: C.card, borderRadius: 24, borderWidth: 1, borderColor: C.line, padding: 20, marginTop: 20 },
+    heroTop: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    officeIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    kickerAccent: { color: C.gold, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    officeName: { color: C.text, fontFamily: SERIF, fontSize: 28, lineHeight: 34, fontWeight: '700' },
+    heroBtn: {
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      gap: 8,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: C.gold,
+      marginTop: 18,
     },
-    officeName: { color: C.text, fontSize: 20, fontWeight: '700', marginBottom: 2 },
-    chips: { gap: 8, paddingVertical: 2 },
+    heroBtnText: { color: C.onGold, fontSize: 16, fontWeight: '800' },
+    heroLabel: { color: C.faint, fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 18, marginBottom: 8 },
+    bleed: { marginHorizontal: -20 },
+    chips: { gap: 8, paddingHorizontal: 20 },
     chip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      backgroundColor: C.card,
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderRadius: 999,
+      gap: 8,
+      minHeight: 44,
+      backgroundColor: C.cardHi,
+      paddingHorizontal: 16,
+      borderRadius: 22,
     },
     chipText: { color: C.text, fontSize: 14, fontWeight: '600' },
+    card: { backgroundColor: C.card, borderRadius: 20, padding: 20, gap: 8, marginBottom: 10 },
+    journeyCard: { borderLeftWidth: 4, borderLeftColor: LITURGICAL_COLORS.violet, marginTop: 12 },
+    journeyKicker: { color: C.muted, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    kicker: { color: C.red, fontSize: 12, letterSpacing: 1.5, fontWeight: '800', textTransform: 'uppercase' },
+    gospelTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 20, lineHeight: 28 },
+    gospelText: { color: C.muted, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
+    linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    link: { color: C.gold, fontSize: 14, fontWeight: '700' },
+    saint: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 20, padding: 16 },
+    monogram: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    monogramText: { color: C.gold, fontFamily: SERIF, fontSize: 18, fontWeight: '700' },
+    saintName: { color: C.text, fontFamily: SERIF, fontSize: 19, lineHeight: 25, fontWeight: '700' },
+    reading: { backgroundColor: C.card, borderRadius: 20, padding: 18 },
+    block: { gap: 8 },
+    planHead: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    percent: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    percentText: { color: C.gold, fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
+    planRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 6 },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: C.line, marginVertical: 16 },
+    free: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    freeKicker: { color: C.faint, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    freeVerse: { color: C.muted, fontWeight: '400' },
+    cards: { gap: 12, paddingHorizontal: 20 },
+    tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+    tile: { width: '48.5%', minHeight: 100, justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 18, padding: 14 },
+    tileTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
+    tileSub: { color: C.muted, fontSize: 13, lineHeight: 18 },
     prayerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     prayerChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+      minHeight: 44,
       backgroundColor: C.card,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 12,
+      paddingHorizontal: 16,
+      borderRadius: 22,
       maxWidth: '100%',
     },
     prayerChipText: { color: C.text, fontSize: 15, fontWeight: '600', flexShrink: 1 },
-    kicker: { color: C.red, fontSize: 12, letterSpacing: 1.5, fontWeight: '800', textTransform: 'uppercase' },
-    gospelTitle: { color: C.text, fontFamily: SERIF, fontStyle: 'italic', fontSize: 19, lineHeight: 27 },
-    gospelText: { color: C.muted, fontFamily: SERIF, fontSize: 16, lineHeight: 24 },
-    link: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 2 },
+    pressed: { opacity: 0.7 },
     cardTitle: { color: C.text, fontSize: 17, fontWeight: '700', flexShrink: 1 },
-    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
     small: { color: C.faint, fontSize: 13 },
     strong: { color: C.text, fontWeight: '700' },
-    ok: { color: '#5cc48a', fontSize: 14, fontWeight: '700' },
+    ok: { color: C.gold, fontSize: 14, fontWeight: '700' },
     planToday: { color: C.muted, fontSize: 15, flexShrink: 1 },
     readBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 6,
+      minHeight: 44,
       backgroundColor: C.gold,
-      paddingHorizontal: 14,
-      paddingVertical: 7,
-      borderRadius: 999,
+      paddingHorizontal: 20,
+      borderRadius: 22,
     },
     readBtnText: { color: C.onGold, fontWeight: '800', fontSize: 14 },
     track: { height: 4, borderRadius: 2, backgroundColor: C.track, overflow: 'hidden' },
     fill: { height: '100%' },
-    credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 30 },
+    credits: { color: C.faint, fontSize: 12, textAlign: 'center', marginTop: 32 },
   });

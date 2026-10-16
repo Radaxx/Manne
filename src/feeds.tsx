@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Pressable, Share, StyleSheet, Text, View, type ViewToken } from 'react-native';
+import { Animated, FlatList, Pressable, Share, StyleSheet, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReadingChrome } from './appearance';
 import { useAuth } from './auth';
@@ -18,6 +18,7 @@ import { headlines, useNews } from './news';
 import { BooksSheet, ChapterSheet, SavedSheet } from './sheets';
 import { DAILY_GOAL, type ProgressApi, today, useApp } from './storage';
 import { supabase } from './supabase';
+import { Text } from './text';
 import { FocusedStatusBar } from './theme';
 import { goalCaption, goalToast } from './today';
 

@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import { useAuth } from './auth';
 import { type GroupKind, kindLabel, memberCountLabel } from './groups';
 import { Button } from './profile-ui';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 export function openGroup(id: string) {
@@ -85,21 +86,21 @@ export function GroupRow({
 
 const stylesFor = (C: Palette) =>
   StyleSheet.create({
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 10 },
     pressed: { opacity: 0.75 },
     need: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, margin: 20 },
     needTitle: { color: C.text, fontSize: 17, fontWeight: '700' },
     needText: { color: C.muted, fontSize: 14, lineHeight: 20 },
     icon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: 48,
+      height: 48,
+      borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: C.cardHi,
+      backgroundColor: C.highlight,
     },
-    name: { color: C.text, fontSize: 16, fontWeight: '700' },
-    sub: { color: C.muted, fontSize: 13, marginTop: 1 },
+    name: { color: C.text, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+    sub: { color: C.muted, fontSize: 13, lineHeight: 19 },
     badge: {
       minWidth: 24,
       height: 24,

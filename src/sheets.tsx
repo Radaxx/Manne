@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from './appearance';
 import {
@@ -16,6 +16,7 @@ import {
 import { SERIF } from './cards';
 import type { Passage } from './data/content';
 import { useApp } from './storage';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
+import { WEEKDAYS } from './dates';
 import {
   durationLabel,
   endTimeLabel,
@@ -21,6 +22,7 @@ import {
 import { openGroup, openRoom } from './group-ui';
 import { Button } from './profile-ui';
 import { notificationsSupported, reminderPermissionGranted, requestReminderPermission } from './reminder';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 /** Les notifications sont-elles autorisées ? `null` : on ne sait pas encore. Toujours faux sur le web. */
@@ -220,31 +222,85 @@ export function useUpcomingGatherings(enabled: boolean): Upcoming[] {
   return upcoming;
 }
 
-/** Les lignes des prochains rendez-vous : un toucher ouvre le groupe, ou la salle de prière d'un rendez-vous en cours où l'on est présent. */
+const openMeeting = ({ gathering, current }: Upcoming) =>
+  current && gathering.present ? openRoom(gathering.id) : openGroup(gathering.groupId);
+
+/** Le jour du rendez-vous dans un carré : « VEN. » puis « 16 ». */
+function DateBadge({ at }: { at: Date }) {
+  const { styles } = useThemed(stylesFor);
+  return (
+    <View style={styles.badge} accessible={false}>
+      <Text style={styles.badgeDay}>{`${WEEKDAYS[at.getDay()].slice(0, 3)}.`.toUpperCase()}</Text>
+      <Text style={styles.badgeNum}>{at.getDate()}</Text>
+    </View>
+  );
+}
+
+/**
+ * Les prochains rendez-vous en lignes, à poser dans une carte : un toucher ouvre le groupe, ou la salle de
+ * prière d'un rendez-vous en cours où l'on est présent.
+ */
 export function UpcomingGatheringRows({ items }: { items: Upcoming[] }) {
   const { C, styles } = useThemed(stylesFor);
   return (
     <>
-      {items.map(({ gathering, at, current }) => (
-        <Pressable
-          key={gathering.id}
-          onPress={() => (current && gathering.present ? openRoom(gathering.id) : openGroup(gathering.groupId))}
-          style={({ pressed }) => [styles.meeting, pressed && { opacity: 0.75 }]}
-          accessibilityRole="button"
-        >
-          <Ionicons name="calendar-outline" size={22} color={C.gold} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.meetingTitle} numberOfLines={1}>
+      {items.map((item) => {
+        const { gathering, at, current } = item;
+        return (
+          <Pressable
+            key={gathering.id}
+            onPress={() => openMeeting(item)}
+            style={({ pressed }) => [styles.meeting, pressed && { opacity: 0.75 }]}
+            accessibilityRole="button"
+          >
+            <DateBadge at={at} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.meetingTitle} numberOfLines={1}>
+                {gathering.title}
+              </Text>
+              <Text style={styles.meetingSub} numberOfLines={2}>
+                {current ? <Text style={styles.meetingLive}>En cours</Text> : occurrenceLabel(at)} · {gathering.groupName}
+              </Text>
+              {current && gathering.present ? <Text style={styles.meetingLive}>Entrer dans la salle</Text> : null}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
+/** Les prochains rendez-vous en cartes à faire défiler (l'accueil). */
+export function UpcomingGatheringCards({ items }: { items: Upcoming[] }) {
+  const { C, styles } = useThemed(stylesFor);
+  return (
+    <>
+      {items.map((item) => {
+        const { gathering, at, current } = item;
+        return (
+          <Pressable
+            key={gathering.id}
+            onPress={() => openMeeting(item)}
+            style={({ pressed }) => [styles.tile, pressed && { opacity: 0.75 }]}
+            accessibilityRole="button"
+          >
+            <View style={styles.tileKicker}>
+              <Ionicons name={current ? 'radio-button-on' : 'time-outline'} size={14} color={C.gold} />
+              <Text style={styles.tileKickerText} numberOfLines={1}>
+                {current ? 'EN COURS' : occurrenceLabel(at).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.tileTitle} numberOfLines={2}>
               {gathering.title}
             </Text>
-            <Text style={styles.meetingSub} numberOfLines={2}>
-              {current ? <Text style={styles.meetingLive}>En cours</Text> : occurrenceLabel(at)} · {gathering.groupName}
+            <Text style={styles.meetingSub} numberOfLines={1}>
+              {gathering.groupName}
             </Text>
             {current && gathering.present ? <Text style={styles.meetingLive}>Entrer dans la salle</Text> : null}
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={C.faint} />
-        </Pressable>
-      ))}
+          </Pressable>
+        );
+      })}
     </>
   );
 }
@@ -279,16 +335,22 @@ const stylesFor = (C: Palette) =>
     link: { color: C.faint, fontSize: 13, fontWeight: '700' },
     allow: { gap: 8 },
     settingsLink: { color: C.gold, fontSize: 13, fontWeight: '700' },
-    meeting: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      backgroundColor: C.card,
+    meeting: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
+    badge: {
+      width: 52,
+      height: 56,
       borderRadius: 14,
-      padding: 12,
-      marginBottom: 8,
+      backgroundColor: C.highlight,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    meetingTitle: { color: C.text, fontSize: 17, fontWeight: '700' },
-    meetingSub: { color: C.muted, fontSize: 13, marginTop: 1 },
+    badgeDay: { color: C.gold, fontSize: 10, letterSpacing: 1.2, fontWeight: '800' },
+    badgeNum: { color: C.gold, fontSize: 22, lineHeight: 26, fontWeight: '800' },
+    meetingTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    meetingSub: { color: C.muted, fontSize: 14, lineHeight: 20 },
     meetingLive: { color: C.gold, fontWeight: '800' },
+    tile: { width: 280, backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line, padding: 20, gap: 4 },
+    tileKicker: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    tileKickerText: { color: C.gold, fontSize: 11, letterSpacing: 1.5, fontWeight: '800', flexShrink: 1 },
+    tileTitle: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 4 },
   });

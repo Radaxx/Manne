@@ -1,9 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import type { Palette } from './appearance';
 import { listFollowers, listFollowing, type ProfileCard } from './profile';
 import { openProfile, PersonRow } from './profile-ui';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 const COPY = {

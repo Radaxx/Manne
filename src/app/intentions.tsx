@@ -1,18 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from '../appearance';
 import { listIntentions, postIntention, reportIntention, type SharedIntention, setCarry, withdrawIntention } from '../community';
@@ -20,6 +9,7 @@ import { haptic } from '../haptics';
 import { useKeyboardOverlap } from '../keyboard';
 import { setIntentionShown, useMyShowcase } from '../showcase-store';
 import { ShowSwitch } from '../showcase-ui';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 
 const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 1 ? '1 personne la porte' : `${n} personnes la portent`);

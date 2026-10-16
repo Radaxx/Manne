@@ -12,8 +12,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -27,6 +25,7 @@ import { haptic } from '../haptics';
 import { LiturgyText } from '../liturgy';
 import { PrayerText } from '../prayers';
 import { type AdorationMode, type AdorationSession, today, useActions, useApp } from '../storage';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 import { lastTimeLabel } from '../today';
 

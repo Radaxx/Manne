@@ -8,14 +8,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   type TextInputProps,
   View,
 } from 'react-native';
 import type { Palette } from './appearance';
 import { Avatar } from './avatar';
 import { handleProblem, isHandleAvailable, normalizeHandle, type ProfileCard } from './profile';
+import { Text, TextInput } from './text';
 import { usePalette, useThemed } from './theme';
 
 /** L'icône réglages du coin de l'en-tête. */

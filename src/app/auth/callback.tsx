@@ -1,9 +1,10 @@
 import * as Linking from 'expo-linking';
 import { router, Stack, useGlobalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { openAuthUrl } from '../../auth';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 const AUTH_KEYS = ['code', 'access_token', 'refresh_token', 'token_hash', 'type', 'error_code', 'error_description', 'sb_flow_id'] as const;

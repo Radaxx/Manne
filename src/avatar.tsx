@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { initials } from './profile';
+import { Text } from './text';
 import { usePalette } from './theme';
 
 /** Couleurs venues d'une œuvre (Découvrir) : le texte et le fond du cercle, à la place de la palette. */

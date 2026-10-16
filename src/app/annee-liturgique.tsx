@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LITURGICAL_COLORS, plainText, useMass } from '../aelf';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
@@ -8,6 +8,7 @@ import { dayLabel, daysSince, shortDate } from '../dates';
 import { currentJourney, JOURNEY_KINDS, JOURNEYS, journeyDay, journeyPhase } from '../journeys';
 import { liturgicalDay, liturgicalYear, SEASONS, upcomingFeasts } from '../liturgical-year';
 import { today, useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
