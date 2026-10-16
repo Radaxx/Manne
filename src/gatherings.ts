@@ -156,7 +156,7 @@ function offsetMs(ts: number, zone: string): number {
  * décalée vers l'avant, comme `at time zone` de Postgres (02:30 devient 03:30) ; une heure qui existe deux fois (retour
  * à l'heure d'hiver) prend la seconde, à l'heure d'hiver.
  */
-function zonedInstant(year: number, month: number, day: number, hour: number, minute: number, zone: string): number {
+export function zonedInstant(year: number, month: number, day: number, hour: number, minute: number, zone: string): number {
   const wall = Date.UTC(year, month - 1, day, hour, minute);
   const first = wall - offsetMs(wall, zone);
   return wall - offsetMs(first, zone);

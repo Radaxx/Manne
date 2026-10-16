@@ -26,17 +26,24 @@ export const notificationsSupported = Platform.OS !== 'web';
 
 const CHANNEL = 'rappel-quotidien';
 // iOS ne garde que 64 notifications programmées, toutes sources confondues. Budget :
-//   rappel quotidien : au plus DAYS_AHEAD + 1 = 31 (aujourd'hui compris, jours 0 à 30) ;
+//   rappel quotidien : au plus DAYS_AHEAD + 1 = 15 (aujourd'hui compris, jours 0 à 14) ;
 //   rendez-vous de groupe : au plus 15 rendez-vous x 2 occurrences = 30 (src/gathering-reminders.ts) ;
-//   31 + 30 = 61 <= 64, il reste 3 de marge. Ne pas augmenter l'un sans revoir l'autre.
-const DAYS_AHEAD = 30;
+//   neuvaines de groupe : au plus 3 neuvaines x 3 jours = 9 (src/novena-reminders.ts) ;
+//   15 + 30 + 9 = 54 <= 64, il reste 10 de marge. Ne pas augmenter l'un sans revoir les autres.
+// Pourquoi 14 jours devant soi suffisent : ce rappel est reprogrammé à CHAQUE ouverture de l'app et à chaque retour au
+// premier plan (ReminderSync dans src/app/_layout.tsx), donc la fenêtre glisse chaque fois que l'on ouvre l'app. Il ne
+// s'arrête que si l'app reste fermée plus de deux semaines, et un rappel quotidien pour revenir vers l'app n'a alors
+// plus guère de sens.
+const DAYS_AHEAD = 14;
+/** Le plus de rappels quotidiens programmés à la fois (pour le budget iOS, vérifié par les tests). */
+export const DAILY_REMINDERS_MAX = DAYS_AHEAD + 1;
 /**
  * Les rappels quotidiens portent un identifiant `daily-AAAA-MM-JJ` : reschedule ne retire que ceux-là, jamais les
- * rendez-vous de groupe (`gathering-…`). La doc d'Expo est ambiguë sur la forme de ce que rend
- * getAllScheduledNotificationsAsync (`content.data`) ; l'identifiant, lui, est toujours rendu à la racine.
+ * rendez-vous de groupe (`gathering-…`) ni les neuvaines (`novena-…`). La doc d'Expo est ambiguë sur la forme de ce que
+ * rend getAllScheduledNotificationsAsync (`content.data`) ; l'identifiant, lui, est toujours rendu à la racine.
  */
 const DAILY_PREFIX = 'daily-';
-const OTHER_PREFIXES = ['gathering-'];
+const OTHER_PREFIXES = ['gathering-', 'novena-'];
 
 const TITLES = [
   'Ta manne du jour t’attend',
@@ -104,7 +111,7 @@ export function scheduleReminders(settings: ReminderSettings, todayDone = false)
 
 /**
  * Retire les rappels quotidiens programmés. Avant ce correctif ils n'avaient pas d'identifiant à nous : on reconnaît
- * donc aussi les anciens (tout ce qui n'est pas un rendez-vous de groupe), pour qu'une mise à jour de l'app ne laisse pas
+ * donc aussi les anciens (tout ce qui n'est ni un rendez-vous de groupe ni une neuvaine), pour qu'une mise à jour de l'app ne laisse pas
  * de doublons.
  */
 async function cancelDailyReminders() {

@@ -10,6 +10,9 @@ import { groupIdFromUrl, syncGatheringReminders } from '../gathering-reminders';
 import { onGatheringsChanged } from '../gatherings';
 import { openGroup } from '../group-ui';
 import { liturgicalDay } from '../liturgical-year';
+import { novenaIdFromUrl, syncNovenaReminders } from '../novena-reminders';
+import { openNovena } from '../novena-ui';
+import { onNovenasChanged } from '../novenas';
 import { notificationsSupported, scheduleReminders } from '../reminder';
 import { removedKeys, type ShowcasePassage } from '../showcase';
 import { dropPassageCopies } from '../showcase-store';
@@ -110,13 +113,46 @@ function GatheringSync() {
   return null;
 }
 
-/** Toucher le rappel d'un rendez-vous ouvre son groupe. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
+/**
+ * Les rappels des neuvaines de groupe (« Me le rappeler chaque jour ») sont reprogrammés au lancement, au retour de l'app au
+ * premier plan, quand le compte ou le profil change, et après chaque jour prié, rappel réglé, neuvaine lancée ou annulée.
+ * Sans compte relié ni profil, tous les rappels `novena-…` sont annulés (les autres rappels ne sont pas touchés). Hors ligne,
+ * on garde ce qui est programmé.
+ */
+function NovenaSync() {
+  const { status, userId, profile, profileLoaded, profileOffline } = useAuth();
+  const profileMissing = status === 'signedIn' && profileLoaded && !profileOffline && !profile;
+  const waiting = status === 'signedIn' && !profileLoaded;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance la synchro quand on change de compte
+  useEffect(() => {
+    if (!notificationsSupported || waiting) return;
+    const sync = () => syncNovenaReminders({ profileMissing }).catch(() => {});
+    sync();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sync();
+    });
+    const off = onNovenasChanged(sync);
+    return () => {
+      sub.remove();
+      off();
+    };
+  }, [waiting, profileMissing, userId, status]);
+  return null;
+}
+
+/** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
 function NotificationLinks() {
   useEffect(() => {
     if (!notificationsSupported) return;
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
-      const id = groupIdFromUrl(response.notification.request.content.data?.url);
+      const url = response.notification.request.content.data?.url;
+      const novena = novenaIdFromUrl(url);
+      if (novena) {
+        openNovena(novena);
+        return;
+      }
+      const id = groupIdFromUrl(url);
       if (id) openGroup(id);
     };
     // Le toucher qui a lancé l'app, puis ceux de la session ; on l'efface pour ne pas rouvrir le groupe au prochain montage.
@@ -145,6 +181,7 @@ function ThemedShell() {
         <StatusBar style={palette.statusBar} />
         <ReminderSync />
         <GatheringSync />
+        <NovenaSync />
         <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
@@ -189,6 +226,8 @@ function ThemedShell() {
           <Stack.Screen name="groupe/rejoindre" options={{ title: 'Rejoindre avec un code' }} />
           <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />
           <Stack.Screen name="groupe/rendez-vous" options={{ title: 'Rendez-vous' }} />
+          <Stack.Screen name="groupe/neuvaine-nouvelle" options={{ title: 'Lancer une neuvaine' }} />
+          <Stack.Screen name="neuvaine/[id]" options={{ title: 'Neuvaine' }} />
           <Stack.Screen name="groupe/membres" options={{ title: 'Membres' }} />
           <Stack.Screen name="groupe/reglages" options={{ title: 'Réglages du groupe' }} />
           {/* Pas de geste de retour : on ne quitte pas la salle par erreur, le bouton « Quitter la salle » suffit. */}

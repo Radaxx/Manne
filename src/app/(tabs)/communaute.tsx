@@ -9,6 +9,7 @@ import { Avatar } from '../../avatar';
 import { UpcomingGatheringRows, useUpcomingGatherings } from '../../gathering-ui';
 import { GroupRow, openGroup } from '../../group-ui';
 import { type GroupCard, listMyGroups, type MyGroup, searchGroups } from '../../groups';
+import { RunningNovenaRows, useRunningNovenas } from '../../novena-ui';
 import { type FoundProfile, findProfile, listFollowing, normalizeHandle, type ProfileCard } from '../../profile';
 import { Button, openProfile, PersonRow } from '../../profile-ui';
 import { useThemed } from '../../theme';
@@ -33,6 +34,8 @@ export default function CommunauteScreen() {
   const hasProfile = status === 'signedIn' && !!profile;
   // Mes prochains rendez-vous (inscriptions) : les 3 plus proches, section masquée s'il n'y en a pas.
   const upcoming = useUpcomingGatherings(hasProfile);
+  // Mes neuvaines de groupe en cours aujourd'hui : section masquée s'il n'y en a pas.
+  const novenas = useRunningNovenas(hasProfile);
 
   const load = useCallback(async () => {
     if (!hasProfile) {
@@ -129,7 +132,14 @@ export default function CommunauteScreen() {
                 </>
               ) : null}
 
-              <Text style={[styles.section, upcoming.length === 0 && { marginTop: 8 }]}>Mes groupes</Text>
+              {novenas.length > 0 ? (
+                <>
+                  <Text style={[styles.section, upcoming.length === 0 && { marginTop: 8 }]}>Neuvaines en cours</Text>
+                  <RunningNovenaRows items={novenas} />
+                </>
+              ) : null}
+
+              <Text style={[styles.section, upcoming.length === 0 && novenas.length === 0 && { marginTop: 8 }]}>Mes groupes</Text>
               {groups === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 12 }} /> : null}
               {groupsOffline ? <Text style={styles.muted}>{groupsOffline}</Text> : null}
               {groups && groups.length === 0 && !groupsOffline ? (

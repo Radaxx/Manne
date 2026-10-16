@@ -13,6 +13,7 @@ import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
 import { UpcomingGatheringRows, useUpcomingGatherings } from './gathering-ui';
 import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys';
 import { liturgicalDay } from './liturgical-year';
+import { RunningNovenaRows, useRunningNovenas } from './novena-ui';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
 import { useAllPrayers } from './prayers';
 import { saintKicker, saintOfDay } from './saints';
@@ -114,6 +115,8 @@ export function HomeScreen() {
   const { progress } = api;
   // Mes prochains rendez-vous de prière : rien à l'écran sans compte relié ni profil, hors ligne ou sans inscription.
   const meetings = useUpcomingGatherings(status === 'signedIn' && !!profile);
+  // Mes neuvaines de groupe en cours aujourd'hui : même règle, masqué s'il n'y en a pas.
+  const novenas = useRunningNovenas(status === 'signedIn' && !!profile);
   const { data: mass, error: massError } = useMass();
   const now = new Date();
   const hour = now.getHours();
@@ -270,6 +273,14 @@ export function HomeScreen() {
           <>
             <SectionTitle>Prochains rendez-vous</SectionTitle>
             <UpcomingGatheringRows items={meetings} />
+          </>
+        ) : null}
+
+        {/* Mes neuvaines de groupe en cours (masqué s'il n'y en a pas) */}
+        {novenas.length > 0 ? (
+          <>
+            <SectionTitle>Neuvaines en cours</SectionTitle>
+            <RunningNovenaRows items={novenas} />
           </>
         ) : null}
 

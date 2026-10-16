@@ -54,7 +54,7 @@ function Before({ journey, now }: { journey: Journey; now: string }) {
 }
 
 /** Le dernier verset d'un extrait peut s'arrêter au milieu d'une phrase. */
-const closeExtract = (verses: string[]) => verses.map((v, i) => (i === verses.length - 1 ? v.replace(/\s*[,;:—–-]\s*$/, '…') : v));
+export const closeExtract = (verses: string[]) => verses.map((v, i) => (i === verses.length - 1 ? v.replace(/\s*[,;:—–-]\s*$/, '…') : v));
 
 function Days({ journey, now }: { journey: Journey; now: string }) {
   const { C, styles } = useThemed(stylesFor);

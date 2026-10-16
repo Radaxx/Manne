@@ -57,6 +57,8 @@ import {
   withdrawGroupIntention,
 } from '../../groups';
 import { haptic } from '../../haptics';
+import { NovenaCard } from '../../novena-ui';
+import { listNovenas, MAX_ACTIVE_NOVENAS, type Novena, novenaDay, novenasChanged } from '../../novenas';
 import { Button, openProfile } from '../../profile-ui';
 import { useThemed } from '../../theme';
 
@@ -69,6 +71,7 @@ export default function GroupeScreen() {
   const [group, setGroup] = useState<GroupDetail | null | undefined>(undefined);
   const [intentions, setIntentions] = useState<GroupIntention[]>([]);
   const [gatherings, setGatherings] = useState<Gathering[]>([]);
+  const [novenas, setNovenas] = useState<Novena[]>([]);
   const reminders = useReminderPermission();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -93,14 +96,17 @@ export default function GroupeScreen() {
     setError(null);
     setGroup(result.group);
     if (result.group?.myStatus === 'member') {
-      const [listed, meetings] = await Promise.all([listGroupIntentions(id), listGatherings(id)]);
+      const [listed, meetings, nine] = await Promise.all([listGroupIntentions(id), listGatherings(id), listNovenas(id)]);
       if (listed.ok) setIntentions(listed.intentions);
       else setNotice(listed.message);
       if (meetings.ok) setGatherings((local) => mergeServer(local, meetings.gatherings, inflight.current));
       else setNotice(meetings.message);
+      if (nine.ok) setNovenas(nine.novenas);
+      else setNotice(nine.message);
     } else {
       setIntentions([]);
       setGatherings([]);
+      setNovenas([]);
     }
   }, [id]);
 
@@ -125,6 +131,7 @@ export default function GroupeScreen() {
       void load();
       // Les rappels des rendez-vous suivent ce que le serveur dit de mes inscriptions à l'ouverture de la page.
       gatheringsChanged();
+      novenasChanged();
     }, [gate.ready, load]),
   );
 
@@ -148,6 +155,7 @@ export default function GroupeScreen() {
   const isMember = group.myStatus === 'member';
   const moderator = canModerate(group.myRole);
   const end = endLabel(group.endsAt);
+  const activeNovenas = novenas.filter((n) => novenaDay(n, new Date()) <= 9).length;
 
   const act = async (run: () => Promise<{ ok: boolean; message?: string }>) => {
     if (busy) return;
@@ -374,6 +382,25 @@ export default function GroupeScreen() {
                 kind="secondary"
                 onPress={() => router.push({ pathname: '/groupe/rendez-vous', params: { id: group.id } })}
               />
+            ) : null}
+
+            <Text style={styles.section}>Neuvaines</Text>
+            {novenas.length === 0 ? <Text style={styles.muted}>Aucune neuvaine pour l’instant.</Text> : null}
+            {novenas.map((item) => (
+              <NovenaCard key={item.id} novena={item} />
+            ))}
+            {moderator && !group.ended ? (
+              <>
+                <Button
+                  label="Lancer une neuvaine"
+                  kind="secondary"
+                  disabled={activeNovenas >= MAX_ACTIVE_NOVENAS}
+                  onPress={() => router.push({ pathname: '/groupe/neuvaine-nouvelle', params: { id: group.id } })}
+                />
+                {activeNovenas >= MAX_ACTIVE_NOVENAS ? (
+                  <Text style={styles.hint}>Ce groupe a déjà {MAX_ACTIVE_NOVENAS} neuvaines en cours.</Text>
+                ) : null}
+              </>
             ) : null}
 
             {group.ended ? null : (

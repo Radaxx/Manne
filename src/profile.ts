@@ -112,6 +112,8 @@ function failureMessage(message: string) {
   if (
     message.includes('Ce groupe') ||
     message.includes('Ce rendez-vous') ||
+    message.includes('Cette neuvaine') ||
+    message.includes('Ce jour n’est') ||
     message.includes('Tu es déjà') ||
     message.includes('Tu es le propriétaire') ||
     message.includes('Cette personne') ||
@@ -129,6 +131,13 @@ function failureMessage(message: string) {
   if (message.includes('type_invalide')) return 'Ce type de groupe n’existe pas.';
   if (message.includes('fin_invalide')) return 'La date de fin doit être dans le futur, à un an au plus.';
   if (message.includes('rdv_inconnu')) return 'Ce rendez-vous n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('neuvaine_inconnue')) return 'Cette neuvaine n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('modele_invalide')) return 'Ce modèle de neuvaine n’existe pas.';
+  if (message.includes('intention_invalide')) return 'L’intention de la neuvaine fait entre 1 et 280 caractères.';
+  if (message.includes('priere_perso_invalide')) return 'La prière de la neuvaine fait entre 1 et 2000 caractères.';
+  if (message.includes('passages_invalides')) return 'Cette suite de passages n’existe pas.';
+  if (message.includes('debut_invalide')) return 'La neuvaine commence aujourd’hui ou dans les 30 prochains jours.';
+  if (message.includes('jour_neuvaine_invalide')) return 'Une neuvaine a neuf jours : du jour 1 au jour 9.';
   if (message.includes('titre_invalide')) return 'Le titre du rendez-vous fait entre 3 et 60 caractères.';
   if (message.includes('duree_invalide')) return 'La durée d’un rendez-vous va de 10 à 180 minutes.';
   if (message.includes('recurrence_invalide')) return 'Ce type de rendez-vous n’existe pas.';

@@ -9,13 +9,15 @@ import { supabase } from './supabase';
 // « 10 minutes avant » : « Je suis là » s'ouvre 10 minutes avant le début, la notification arrive au moment de commencer).
 // Les occurrences se calculent sur le téléphone (nextOccurrences) ; la liste des rendez-vous vient de my_gatherings.
 //
-// Budget iOS (64 notifications programmées en tout) : 15 rendez-vous x 2 occurrences = 30 au plus, plus 31 rappels
-// quotidiens au plus (src/reminder.ts) = 61.
+// Budget iOS (64 notifications programmées en tout) : 15 rendez-vous x 2 occurrences = 30 au plus, plus 15 rappels
+// quotidiens au plus (src/reminder.ts) et 9 rappels de neuvaine au plus (src/novena-reminders.ts) = 54, marge de 10.
 
 const PREFIX = 'gathering-';
 const CHANNEL = 'rendez-vous-priere';
 const OCCURRENCES = 2;
 export const MAX_REMINDED = 15;
+/** Le plus de rappels de rendez-vous programmés à la fois (pour le budget iOS, vérifié par les tests). */
+export const GATHERING_REMINDERS_MAX = MAX_REMINDED * OCCURRENCES;
 
 export const GATHERING_REMINDER_BODY = 'Le rendez-vous commence. Touche pour dire que tu es là.';
 
