@@ -111,6 +111,7 @@ function failureMessage(message: string) {
   // Groupes : messages français du serveur (limites, refus), repris tels quels.
   if (
     message.includes('Ce groupe') ||
+    message.includes('Ce rendez-vous') ||
     message.includes('Tu es déjà') ||
     message.includes('Tu es le propriétaire') ||
     message.includes('Cette personne') ||
@@ -127,6 +128,17 @@ function failureMessage(message: string) {
   if (message.includes('nom_invalide')) return 'Le nom du groupe fait entre 3 et 60 caractères.';
   if (message.includes('type_invalide')) return 'Ce type de groupe n’existe pas.';
   if (message.includes('fin_invalide')) return 'La date de fin doit être dans le futur, à un an au plus.';
+  if (message.includes('rdv_inconnu')) return 'Ce rendez-vous n’existe plus, ou tu n’as pas accès à ce groupe.';
+  if (message.includes('titre_invalide')) return 'Le titre du rendez-vous fait entre 3 et 60 caractères.';
+  if (message.includes('duree_invalide')) return 'La durée d’un rendez-vous va de 10 à 180 minutes.';
+  if (message.includes('recurrence_invalide')) return 'Ce type de rendez-vous n’existe pas.';
+  if (message.includes('jour_invalide')) return 'Ce jour de la semaine n’existe pas.';
+  if (message.includes('heure_invalide')) return 'Choisis une heure.';
+  if (message.includes('fuseau_invalide')) return 'Le fuseau horaire de ton téléphone n’est pas reconnu.';
+  if (message.includes('date_invalide')) return 'Le rendez-vous doit être dans le futur, à un an au plus.';
+  if (message.includes('priere_invalide')) return 'Cette prière n’existe pas.';
+  if (message.includes('salle_fermee')) return 'La salle est fermée : le rendez-vous n’est pas en cours.';
+  if (message.includes('pas_present')) return 'Dis d’abord « Je suis là » pour entrer dans la salle.';
   if (message.includes('role_invalide')) return 'Ce rôle n’existe pas.';
   if (message.includes('recherche')) return 'Écris au moins 2 caractères pour chercher un groupe.';
   if (message.includes('proprio')) return 'Ce n’est pas possible pour le propriétaire du groupe, ni pour toi-même.';

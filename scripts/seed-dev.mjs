@@ -1,4 +1,4 @@
-// Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions et groupes de prière,
+// Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions, groupes de prière et rendez-vous de groupe,
 // écrits directement dans le projet Supabase DISTANT avec la clé service_role (qui contourne la RLS).
 // À n'utiliser que sur un projet de dev : `seed` crée de vrais comptes auth.
 //
@@ -8,7 +8,7 @@
 //   SEED_EMAIL                   dans .env.local : votre adresse ; les comptes de test en dérivent
 //                                (a@b.fr -> a+manne-dev_marie@b.fr), les mails arrivent chez vous
 //
-// Usage : node scripts/seed-dev.mjs seed [--me <pseudo>]   crée ou met à jour les comptes de test
+// Usage : node scripts/seed-dev.mjs seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test
 //         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
 //         node scripts/seed-dev.mjs code <pseudo>          code de connexion d'un compte de test
 //         node scripts/seed-dev.mjs reviewer               crée ou met à jour le compte de démonstration de Google Play
@@ -27,6 +27,11 @@ const REVIEWER_PROFILE = {
   passages: [[43, 3, 16, 16]],
   intention: 'Pour la paix dans le monde.',
 };
+
+// Délai avant le début du rendez-vous ponctuel « Prière de test » (option --rdv-in, en minutes).
+const RDV_IN_DEFAULT = 15;
+const RDV_IN_MIN = 2;
+const RDV_IN_MAX = 240;
 
 // Pseudos des comptes de test (préfixe `dev_` obligatoire : le reset ne touche que ceux-là).
 const HANDLES = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_therese', 'dev_paul'];
@@ -53,8 +58,14 @@ const PROFILES = {
       },
     ],
     intentions: [
-      { body: 'Pour mes enfants, afin qu’ils grandissent dans la confiance et la joie.', shown: true },
-      { body: 'Pour une amie qui traverse une période de fatigue.', shown: false },
+      {
+        body: 'Pour mes enfants, afin qu’ils grandissent dans la confiance et la joie.',
+        shown: true,
+      },
+      {
+        body: 'Pour une amie qui traverse une période de fatigue.',
+        shown: false,
+      },
     ],
   },
   dev_pierre: {
@@ -73,7 +84,12 @@ const PROFILES = {
         body: 'Au terme de ce jour, je te rends grâce pour ce qui fut donné, et je te demande pardon pour ce qui fut manqué.\nAmen.',
       },
     ],
-    intentions: [{ body: 'Pour les artisans et tous ceux qui travaillent dans l’ombre.', shown: true }],
+    intentions: [
+      {
+        body: 'Pour les artisans et tous ceux qui travaillent dans l’ombre.',
+        shown: true,
+      },
+    ],
   },
   dev_claire: {
     bio: 'Étudiante en médecine, je découvre la prière des psaumes.',
@@ -81,7 +97,10 @@ const PROFILES = {
     passages: [PS23, COR13],
     prayers: [],
     intentions: [
-      { body: 'Pour mes examens de janvier, que je les passe avec calme.', shown: true },
+      {
+        body: 'Pour mes examens de janvier, que je les passe avec calme.',
+        shown: true,
+      },
       { body: 'Pour les malades que je rencontrerai en stage.', shown: true },
     ],
   },
@@ -144,6 +163,8 @@ const FOLLOW_ME = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_pau
 //   members : [pseudo, rôle] ; `me` s'ajoute comme simple membre de la fraternité seulement (option --me).
 //   requests : demandes en attente. intentions : [auteur, texte, { thanks }] ; `thanks` présent = exaucée.
 //   carries : [qui porte, rang de l'intention dans la liste du groupe].
+//   gatherings : rendez-vous de prière (hebdomadaire `weekly` ou ponctuel `once`, qui commence dans --rdv-in minutes) ; `prayerKind` : libre (défaut), chapelet, office ou adoration ; `roomPresent` / `roomIntentions` (ponctuel seulement) : présents et intentions déjà dans la salle ; `participants` : pseudos
+//   inscrits, ou `me` (option --me, seulement dans un groupe où `includeMe` est vrai).
 const DAY = 86_400_000;
 const GROUPS = [
   {
@@ -172,6 +193,33 @@ const GROUPS = [
       ['dev_marie', 1],
       ['dev_claire', 1],
     ],
+    gatherings: [
+      {
+        title: 'Chapelet',
+        description: 'Une dizaine chacun, en visio ou chacun chez soi.',
+        durationMin: 30,
+        prayerKind: 'chapelet',
+        weekly: { weekday: 2, localTime: '21:00', timezone: 'Europe/Paris' },
+        participants: ['dev_marie', 'dev_pierre', 'me'],
+      },
+      {
+        // Commence --rdv-in minutes (15 par défaut) après le lancement du seed : pour tester le rappel, puis « Je suis là »
+        // (10 minutes avant le début).
+        title: 'Prière de test',
+        description: 'Un rendez-vous ponctuel qui commence quelques minutes après le seed.',
+        durationMin: 30,
+        once: true,
+        prayerKind: 'chapelet',
+        // Salle de prière : dev_marie et dev_claire sont déclarées présentes à cette occurrence et y ont écrit une intention.
+        // Elles ne sont pas « en ligne » (pas de connexion Realtime) : seul votre téléphone apparaît dans « Dans la salle ».
+        roomPresent: ['dev_marie', 'dev_claire'],
+        roomIntentions: [
+          ['dev_marie', 'Pour ceux qui prient avec nous ce soir.'],
+          ['dev_claire', 'Pour la paix dans les familles que nous portons.'],
+        ],
+        participants: ['dev_marie', 'dev_claire', 'me'],
+      },
+    ],
   },
   {
     name: 'Paroisse de test',
@@ -191,6 +239,25 @@ const GROUPS = [
     carries: [
       ['dev_marie', 0],
       ['dev_jean', 1],
+    ],
+    gatherings: [
+      {
+        title: 'Chapelet de la paroisse',
+        description: '',
+        durationMin: 60,
+        prayerKind: 'chapelet',
+        weekly: { weekday: 0, localTime: '18:30', timezone: 'Europe/Paris' },
+        participants: ['dev_jean', 'dev_marie'],
+      },
+      {
+        // Autre fuseau : sert à voir la mention « heure de Toronto » sur un téléphone réglé sur l'heure de Paris.
+        title: 'Adoration des Canadiens',
+        description: 'Une heure d’adoration avec les membres de Toronto.',
+        durationMin: 60,
+        prayerKind: 'adoration',
+        weekly: { weekday: 4, localTime: '19:00', timezone: 'America/Toronto' },
+        participants: ['dev_therese'],
+      },
     ],
   },
   {
@@ -212,6 +279,16 @@ const GROUPS = [
     carries: [
       ['dev_pierre', 0],
       ['dev_pierre', 1],
+    ],
+    gatherings: [
+      {
+        title: 'Prière du soir',
+        description: 'Vingt minutes pour la neuvaine.',
+        durationMin: 20,
+        prayerKind: 'office',
+        weekly: { weekday: 5, localTime: '20:00', timezone: 'Europe/Paris' },
+        participants: ['dev_claire', 'dev_pierre'],
+      },
     ],
   },
 ];
@@ -253,7 +330,10 @@ function isSeedEmail(base, email) {
 async function allUsers(admin) {
   const users = [];
   for (let page = 1; ; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
     check(error, 'Liste des utilisateurs');
     users.push(...data.users);
     if (data.users.length < 1000) return users;
@@ -267,11 +347,13 @@ function setup() {
   if (!/^[^@\s+]+@[^@\s]+\.[^@\s]+$/.test(base)) {
     fail('SEED_EMAIL doit être une adresse simple, sans « + » (par exemple prenom@exemple.fr).');
   }
-  const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   return { admin, base, host: new URL(url).host };
 }
 
-async function seed(admin, base, meHandle) {
+async function seed(admin, base, meHandle, rdvIn) {
   let me = null;
   if (meHandle) {
     if (meHandle.startsWith(PREFIX)) fail(`--me doit être votre vrai pseudo, pas un compte de test (${PREFIX}…).`);
@@ -288,7 +370,10 @@ async function seed(admin, base, meHandle) {
     const email = emailFor(base, handle);
     let user = existing.get(email.toLowerCase());
     if (!user) {
-      const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true });
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
       check(error, `Création de ${email}`);
       user = data.user;
     }
@@ -321,7 +406,12 @@ async function seed(admin, base, meHandle) {
   );
   check((await admin.from('profile_passages').insert(passages)).error, 'Passages');
   const prayers = HANDLES.flatMap((handle) =>
-    PROFILES[handle].prayers.map((p) => ({ user_id: ids[handle], prayer_id: p.id, title: p.title, body: p.body })),
+    PROFILES[handle].prayers.map((p) => ({
+      user_id: ids[handle],
+      prayer_id: p.id,
+      title: p.title,
+      body: p.body,
+    })),
   );
   if (prayers.length) check((await admin.from('profile_prayers').insert(prayers)).error, 'Prières');
 
@@ -353,14 +443,22 @@ async function seed(admin, base, meHandle) {
   check((await admin.from('carries').insert(carries)).error, 'Intentions portées');
 
   // Abonnements.
-  const follows = FOLLOWS.map(([a, b]) => ({ follower_id: ids[a], followee_id: ids[b] }));
+  const follows = FOLLOWS.map(([a, b]) => ({
+    follower_id: ids[a],
+    followee_id: ids[b],
+  }));
   if (me) for (const handle of FOLLOW_ME) follows.push({ follower_id: ids[handle], followee_id: me.id });
   check(
-    (await admin.from('follows').upsert(follows, { onConflict: 'follower_id,followee_id', ignoreDuplicates: true })).error,
+    (
+      await admin.from('follows').upsert(follows, {
+        onConflict: 'follower_id,followee_id',
+        ignoreDuplicates: true,
+      })
+    ).error,
     'Abonnements',
   );
 
-  const groupSummary = await seedGroups(admin, ids, me);
+  const groupSummary = await seedGroups(admin, ids, me, rdvIn);
 
   console.log('Comptes de test prêts :');
   for (const handle of HANDLES) console.log(`  ${handle.padEnd(12)} ${emailFor(base, handle)}`);
@@ -376,7 +474,7 @@ async function seed(admin, base, meHandle) {
   for (const line of groupSummary) console.log(`  ${line}`);
   if (me) {
     console.log(
-      `\nSeule écriture à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} ». Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
+      `\nÉcritures à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} » et votre inscription à ses rendez-vous (« Je participe »). Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
     );
   } else {
     console.log('\nSans --me, vous n’êtes membre d’aucun groupe de test.');
@@ -384,7 +482,7 @@ async function seed(admin, base, meHandle) {
 }
 
 /** Recrée les groupes de test avec leurs membres, demandes, intentions et « je la porte ». Renvoie les lignes du résumé. */
-async function seedGroups(admin, ids, me) {
+async function seedGroups(admin, ids, me, rdvIn) {
   const idList = Object.values(ids);
   const old = await admin.from('groups').delete().in('name', GROUP_NAMES).in('created_by', idList);
   check(old.error, 'Nettoyage des groupes');
@@ -416,12 +514,20 @@ async function seedGroups(admin, ids, me) {
       joined_at: new Date(now - (10 - i) * DAY).toISOString(),
     }));
     if (me && group.includeMe) {
-      members.push({ group_id: groupId, user_id: me.id, role: 'member', joined_at: new Date(now - DAY).toISOString() });
+      members.push({
+        group_id: groupId,
+        user_id: me.id,
+        role: 'member',
+        joined_at: new Date(now - DAY).toISOString(),
+      });
     }
     check((await admin.from('group_members').insert(members)).error, `Membres de « ${group.name} »`);
 
     if (group.requests.length) {
-      const requests = group.requests.map((handle) => ({ group_id: groupId, user_id: ids[handle] }));
+      const requests = group.requests.map((handle) => ({
+        group_id: groupId,
+        user_id: ids[handle],
+      }));
       check((await admin.from('group_requests').insert(requests)).error, `Demandes de « ${group.name} »`);
     }
 
@@ -443,14 +549,123 @@ async function seedGroups(admin, ids, me) {
     }));
     check((await admin.from('group_carries').insert(carries)).error, `Intentions portées de « ${group.name} »`);
 
+    const meetings = await seedGatherings(admin, group, groupId, ids, me, now, rdvIn);
+
     const who = group.members.map(([handle, role]) => `${handle} (${role})`).join(', ');
     summary.push(
       `${group.name} — ${group.kind}${group.endsInDays ? `, fin dans ${group.endsInDays} jours` : ''}`,
       `    code : ${code}   lien : manne://rejoindre/${code}`,
       `    membres : ${who}${me && group.includeMe ? `, ${me.handle} (member)` : ''}${group.requests.length ? ` ; demande en attente : ${group.requests.join(', ')}` : ''}`,
+      ...meetings,
     );
   }
   return summary;
+}
+
+/** Le jour et l'heure du mur de `zone` à l'instant `ts` : de quoi savoir si un rendez-vous hebdomadaire est en cours. */
+function wallClock(ts, zone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+  }).formatToParts(new Date(ts));
+  const get = (type) => Number(parts.find((p) => p.type === type).value);
+  const weekday = new Date(Date.UTC(get('year'), get('month') - 1, get('day'))).getUTCDay();
+  return {
+    weekday,
+    minutes: (get('hour') % 24) * 60 + get('minute'),
+    seconds: get('second'),
+  };
+}
+
+/**
+ * Recrée les rendez-vous d'un groupe avec leurs inscrits. Renvoie les lignes du résumé.
+ * Présences : si un rendez-vous hebdomadaire est EN COURS au moment du seed (de 10 minutes avant le début à la fin),
+ * dev_marie et dev_pierre s'y déclarent présents. Approximation volontaire : le début est déduit de l'heure du mur du
+ * jour même, sans tenir compte d'un changement d'heure survenu entre le début et maintenant.
+ */
+async function seedGatherings(admin, group, groupId, ids, me, now, rdvIn) {
+  const owner = ids[group.members.find(([, role]) => role === 'owner')[0]];
+  const lines = [];
+  for (const meeting of group.gatherings ?? []) {
+    const once = meeting.once === true;
+    const startsAt = new Date(now + rdvIn * 60_000);
+    const row = {
+      group_id: groupId,
+      title: meeting.title,
+      description: meeting.description,
+      duration_min: meeting.durationMin,
+      recurrence: once ? 'once' : 'weekly',
+      weekday: once ? null : meeting.weekly.weekday,
+      local_time: once ? null : meeting.weekly.localTime,
+      timezone: once ? null : meeting.weekly.timezone,
+      starts_at: once ? startsAt.toISOString() : null,
+      prayer_kind: meeting.prayerKind ?? 'libre',
+      created_by: owner,
+    };
+    const { data, error } = await admin.from('group_gatherings').insert(row).select('id').single();
+    check(error, `Rendez-vous « ${meeting.title} »`);
+    const userIds = meeting.participants.flatMap((who) => (who === 'me' ? (me && group.includeMe ? [me.id] : []) : [ids[who]]));
+    if (userIds.length) {
+      const rows = userIds.map((user_id) => ({
+        gathering_id: data.id,
+        user_id,
+      }));
+      check((await admin.from('gathering_participants').insert(rows)).error, `Inscrits à « ${meeting.title} »`);
+    }
+
+    let present = '';
+    if (once && meeting.roomPresent?.length) {
+      const rows = meeting.roomPresent.map((handle) => ({
+        gathering_id: data.id,
+        occurrence_start: startsAt.toISOString(),
+        user_id: ids[handle],
+      }));
+      check((await admin.from('gathering_presence').insert(rows)).error, `Présences à « ${meeting.title} »`);
+      const intentions = (meeting.roomIntentions ?? []).map(([handle, body]) => ({
+        group_id: groupId,
+        user_id: ids[handle],
+        body,
+        gathering_id: data.id,
+        occurrence_start: startsAt.toISOString(),
+      }));
+      if (intentions.length) {
+        check((await admin.from('group_intentions').insert(intentions)).error, `Intentions de la salle de « ${meeting.title} »`);
+      }
+      present = ` ; salle : ${rows.length} présent(s) dev, ${intentions.length} intention(s)`;
+    }
+    if (!once) {
+      const [h, m] = meeting.weekly.localTime.split(':').map(Number);
+      const wall = wallClock(now, meeting.weekly.timezone);
+      const since = wall.minutes - (h * 60 + m); // minutes écoulées depuis le début de CE jour
+      if (wall.weekday === meeting.weekly.weekday && since >= -10 && since < meeting.durationMin) {
+        const start = new Date(Math.floor((now - wall.seconds * 1000 - since * 60_000) / 60_000) * 60_000).toISOString();
+        const rows = ['dev_marie', 'dev_pierre']
+          .filter((handle) => userIds.includes(ids[handle]))
+          .map((handle) => ({
+            gathering_id: data.id,
+            occurrence_start: start,
+            user_id: ids[handle],
+          }));
+        if (rows.length) {
+          check((await admin.from('gathering_presence').insert(rows)).error, `Présences à « ${meeting.title} »`);
+          present = ` ; en cours : ${rows.length} présent(s) dev`;
+        }
+      }
+    }
+
+    const when = once
+      ? `ponctuel, commence à ${startsAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} heure locale (dans ${rdvIn} min ; « Je suis là » dès ${new Date(startsAt.getTime() - 10 * 60_000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})`
+      : `hebdomadaire, jour ${meeting.weekly.weekday} (0 = dimanche) à ${meeting.weekly.localTime}, ${meeting.weekly.timezone}`;
+    const who = meeting.participants.filter((p) => p !== 'me' || (me && group.includeMe)).map((p) => (p === 'me' ? me.handle : p));
+    lines.push(`    rendez-vous : ${meeting.title} — ${when}, ${meeting.durationMin} min ; inscrits : ${who.join(', ')}${present}`);
+  }
+  return lines;
 }
 
 async function reset(admin, base) {
@@ -503,7 +718,10 @@ async function code(admin, base, handle) {
   const email = emailFor(base, handle);
   const exists = (await allUsers(admin)).some((u) => u.email?.toLowerCase() === email.toLowerCase());
   if (!exists) fail(`Le compte ${email} n’existe pas. Lancez d’abord « seed ».`);
-  const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  });
   check(error, 'Génération du code');
   console.log(`Adresse : ${email}`);
   console.log(`Code    : ${data.properties.email_otp}`);
@@ -610,9 +828,10 @@ async function removeReviewer(admin, base) {
 
 function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
-  seed [--me <pseudo>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test
+  seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous
                          --me : ces comptes suivent votre profil (sauf dev_therese) et vous entrez
-                         comme simple membre dans « ${GROUPS[0].name} »
+                         comme simple membre dans « ${GROUPS[0].name} » et inscrit à ses rendez-vous
+                         --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
   reviewer               crée ou met à jour le compte de démonstration de Google Play (adresse + mot de passe affichés une fois)
@@ -630,7 +849,14 @@ console.log(`Projet : ${host}\n`);
 if (command === 'seed') {
   const i = args.indexOf('--me');
   if (i !== -1 && !args[i + 1]) fail('--me demande un pseudo.');
-  await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase());
+  const r = args.indexOf('--rdv-in');
+  let rdvIn = RDV_IN_DEFAULT;
+  if (r !== -1) {
+    rdvIn = /^\d+$/.test(args[r + 1] ?? '') ? Number(args[r + 1]) : Number.NaN;
+    if (!(rdvIn >= RDV_IN_MIN && rdvIn <= RDV_IN_MAX))
+      fail(`--rdv-in demande un nombre entier de minutes, de ${RDV_IN_MIN} à ${RDV_IN_MAX}.`);
+  }
+  await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase(), rdvIn);
 } else if (command === 'reset') {
   await reset(admin, base);
 } else if (command === 'reviewer') {

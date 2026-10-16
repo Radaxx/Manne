@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import type { Palette } from '../appearance';
+import { ExactAlarmNote } from '../gathering-ui';
 import {
   formatTime,
   notificationsSupported,
@@ -63,6 +64,8 @@ export default function ReminderScreen() {
               </Pressable>
             </View>
           )}
+
+          <ExactAlarmNote spaced visible={reminder.enabled && granted === true} />
 
           <Text style={[styles.section, !reminder.enabled && styles.disabled]}>À quelle heure ?</Text>
           <View style={[styles.times, !reminder.enabled && styles.disabled]}>

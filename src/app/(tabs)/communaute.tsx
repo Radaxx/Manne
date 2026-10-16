@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { UpcomingGatheringRows, useUpcomingGatherings } from '../../gathering-ui';
 import { GroupRow, openGroup } from '../../group-ui';
 import { type GroupCard, listMyGroups, type MyGroup, searchGroups } from '../../groups';
 import { type FoundProfile, findProfile, listFollowing, normalizeHandle, type ProfileCard } from '../../profile';
@@ -30,6 +31,8 @@ export default function CommunauteScreen() {
   const [groupResults, setGroupResults] = useState<GroupCard[] | undefined>(undefined);
   const [groupError, setGroupError] = useState<string | null>(null);
   const hasProfile = status === 'signedIn' && !!profile;
+  // Mes prochains rendez-vous (inscriptions) : les 3 plus proches, section masquée s'il n'y en a pas.
+  const upcoming = useUpcomingGatherings(hasProfile);
 
   const load = useCallback(async () => {
     if (!hasProfile) {
@@ -119,7 +122,14 @@ export default function CommunauteScreen() {
             </View>
           ) : (
             <>
-              <Text style={[styles.section, { marginTop: 8 }]}>Mes groupes</Text>
+              {upcoming.length > 0 ? (
+                <>
+                  <Text style={[styles.section, { marginTop: 8 }]}>Prochains rendez-vous</Text>
+                  <UpcomingGatheringRows items={upcoming} />
+                </>
+              ) : null}
+
+              <Text style={[styles.section, upcoming.length === 0 && { marginTop: 8 }]}>Mes groupes</Text>
               {groups === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 12 }} /> : null}
               {groupsOffline ? <Text style={styles.muted}>{groupsOffline}</Text> : null}
               {groups && groups.length === 0 && !groupsOffline ? (

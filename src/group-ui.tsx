@@ -11,6 +11,11 @@ export function openGroup(id: string) {
   router.push({ pathname: '/groupe/[id]', params: { id } });
 }
 
+/** La salle de prière en direct d'un rendez-vous (id du rendez-vous). */
+export function openRoom(gatheringId: string) {
+  router.push({ pathname: '/salle/[id]', params: { id: gatheringId } });
+}
+
 /** Les groupes demandent un compte relié ET un profil, parce que le pseudo est visible des autres membres. */
 export function useGroupGate(): { ready: boolean; loading: boolean } {
   const { configured, status, profile, profileLoaded } = useAuth();

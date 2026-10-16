@@ -67,6 +67,8 @@ export type GroupIntention = {
   answeredAt: string | null;
   thanks: string | null;
   hidden: boolean;
+  /** Le titre du rendez-vous dont la salle de prière a vu naître l'intention ; nul sinon. */
+  gatheringTitle: string | null;
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -321,6 +323,7 @@ export function readGroupIntention(row: unknown): GroupIntention | null {
     // Un mot d'action de grâce n'a de sens que sur une intention exaucée.
     thanks: answeredAt ? optStr(record.thanks) : null,
     hidden: record.hidden === true,
+    gatheringTitle: optStr(record.gathering_title),
   };
 }
 

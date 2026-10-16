@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,20 @@ import {
   View,
 } from 'react-native';
 import type { Palette } from '../../appearance';
-import { NeedProfile, useGroupGate } from '../../group-ui';
+import { AllowNotifications, ExactAlarmNote, GatheringCard, useReminderPermission } from '../../gathering-ui';
+import {
+  cancelGathering,
+  type Gathering,
+  gatheringsChanged,
+  listGatherings,
+  markPresent,
+  mergeServer,
+  restoreGathering,
+  setParticipation,
+  withParticipation,
+  withPresence,
+} from '../../gatherings';
+import { NeedProfile, openRoom, useGroupGate } from '../../group-ui';
 import {
   cancelRequest,
   canModerate,
@@ -55,10 +68,15 @@ export default function GroupeScreen() {
   const gate = useGroupGate();
   const [group, setGroup] = useState<GroupDetail | null | undefined>(undefined);
   const [intentions, setIntentions] = useState<GroupIntention[]>([]);
+  const [gatherings, setGatherings] = useState<Gathering[]>([]);
+  const reminders = useReminderPermission();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Chargement PAR rendez-vous (« Je participe », « Je suis là ») : les autres cartes ne bougent pas.
+  const [busyGatherings, setBusyGatherings] = useState<Record<string, 'participate' | 'present'>>({});
+  const inflight = useRef(new Set<string>());
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -75,17 +93,38 @@ export default function GroupeScreen() {
     setError(null);
     setGroup(result.group);
     if (result.group?.myStatus === 'member') {
-      const listed = await listGroupIntentions(id);
+      const [listed, meetings] = await Promise.all([listGroupIntentions(id), listGatherings(id)]);
       if (listed.ok) setIntentions(listed.intentions);
       else setNotice(listed.message);
+      if (meetings.ok) setGatherings((local) => mergeServer(local, meetings.gatherings, inflight.current));
+      else setNotice(meetings.message);
     } else {
       setIntentions([]);
+      setGatherings([]);
     }
   }, [id]);
 
+  // Quand un rendez-vous est proche ou en cours, on relit la liste chaque minute : « En cours » et les présents suivent.
+  const soon = gatherings.some((g) => {
+    const start = Date.parse(g.currentStart ?? g.nextStart ?? '');
+    return Number.isFinite(start) && start - Date.now() < 30 * 60_000;
+  });
+  useEffect(() => {
+    if (!soon) return;
+    const timer = setInterval(() => {
+      void listGatherings(id).then((result) => {
+        if (result.ok) setGatherings((local) => mergeServer(local, result.gatherings, inflight.current));
+      });
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [soon, id]);
+
   useFocusEffect(
     useCallback(() => {
-      if (gate.ready) void load();
+      if (!gate.ready) return;
+      void load();
+      // Les rappels des rendez-vous suivent ce que le serveur dit de mes inscriptions à l'ouverture de la page.
+      gatheringsChanged();
     }, [gate.ready, load]),
   );
 
@@ -119,6 +158,35 @@ export default function GroupeScreen() {
     if (!result.ok) setNotice(result.message ?? null);
     await load();
     setBusy(false);
+  };
+
+  // Une action sur UN rendez-vous : la carte change tout de suite (inscription, présence), puis se réconcilie avec le serveur
+  // sans toucher aux autres cartes ; en cas d'échec, elle revient à son état d'avant avec un message.
+  const gatheringAction = async (
+    item: Gathering,
+    kind: 'participate' | 'present',
+    optimistic: (list: Gathering[]) => Gathering[],
+    run: () => Promise<{ ok: boolean; message?: string }>,
+    onDone?: () => void,
+  ) => {
+    if (inflight.current.has(item.id)) return;
+    inflight.current.add(item.id);
+    setBusyGatherings((state) => ({ ...state, [item.id]: kind }));
+    setNotice(null);
+    haptic();
+    setGatherings(optimistic);
+    const result = await run();
+    if (!result.ok) {
+      setNotice(result.message ?? null);
+      setGatherings((list) => restoreGathering(list, item));
+    }
+    inflight.current.delete(item.id);
+    const fresh = await listGatherings(id);
+    if (fresh.ok) setGatherings((list) => mergeServer(list, fresh.gatherings, inflight.current));
+    setBusyGatherings(({ [item.id]: _done, ...rest }) => rest);
+    // Les rappels du téléphone suivent l'inscription, qu'elle ait réussi ou non.
+    if (kind === 'participate') gatheringsChanged();
+    if (result.ok) onDone?.();
   };
 
   const send = async () => {
@@ -258,6 +326,56 @@ export default function GroupeScreen() {
           </View>
         ) : (
           <>
+            <Text style={styles.section}>Rendez-vous</Text>
+            {gatherings.length === 0 ? <Text style={styles.muted}>Aucun rendez-vous de prière pour l’instant.</Text> : null}
+            <AllowNotifications granted={reminders.granted} ask={reminders.ask} />
+            <ExactAlarmNote visible={reminders.granted === true && gatherings.some((g) => g.participating)} />
+            {gatherings.map((item) => (
+              <GatheringCard
+                key={item.id}
+                gathering={item}
+                granted={reminders.granted}
+                ended={group.ended}
+                canManage={moderator}
+                busy={busyGatherings[item.id] ?? null}
+                onParticipate={(on) =>
+                  void gatheringAction(
+                    item,
+                    'participate',
+                    (list) => withParticipation(list, item.id, on),
+                    () => setParticipation(item.id, on),
+                  )
+                }
+                onPresent={() =>
+                  void gatheringAction(
+                    item,
+                    'present',
+                    (list) => withPresence(list, item.id),
+                    () => markPresent(item.id),
+                    // Après « Je suis là », on entre directement dans la salle.
+                    () => openRoom(item.id),
+                  )
+                }
+                onEnterRoom={() => openRoom(item.id)}
+                onEdit={() => router.push({ pathname: '/groupe/rendez-vous', params: { id: group.id, gathering: item.id } })}
+                onCancel={() =>
+                  confirm(
+                    'Annuler ce rendez-vous ?',
+                    'Il disparaît pour tous les membres, et les rappels s’arrêtent.',
+                    'Oui, annuler',
+                    () => cancelGathering(item.id),
+                  )
+                }
+              />
+            ))}
+            {moderator && !group.ended ? (
+              <Button
+                label="Nouveau rendez-vous"
+                kind="secondary"
+                onPress={() => router.push({ pathname: '/groupe/rendez-vous', params: { id: group.id } })}
+              />
+            ) : null}
+
             {group.ended ? null : (
               <View style={styles.card}>
                 <TextInput
@@ -281,6 +399,7 @@ export default function GroupeScreen() {
                 <Pressable onPress={() => item.handle && openProfile(item.handle)} accessibilityRole="button">
                   <Text style={styles.author}>{item.mine ? 'Toi' : `@${item.handle}`}</Text>
                 </Pressable>
+                {item.gatheringTitle ? <Text style={styles.hint}>Pendant « {item.gatheringTitle} »</Text> : null}
                 <Text style={styles.body}>{item.body}</Text>
                 {item.answeredAt ? (
                   <View style={styles.answered}>

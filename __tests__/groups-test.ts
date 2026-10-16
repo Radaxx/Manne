@@ -275,7 +275,13 @@ describe('readGroupIntention', () => {
       answeredAt: null,
       thanks: null,
       hidden: false,
+      gatheringTitle: null,
     });
+  });
+
+  it('garde le titre du rendez-vous où l’intention a été écrite', () => {
+    expect(readGroupIntention({ ...row, gathering_title: 'Chapelet' })?.gatheringTitle).toBe('Chapelet');
+    expect(readGroupIntention({ ...row, gathering_title: '  ' })?.gatheringTitle).toBeNull();
   });
 
   it('garde l’action de grâce d’une prière exaucée seulement', () => {

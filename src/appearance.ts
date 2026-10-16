@@ -52,6 +52,8 @@ export type Palette = {
   highlight: string;
   /** Carte translucide posée sur une scène (le chapelet 3D). */
   overlay: string;
+  /** Ombre portée d'une bulle posée au-dessus de l'écran. */
+  shadow: string;
   tabBar: string;
   tabInactive: string;
   /** Couleur du contenu de la barre de statut (clair sur fond sombre). */
@@ -62,6 +64,7 @@ export const DARK: Palette = {
   bg: '#0d0e12',
   card: '#17191f',
   cardHi: '#1f222a',
+  shadow: '#000000',
   text: '#ece8df',
   muted: 'rgba(236,232,223,0.6)',
   faint: 'rgba(236,232,223,0.35)',
@@ -81,6 +84,7 @@ export const LIGHT: Palette = {
   bg: '#f7f3ea',
   card: '#fffdf8',
   cardHi: '#f0e9db',
+  shadow: '#3b2a12',
   text: '#1c1915',
   muted: 'rgba(28,25,21,0.62)',
   faint: 'rgba(28,25,21,0.4)',

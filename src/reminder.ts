@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { VERSES } from './data/content';
+import { localDate } from './dates';
 
 // Rappel quotidien à l'heure choisie. Ouvrir l'app ne suffit plus : le rappel d'aujourd'hui part
 // encore si la journée (Évangile, lecture, prière) n'est pas faite et que l'heure est devant nous.
@@ -24,7 +25,18 @@ export const formatTime = (h: number, m: number) => `${h}h${m ? String(m).padSta
 export const notificationsSupported = Platform.OS !== 'web';
 
 const CHANNEL = 'rappel-quotidien';
-const DAYS_AHEAD = 30; // iOS limite à 64 notifications programmées
+// iOS ne garde que 64 notifications programmées, toutes sources confondues. Budget :
+//   rappel quotidien : au plus DAYS_AHEAD + 1 = 31 (aujourd'hui compris, jours 0 à 30) ;
+//   rendez-vous de groupe : au plus 15 rendez-vous x 2 occurrences = 30 (src/gathering-reminders.ts) ;
+//   31 + 30 = 61 <= 64, il reste 3 de marge. Ne pas augmenter l'un sans revoir l'autre.
+const DAYS_AHEAD = 30;
+/**
+ * Les rappels quotidiens portent un identifiant `daily-AAAA-MM-JJ` : reschedule ne retire que ceux-là, jamais les
+ * rendez-vous de groupe (`gathering-…`). La doc d'Expo est ambiguë sur la forme de ce que rend
+ * getAllScheduledNotificationsAsync (`content.data`) ; l'identifiant, lui, est toujours rendu à la racine.
+ */
+const DAILY_PREFIX = 'daily-';
+const OTHER_PREFIXES = ['gathering-'];
 
 const TITLES = [
   'Ta manne du jour t’attend',
@@ -45,7 +57,8 @@ export function reminderContent(date: Date) {
 
 let configured = false;
 
-async function configure() {
+/** Installe l'affichage au premier plan (une seule fois) et le canal Android du rappel quotidien. */
+export async function configure() {
   if (configured || !notificationsSupported) return;
   configured = true;
   Notifications.setNotificationHandler({
@@ -89,10 +102,24 @@ export function scheduleReminders(settings: ReminderSettings, todayDone = false)
   return pending;
 }
 
+/**
+ * Retire les rappels quotidiens programmés. Avant ce correctif ils n'avaient pas d'identifiant à nous : on reconnaît
+ * donc aussi les anciens (tout ce qui n'est pas un rendez-vous de groupe), pour qu'une mise à jour de l'app ne laisse pas
+ * de doublons.
+ */
+async function cancelDailyReminders() {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((n) => n.identifier.startsWith(DAILY_PREFIX) || !OTHER_PREFIXES.some((prefix) => n.identifier.startsWith(prefix)))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
 async function reschedule(settings: ReminderSettings, todayDone: boolean, stale: () => boolean) {
   if (!notificationsSupported) return;
   await configure();
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelDailyReminders();
   if (!settings.enabled || !(await reminderPermissionGranted())) return;
   const now = new Date();
   const todayAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), settings.hour, settings.minute);
@@ -102,6 +129,7 @@ async function reschedule(settings: ReminderSettings, todayDone: boolean, stale:
     if (stale()) return;
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, settings.hour, settings.minute);
     await Notifications.scheduleNotificationAsync({
+      identifier: `${DAILY_PREFIX}${localDate(date)}`,
       content: reminderContent(date),
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL },
     });

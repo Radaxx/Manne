@@ -1,12 +1,16 @@
+import * as Notifications from 'expo-notifications';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { type Palette, paletteFor } from '../appearance';
-import { AuthProvider } from '../auth';
+import { AuthProvider, useAuth } from '../auth';
 import { EchoHost } from '../echoes';
+import { groupIdFromUrl, syncGatheringReminders } from '../gathering-reminders';
+import { onGatheringsChanged } from '../gatherings';
+import { openGroup } from '../group-ui';
 import { liturgicalDay } from '../liturgical-year';
-import { scheduleReminders } from '../reminder';
+import { notificationsSupported, scheduleReminders } from '../reminder';
 import { removedKeys, type ShowcasePassage } from '../showcase';
 import { dropPassageCopies } from '../showcase-store';
 import { ProgressProvider, useApp } from '../storage';
@@ -79,6 +83,54 @@ function ReminderSync() {
   return null;
 }
 
+/**
+ * Les rappels des rendez-vous de groupe auxquels je suis inscrit sont reprogrammés au lancement, au retour de l'app au
+ * premier plan, quand le compte ou le profil change, et après chaque inscription, désinscription ou modification.
+ * Sans compte relié ni profil, tous les rappels de rendez-vous sont annulés. Hors ligne, on garde ce qui est programmé.
+ */
+function GatheringSync() {
+  const { status, userId, profile, profileLoaded, profileOffline } = useAuth();
+  // Un compte relié dont le profil est connu comme absent : plus de rendez-vous, donc plus de rappels.
+  const profileMissing = status === 'signedIn' && profileLoaded && !profileOffline && !profile;
+  const waiting = status === 'signedIn' && !profileLoaded;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance la synchro quand on change de compte
+  useEffect(() => {
+    if (!notificationsSupported || waiting) return;
+    const sync = () => syncGatheringReminders({ profileMissing }).catch(() => {});
+    sync();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sync();
+    });
+    const off = onGatheringsChanged(sync);
+    return () => {
+      sub.remove();
+      off();
+    };
+  }, [waiting, profileMissing, userId, status]);
+  return null;
+}
+
+/** Toucher le rappel d'un rendez-vous ouvre son groupe. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
+function NotificationLinks() {
+  useEffect(() => {
+    if (!notificationsSupported) return;
+    const open = (response: Notifications.NotificationResponse | null) => {
+      if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+      const id = groupIdFromUrl(response.notification.request.content.data?.url);
+      if (id) openGroup(id);
+    };
+    // Le toucher qui a lancé l'app, puis ceux de la session ; on l'efface pour ne pas rouvrir le groupe au prochain montage.
+    const last = Notifications.getLastNotificationResponse();
+    if (last) {
+      open(last);
+      Notifications.clearLastNotificationResponse();
+    }
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, []);
+  return null;
+}
+
 function ThemedShell() {
   const { progress } = useApp();
   const system = useColorScheme();
@@ -92,6 +144,8 @@ function ThemedShell() {
       <ThemeProvider value={theme}>
         <StatusBar style={palette.statusBar} />
         <ReminderSync />
+        <GatheringSync />
+        <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
         <EchoHost />
@@ -134,8 +188,11 @@ function ThemedShell() {
           <Stack.Screen name="groupe/nouveau" options={{ title: 'Créer un groupe' }} />
           <Stack.Screen name="groupe/rejoindre" options={{ title: 'Rejoindre avec un code' }} />
           <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />
+          <Stack.Screen name="groupe/rendez-vous" options={{ title: 'Rendez-vous' }} />
           <Stack.Screen name="groupe/membres" options={{ title: 'Membres' }} />
           <Stack.Screen name="groupe/reglages" options={{ title: 'Réglages du groupe' }} />
+          {/* Pas de geste de retour : on ne quitte pas la salle par erreur, le bouton « Quitter la salle » suffit. */}
+          <Stack.Screen name="salle/[id]" options={{ title: 'Salle de prière', gestureEnabled: false }} />
           <Stack.Screen name="rejoindre/[code]" options={{ title: 'Rejoindre un groupe' }} />
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />

@@ -10,6 +10,7 @@ import { Avatar } from './avatar';
 import { bookMeta, type TranslationId } from './bible';
 import { SERIF } from './cards';
 import { dayLabel, daysSince, MONTHS, WEEKDAYS } from './dates';
+import { UpcomingGatheringRows, useUpcomingGatherings } from './gathering-ui';
 import { featuredJourney, JOURNEYS, journeyDay, journeyPhase } from './journeys';
 import { liturgicalDay } from './liturgical-year';
 import { formatRange, type PlanStatus, planById, planStatus } from './plans';
@@ -109,8 +110,10 @@ function PlanCard({ status, t, onRead }: { status: PlanStatus; t: TranslationId;
 export function HomeScreen() {
   const { C, styles } = useThemed(stylesFor);
   const api = useApp();
-  const { profile } = useAuth();
+  const { status, profile } = useAuth();
   const { progress } = api;
+  // Mes prochains rendez-vous de prière : rien à l'écran sans compte relié ni profil, hors ligne ou sans inscription.
+  const meetings = useUpcomingGatherings(status === 'signedIn' && !!profile);
   const { data: mass, error: massError } = useMass();
   const now = new Date();
   const hour = now.getHours();
@@ -260,6 +263,14 @@ export function HomeScreen() {
               {saint.life}
             </Text>
           </Card>
+        ) : null}
+
+        {/* Mes prochains rendez-vous de groupe (masqué s'il n'y en a pas) */}
+        {meetings.length > 0 ? (
+          <>
+            <SectionTitle>Prochains rendez-vous</SectionTitle>
+            <UpcomingGatheringRows items={meetings} />
+          </>
         ) : null}
 
         {/* Prier maintenant : l'office de l'heure, et les autres à portée de main */}
