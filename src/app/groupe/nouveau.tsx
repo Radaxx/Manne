@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { NeedProfile, useGroupGate } from '../../group-ui';
 import {
@@ -21,6 +21,7 @@ import {
 } from '../../groups';
 import { haptic } from '../../haptics';
 import { Button, Field, FormScreen, Lead } from '../../profile-ui';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 export default function NouveauGroupe() {

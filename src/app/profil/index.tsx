@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinkedAccount } from '../../account-form';
 import type { Palette } from '../../appearance';
 import { useAccount, useAuth } from '../../auth';
@@ -10,6 +10,7 @@ import { Button, SettingsButton } from '../../profile-ui';
 import { ShowcaseSections } from '../../showcase-sections';
 import { useMyShowcase } from '../../showcase-store';
 import { useApp } from '../../storage';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 const days = (n: number) => (n === 0 ? 'Pas encore de jours de suite' : `${n} jour${n > 1 ? 's' : ''} de suite`);

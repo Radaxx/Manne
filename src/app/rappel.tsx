@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { ExactAlarmNote } from '../gathering-ui';
 import {
@@ -12,6 +12,7 @@ import {
   requestReminderPermission,
 } from '../reminder';
 import { useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 export default function ReminderScreen() {

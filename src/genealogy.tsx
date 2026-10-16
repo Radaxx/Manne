@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { PixelRatio, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PixelRatio, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import type { Passage } from './data/content';
 import { type Ancestor, type Branch, type Place, placeLabel, placePassage, type Stage, TREE } from './data/genealogy';
 import { ChapterSheet } from './sheets';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 /** Deux teintes : l'or pour la lignée royale et le tronc, un bleu doux pour la lignée de Luc. */

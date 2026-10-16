@@ -11,8 +11,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import type { Palette } from '../../appearance';
@@ -60,6 +58,7 @@ import { haptic } from '../../haptics';
 import { NovenaCard } from '../../novena-ui';
 import { listNovenas, MAX_ACTIVE_NOVENAS, type Novena, novenaDay, novenasChanged } from '../../novenas';
 import { Button, openProfile } from '../../profile-ui';
+import { Text, TextInput } from '../../text';
 import { useThemed } from '../../theme';
 
 const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 1 ? '1 personne la porte' : `${n} personnes la portent`);

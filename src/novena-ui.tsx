@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import {
   dayOfLabel,
@@ -17,6 +17,7 @@ import {
   statusLabel,
 } from './novenas';
 import { Button } from './profile-ui';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 export function openNovena(id: string) {
@@ -162,7 +163,56 @@ export function useRunningNovenas(enabled: boolean): MyNovena[] {
   return running;
 }
 
-/** Les lignes de « Neuvaines en cours » : un toucher ouvre la neuvaine. */
+/** Une barre de 9 segments, un par jour de la neuvaine, pleins pour les jours que j'ai priés. */
+function DaySegments({ myDays }: { myDays: number[] }) {
+  const { styles } = useThemed(stylesFor);
+  return (
+    <View style={styles.segments} accessibilityLabel={`Jours priés : ${myDays.length} sur 9`}>
+      {Array.from({ length: 9 }, (_, i) => (
+        <View key={i} style={[styles.segment, myDays.includes(i + 1) && styles.segmentOn]} />
+      ))}
+    </View>
+  );
+}
+
+/** Mes neuvaines en cours en cartes à faire défiler (l'accueil) : un toucher ouvre la neuvaine. */
+export function RunningNovenaCards({ items }: { items: MyNovena[] }) {
+  const { C, styles } = useThemed(stylesFor);
+  const now = new Date();
+  return (
+    <>
+      {items.map((novena) => {
+        const day = novenaDay(novena, now);
+        const prayed = prayedToday(novena, now) === true;
+        return (
+          <Pressable
+            key={novena.id}
+            onPress={() => openNovena(novena.id)}
+            style={({ pressed }) => [styles.tile, pressed && { opacity: 0.75 }]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.tileKicker} numberOfLines={1}>
+              {`NEUVAINE · ${dayOfLabel(day)}`.toUpperCase()}
+            </Text>
+            <Text style={styles.tileTitle} numberOfLines={2}>
+              {novena.title}
+            </Text>
+            <Text style={styles.rowSub} numberOfLines={1}>
+              {novena.groupName}
+            </Text>
+            <DaySegments myDays={novena.myDays} />
+            <View style={styles.tileFoot}>
+              {prayed ? <Ionicons name="checkmark-circle" size={16} color={C.gold} /> : null}
+              <Text style={prayed ? styles.rowSub : styles.rowTodo}>{prayed ? 'Prié aujourd’hui' : 'À prier aujourd’hui'}</Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
+/** Les lignes de « Neuvaines en cours », à poser dans une carte : un toucher ouvre la neuvaine. */
 export function RunningNovenaRows({ items }: { items: MyNovena[] }) {
   const { C, styles } = useThemed(stylesFor);
   const now = new Date();
@@ -177,7 +227,13 @@ export function RunningNovenaRows({ items }: { items: MyNovena[] }) {
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.75 }]}
             accessibilityRole="button"
           >
-            <Ionicons name="sparkles-outline" size={22} color={C.gold} />
+            <View style={styles.dayBadge}>
+              <Text style={styles.dayBadgeKicker}>JOUR</Text>
+              <Text style={styles.dayBadgeNum}>
+                {novenaDay(novena, now)}
+                <Text style={styles.dayBadgeOf}>/9</Text>
+              </Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {novena.title}
@@ -230,8 +286,19 @@ const stylesFor = (C: Palette) =>
     hint: { color: C.muted, fontSize: 13, lineHeight: 18 },
     prayedRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     prayedText: { color: C.gold, fontSize: 14, fontWeight: '700' },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8 },
-    rowTitle: { color: C.text, fontSize: 17, fontWeight: '700' },
-    rowSub: { color: C.muted, fontSize: 13, marginTop: 1 },
-    rowTodo: { color: C.gold, fontSize: 13, fontWeight: '800', marginTop: 1 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
+    dayBadge: { width: 52, height: 56, borderRadius: 14, backgroundColor: C.cardHi, alignItems: 'center', justifyContent: 'center' },
+    dayBadgeKicker: { color: C.muted, fontSize: 10, letterSpacing: 1.2, fontWeight: '800' },
+    dayBadgeNum: { color: C.text, fontSize: 20, lineHeight: 24, fontWeight: '800' },
+    dayBadgeOf: { color: C.muted, fontSize: 13, fontWeight: '700' },
+    rowTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    rowSub: { color: C.muted, fontSize: 14, lineHeight: 20 },
+    rowTodo: { color: C.gold, fontSize: 14, fontWeight: '800', lineHeight: 20 },
+    tile: { width: 280, backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line, padding: 20, gap: 4 },
+    tileKicker: { color: C.gold, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    tileTitle: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 4 },
+    tileFoot: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    segments: { flexDirection: 'row', gap: 5, marginVertical: 12 },
+    segment: { flex: 1, height: 6, borderRadius: 3, backgroundColor: C.track },
+    segmentOn: { backgroundColor: C.gold },
   });

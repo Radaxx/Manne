@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Fact, type Person, type Quiz, THEME_GRADIENTS, type Verse } from './data/content';
 import { CULTURE_LABELS, type Culture, type CultureKind } from './data/culture';
 import { CULTURE_IMAGES } from './data/culture-images';
+import { SERIF_FAMILY } from './fonts';
 import { type NewsItem, publishedAgo } from './news';
+import { Text } from './text';
 
-export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
+export const SERIF = SERIF_FAMILY;
 
 type Gradient = [string, string, ...string[]];
 

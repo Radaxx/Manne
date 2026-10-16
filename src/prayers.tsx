@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
+import { Alert, Pressable, ScrollView, type StyleProp, StyleSheet, type TextStyle, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sessionLabel as adorationLabel } from './adoration';
 import type { Palette } from './appearance';
 import { chapterSource, loadChapter, passageLabel, type TranslationId, translationName } from './bible';
 import { SERIF } from './cards';
 import { MYSTERIES, PRAYER_CATEGORIES, PRAYERS, type Prayer, type PrayerCategory, ROSARY_STEPS } from './data/prayers';
+import { WEEKDAYS } from './dates';
 import { biometricName, lockSupported } from './lock';
 import { sessionLabel } from './rosary';
+import { SectionHead } from './section';
 import { dropPrayerCopy, setPrayerShown, useMyShowcase } from './showcase-store';
 import { ShowcaseInvite, ShowSwitch } from './showcase-ui';
 import { type CustomPrayer, useActions, useApp } from './storage';
+import { Text, TextInput } from './text';
 import { usePalette, useThemed } from './theme';
 
 const asPrayer = (c: CustomPrayer): Prayer => ({ id: c.id, title: c.title, text: c.text, category: 'Mes prières', custom: true });
@@ -69,6 +72,34 @@ const prayerCount = (n: number) => `${n} ${n === 1 ? 'prière' : 'prières'}`;
 /** Thèmes du recueil, hors essentielles : celles-ci restent dépliées sur l'index. */
 const CATALOG_CATEGORIES = PRAYER_CATEGORIES.filter((c) => c !== 'Essentielles');
 
+/** Les grains du chapelet (50 petits, 5 gros) posés sur un cercle de 38 de rayon centré en (52, 48), départ en bas. */
+const BEADS = Array.from({ length: 5 }, (_, k) => {
+  const start = 90 + 72 * k;
+  return Array.from({ length: 11 }, (_, j) => {
+    const angle = ((start + (72 * j) / 11) * Math.PI) / 180;
+    return { x: 52 + 38 * Math.cos(angle), y: 48 + 38 * Math.sin(angle), r: j === 0 ? 3.4 : 1.9 };
+  });
+}).flat();
+
+/** Un petit chapelet : cinq dizaines, le gros grain entre chacune, puis la chaînette et la croix. */
+function RosaryMark() {
+  const { styles } = useThemed(stylesFor);
+  const bead = (key: string, x: number, y: number, r: number) => (
+    <View key={key} style={[styles.bead, { left: x - r, top: y - r, width: 2 * r, height: 2 * r, borderRadius: r }]} />
+  );
+  return (
+    <View style={styles.rosary} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={styles.rosaryRing} />
+      <View style={styles.rosaryChain} />
+      {BEADS.map((b, i) => bead(`r${i}`, b.x, b.y, b.r))}
+      {[92, 98, 104].map((y) => bead(`p${y}`, 52, y, 1.9))}
+      {bead('pg', 52, 111, 2.8)}
+      <View style={styles.crossV} />
+      <View style={styles.crossH} />
+    </View>
+  );
+}
+
 /** Onglet Prières : pratiques et raccourcis, essentielles dépliées, puis le recueil par thème. */
 export function PrayersScreen() {
   const { C, styles } = useThemed(stylesFor);
@@ -118,7 +149,7 @@ export function PrayersScreen() {
 
         {mode === 'search' ? (
           <>
-            <Text style={styles.section}>{prayerCount(results.length)}</Text>
+            <SectionHead title={prayerCount(results.length)} />
             {results.length === 0 ? (
               <Text style={styles.empty}>Aucune prière ne correspond.</Text>
             ) : (
@@ -131,81 +162,92 @@ export function PrayersScreen() {
           </>
         ) : mode === 'index' ? (
           <>
-            <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.confession, pressed && styles.pressed]}>
-              <View style={styles.confessionIcon}>
-                <Ionicons
-                  name={progress.confessionLock && lockSupported ? 'lock-closed-outline' : 'key-outline'}
-                  size={20}
-                  color={C.gold}
-                />
-              </View>
+            <View style={styles.hero}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Préparer ma confession</Text>
-                <Text style={styles.rowPreview}>
-                  {progress.confessionLock && lockSupported
-                    ? `Protégé par ${biometricName}`
-                    : progress.confession.items.length > 0
-                      ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
-                      : 'Examen de conscience et liste personnelle'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={C.muted} />
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push('/chapelet')}
-              style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}
-            >
-              <View style={styles.confessionIcon}>
-                <Ionicons name="rose-outline" size={20} color={C.gold} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{progress.rosary.session ? 'Reprendre mon chapelet' : 'Prier le chapelet'}</Text>
+                <Text style={styles.heroKicker}>AUJOURD’HUI · {WEEKDAYS[new Date().getDay()].toUpperCase()}</Text>
+                <Text style={styles.heroTitle}>{progress.rosary.session ? 'Reprendre mon chapelet' : 'Prier le chapelet'}</Text>
                 <Text style={styles.rowPreview}>
                   {progress.rosary.session
                     ? sessionLabel(progress.rosary.session)
-                    : `Guidé grain après grain · ${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name.toLowerCase()}`}
+                    : `${MYSTERIES.find((m) => m.days.includes(new Date().getDay()))?.name}, guidé grain après grain.`}
                 </Text>
+                <Pressable
+                  onPress={() => router.push('/chapelet')}
+                  style={({ pressed }) => [styles.heroBtn, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.heroBtnText}>{progress.rosary.session ? 'Reprendre' : 'Commencer'}</Text>
+                  <Ionicons name="arrow-forward" size={16} color={C.onGold} />
+                </Pressable>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={C.muted} />
-            </Pressable>
+              <RosaryMark />
+            </View>
 
-            <Pressable
-              onPress={() => router.push('/adoration')}
-              style={({ pressed }) => [styles.confession, { marginTop: 10 }, pressed && styles.pressed]}
-            >
-              <View style={styles.confessionIcon}>
-                <Ionicons name="sunny-outline" size={20} color={C.gold} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{progress.adoration.session ? 'Reprendre mon adoration' : 'Adorer le Saint-Sacrement'}</Text>
-                <Text style={styles.rowPreview}>
-                  {progress.adoration.session
-                    ? adorationLabel(progress.adoration.session)
-                    : 'Contemplatif ou guidé, au rythme que tu choisis'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={C.muted} />
-            </Pressable>
+            <View style={styles.tiles}>
+              <Pressable onPress={() => router.push('/adoration')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+                <View style={styles.tileIcon}>
+                  <Ionicons name="sunny-outline" size={22} color={C.gold} />
+                </View>
+                <View>
+                  <Text style={styles.tileTitle}>
+                    {progress.adoration.session ? 'Reprendre mon adoration' : 'Adorer le Saint-Sacrement'}
+                  </Text>
+                  <Text style={styles.tileSub}>
+                    {progress.adoration.session ? adorationLabel(progress.adoration.session) : 'Contemplatif ou guidé'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable onPress={() => router.push('/confession')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+                <View style={styles.tileIcon}>
+                  <Ionicons
+                    name={progress.confessionLock && lockSupported ? 'lock-closed-outline' : 'key-outline'}
+                    size={22}
+                    color={C.gold}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.tileTitle}>Préparer ma confession</Text>
+                  <Text style={styles.tileSub}>
+                    {progress.confessionLock && lockSupported
+                      ? `Protégé par ${biometricName}`
+                      : progress.confession.items.length > 0
+                        ? `${progress.confession.items.length} élément${progress.confession.items.length > 1 ? 's' : ''} noté${progress.confession.items.length > 1 ? 's' : ''}`
+                        : 'Examen de conscience et liste personnelle'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
 
-            <Text style={styles.section}>Épinglées</Text>
+            <SectionHead title="Épinglées" />
             {pinned.length === 0 ? (
               <Text style={styles.empty}>Touche l’épingle d’une prière pour la retrouver ici et sur l’accueil.</Text>
             ) : (
-              <View style={styles.group}>
+              <View style={styles.pins}>
                 {pinned.map((p) => (
-                  <PrayerRow key={p.id} prayer={p} />
+                  <Pressable
+                    key={p.id}
+                    onPress={() => router.push(`/priere/${p.id}`)}
+                    style={({ pressed }) => [styles.pin, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                  >
+                    <PinButton id={p.id} size={14} />
+                    <Text style={styles.pinText} numberOfLines={1}>
+                      {p.title}
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
             )}
 
-            <Text style={styles.section}>Mes prières</Text>
+            <SectionHead title="Mes prières" />
             <View style={styles.group}>
               {mine.map((p) => (
                 <PrayerRow key={p.id} prayer={p} />
               ))}
               <Pressable onPress={() => router.push('/priere-edition')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-                <Ionicons name="create-outline" size={20} color={C.gold} />
+                <View style={styles.writeIcon}>
+                  <Ionicons name="add" size={18} color={C.gold} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: C.gold }]}>Écrire une prière</Text>
                   {mine.length === 0 && <Text style={styles.rowPreview}>Une intention, une prière qui te touche, tes propres mots…</Text>}
@@ -213,14 +255,14 @@ export function PrayersScreen() {
               </Pressable>
             </View>
 
-            <Text style={styles.section}>Essentielles</Text>
+            <SectionHead title="Essentielles" />
             <View style={styles.group}>
               {essentielles.map((p) => (
                 <PrayerRow key={p.id} prayer={p} />
               ))}
             </View>
 
-            <Text style={styles.section}>Recueil</Text>
+            <SectionHead title="Recueil" />
             <View style={styles.catalog}>
               {CATALOG_CATEGORIES.map((c) => {
                 const n = PRAYERS.filter((p) => p.category === c).length;
@@ -231,9 +273,12 @@ export function PrayersScreen() {
                     accessibilityLabel={`${c}, ${prayerCount(n)}`}
                     style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
                   >
-                    <Text style={styles.catalogTitle} numberOfLines={2}>
-                      {c}
-                    </Text>
+                    <View style={styles.catalogRow}>
+                      <Text style={styles.catalogTitle} numberOfLines={2}>
+                        {c}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={C.gold} />
+                    </View>
                     <Text style={styles.catalogCount}>{prayerCount(n)}</Text>
                   </Pressable>
                 );
@@ -246,7 +291,7 @@ export function PrayersScreen() {
               <Ionicons name="chevron-back" size={18} color={C.gold} />
               <Text style={styles.backText}>Recueil</Text>
             </Pressable>
-            <Text style={styles.section}>{category}</Text>
+            <SectionHead title={category ?? ''} />
             <View style={styles.group}>
               {categoryPrayers.map((p) => (
                 <PrayerRow key={p.id} prayer={p} />
@@ -407,47 +452,101 @@ const stylesFor = (C: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     scroll: { padding: 20, paddingBottom: 40 },
-    h1: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 42, marginTop: 4, marginBottom: 14 },
+    h1: { color: C.text, fontFamily: SERIF, fontSize: 32, lineHeight: 40, marginTop: 4, marginBottom: 14 },
     search: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 10,
+      minHeight: 52,
       backgroundColor: C.card,
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: C.line,
+      paddingHorizontal: 16,
     },
     searchInput: { flex: 1, color: C.text, fontSize: 16, padding: 0 },
     backRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 16, alignSelf: 'flex-start' },
     backText: { color: C.gold, fontSize: 15, fontWeight: '700' },
     catalog: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
     catalogCard: {
-      width: '48%',
-      minHeight: 88,
+      width: '48.5%',
+      minHeight: 76,
       justifyContent: 'space-between',
       backgroundColor: C.card,
-      borderRadius: 16,
-      paddingHorizontal: 14,
+      borderRadius: 18,
+      paddingHorizontal: 16,
       paddingVertical: 14,
     },
-    catalogTitle: { color: C.text, fontSize: 16, fontWeight: '600', lineHeight: 21 },
-    catalogCount: { color: C.faint, fontSize: 13, marginTop: 10 },
-    section: {
-      color: C.muted,
-      fontSize: 12,
-      letterSpacing: 1.8,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginTop: 18,
-      marginBottom: 8,
+    catalogRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    catalogTitle: { color: C.text, fontSize: 15, fontWeight: '700', lineHeight: 20, flexShrink: 1 },
+    catalogCount: { color: C.faint, fontSize: 13, marginTop: 8 },
+    hero: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: C.card,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: C.line,
+      padding: 20,
+      marginTop: 20,
     },
-    group: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
+    heroKicker: { color: C.gold, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    heroTitle: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 32, fontWeight: '700', marginTop: 4 },
+    heroBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 8,
+      height: 48,
+      paddingHorizontal: 22,
+      borderRadius: 24,
+      backgroundColor: C.gold,
+      marginTop: 16,
+    },
+    heroBtnText: { color: C.onGold, fontSize: 15, fontWeight: '800' },
+    rosary: { width: 104, height: 132 },
+    rosaryRing: {
+      position: 'absolute',
+      left: 14,
+      top: 10,
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      borderWidth: 1,
+      borderColor: C.gold,
+      opacity: 0.45,
+    },
+    rosaryChain: { position: 'absolute', left: 51.5, top: 86, width: 1, height: 26, backgroundColor: C.gold, opacity: 0.45 },
+    bead: { position: 'absolute', backgroundColor: C.gold },
+    crossV: { position: 'absolute', left: 50.5, top: 115, width: 3, height: 16, borderRadius: 1.5, backgroundColor: C.gold },
+    crossH: { position: 'absolute', left: 45.5, top: 120, width: 13, height: 3, borderRadius: 1.5, backgroundColor: C.gold },
+    tiles: { flexDirection: 'row', gap: 12, marginTop: 12 },
+    tile: { flex: 1, minHeight: 132, justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 20, padding: 16 },
+    tileIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    tileTitle: { color: C.text, fontSize: 16, lineHeight: 21, fontWeight: '700' },
+    tileSub: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
+    pins: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    pin: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      minHeight: 44,
+      backgroundColor: C.card,
+      paddingHorizontal: 16,
+      borderRadius: 22,
+      maxWidth: '100%',
+    },
+    pinText: { color: C.text, fontSize: 15, fontWeight: '600', flexShrink: 1 },
+    writeIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    group: { backgroundColor: C.card, borderRadius: 20, overflow: 'hidden' },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
       paddingHorizontal: 16,
-      paddingVertical: 13,
+      paddingVertical: 12,
+      minHeight: 64,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderColor: C.line,
     },
@@ -475,7 +574,7 @@ const stylesFor = (C: Palette) =>
     subhead: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 8, marginBottom: 8 },
     step: { color: C.text, fontSize: 16, lineHeight: 24, marginBottom: 6 },
     mysteries: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'transparent' },
-    mysteriesToday: { borderColor: 'rgba(255,209,102,0.5)' },
+    mysteriesToday: { borderColor: C.gold },
     mysteriesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     todayBadge: {
       color: C.onGold,
@@ -488,25 +587,6 @@ const stylesFor = (C: Palette) =>
       overflow: 'hidden',
     },
     mystery: { color: C.text, fontFamily: SERIF, fontSize: 16, lineHeight: 25 },
-    confession: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      backgroundColor: C.card,
-      borderRadius: 16,
-      padding: 14,
-      marginTop: 6,
-      borderWidth: 1,
-      borderColor: 'rgba(255,209,102,0.2)',
-    },
-    confessionIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(255,209,102,0.1)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     guided: {
       flexDirection: 'row',
       alignItems: 'center',

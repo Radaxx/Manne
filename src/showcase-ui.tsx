@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import type { Palette } from './appearance';
 import { useAuth } from './auth';
 import { haptic } from './haptics';
 import type { Result } from './profile';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 /**

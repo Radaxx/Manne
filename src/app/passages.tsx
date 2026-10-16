@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { isShowablePassage, type ShowcasePassage } from '../showcase';
 import { setPassageShown, useMyShowcase } from '../showcase-store';
 import { ShowcaseInvite, ShowSwitch } from '../showcase-ui';
 import { useApp } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 export default function PassagesScreen() {

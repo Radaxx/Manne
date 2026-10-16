@@ -9,7 +9,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +32,7 @@ import { haptic } from './haptics';
 import { liturgicalDay } from './liturgical-year';
 import { chapterPrompt, normalize } from './reading';
 import { type ProgressApi, readingPosition, useApp } from './storage';
+import { Text } from './text';
 
 export type Loc = { book: number; chapter: number };
 

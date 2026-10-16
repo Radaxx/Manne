@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
 import { SERIF } from '../cards';
 import { dayLabel, shiftDay } from '../dates';
 import { haptic } from '../haptics';
 import { RANKS, type Saint, saintOfDay } from '../saints';
 import { today } from '../storage';
+import { Text } from '../text';
 import { useThemed } from '../theme';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

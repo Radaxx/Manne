@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bookMeta } from './bible';
 import { ChapterView, TopScrim, useReadingChrome } from './chapter';
 import { formatRange, type Plan, planById, planChapters, planStatus } from './plans';
 import { today, useApp } from './storage';
+import { Text } from './text';
 import { FocusedStatusBar } from './theme';
 
 /** Le fil plein écran d'un plan de lecture : un chapitre entier à la fois, avec son propre marque-page. */

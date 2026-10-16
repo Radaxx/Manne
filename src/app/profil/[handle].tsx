@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
@@ -10,6 +10,7 @@ import { follow, getProfile, type OtherProfile, unfollow } from '../../profile';
 import { Button } from '../../profile-ui';
 import { blockPerson, EMPTY_SHOWCASE, fetchShowcase, type Showcase } from '../../showcase';
 import { ShowcaseSections } from '../../showcase-sections';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 export default function AutreProfil() {

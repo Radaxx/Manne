@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { haptic } from '../../haptics';
 import { saveMyProfile } from '../../profile';
 import { Button, FormScreen, Title } from '../../profile-ui';
 import { useSignup } from '../../signup';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 const WHO_SEES = [

@@ -1,18 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Palette } from '../appearance';
 import { rosaryMaterial } from '../appearance';
@@ -23,6 +12,7 @@ import { PrayerText } from '../prayers';
 import { mysteryOrdinal, mysteryVerse, PRAYER_OF, RosaryBeads, type RosaryStep, rosarySteps, sessionLabel } from '../rosary';
 import { Rosary3D } from '../rosary3d';
 import { type RosarySession, today, useApp } from '../storage';
+import { Text, TextInput } from '../text';
 import { useThemed } from '../theme';
 import { lastTimeLabel } from '../today';
 

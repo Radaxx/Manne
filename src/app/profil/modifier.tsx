@@ -1,10 +1,10 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
 import { useAuth } from '../../auth';
 import { haptic } from '../../haptics';
 import { BIO_MAX, PARISH_MAX, saveMyProfile } from '../../profile';
 import { Button, Field, FormScreen, HandleField, useHandleCheck } from '../../profile-ui';
+import { Text } from '../../text';
 import { usePalette } from '../../theme';
 
 export default function ModifierProfil() {

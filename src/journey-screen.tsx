@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import { bookMeta, chapterSource, loadPassage, passageLabel, translationName } from './bible';
 import { SERIF } from './cards';
@@ -10,6 +10,7 @@ import { haptic } from './haptics';
 import { currentJourney, JOURNEYS, type Journey, type JourneyKind, journeyDay, journeyPhase } from './journeys';
 import { ChapterSheet } from './sheets';
 import { today, useApp } from './storage';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 // Un parcours (Avent, Carême) : un jour à la fois, jusqu'à aujourd'hui. Les jours à venir restent fermés,

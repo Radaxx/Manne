@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { Palette } from './appearance';
 import { clampChapter, loadPassage, passageLabel } from './bible';
 import { SERIF } from './cards';
@@ -11,6 +11,7 @@ import { PrayerText } from './prayers';
 import { excerpt, passageKey, type Showcase, type ShowcaseIntention, type ShowcasePassage, type ShowcasePrayer } from './showcase';
 import { setIntentionShown, setPassageShown, setPrayerShown } from './showcase-store';
 import { useApp } from './storage';
+import { Text } from './text';
 import { useThemed } from './theme';
 
 const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 1 ? '1 personne la porte' : `${n} personnes la portent`);

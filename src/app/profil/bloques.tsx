@@ -1,10 +1,11 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { Avatar } from '../../avatar';
 import { haptic } from '../../haptics';
 import { listBlocked, unblockPerson } from '../../showcase';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 export default function Bloques() {

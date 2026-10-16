@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { daysSince, localDate, shortDate, WEEKDAYS } from '../../dates';
 import {
@@ -30,6 +30,7 @@ import { NeedProfile, useGroupGate } from '../../group-ui';
 import { firstParam } from '../../groups';
 import { haptic } from '../../haptics';
 import { Button, Field, FormScreen, Lead } from '../../profile-ui';
+import { Text } from '../../text';
 import { useThemed } from '../../theme';
 
 // Les jours de la semaine, du lundi au dimanche (le serveur compte 0 = dimanche).

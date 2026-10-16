@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router/js-tabs';
 import type { ColorValue } from 'react-native';
+import { fontFace } from '../../fonts';
 import { usePalette } from '../../theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -20,6 +21,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: C.gold,
         tabBarInactiveTintColor: C.tabInactive,
         tabBarStyle: { backgroundColor: C.tabBar, borderTopColor: C.line },
+        tabBarLabelStyle: { fontFamily: fontFace('sans', 600, false) },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Accueil', tabBarIcon: icon('home-outline', 'home') }} />
