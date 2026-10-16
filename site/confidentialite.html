@@ -42,6 +42,15 @@
   th { color: var(--muted); font-weight: 700; white-space: nowrap; }
   nav { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .95rem; }
   footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  /* Sur un téléphone, chaque ligne du tableau devient une carte : les trois colonnes ne tiennent pas côte à côte. */
+  @media (max-width: 600px) {
+    table, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    tr { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: .4rem .9rem; margin: .8rem 0; }
+    td { border-bottom: 0; padding: .45rem 0; }
+    td + td { border-top: 1px solid var(--line); }
+    td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: .15rem; }
+  }
 </style>
 </head>
 <body>
@@ -66,6 +75,8 @@
       <li>Le reste de ton chemin (lecture, prières, plans, réglages…) est <strong>synchronisé</strong> avec notre base de données hébergée chez Supabase, pour que tu le retrouves sur un autre téléphone.</li>
       <li>Tu commences avec une session <strong>anonyme</strong>. Une adresse e-mail, Apple ou Google ne sont demandés que si tu relies un compte.</li>
       <li>Ce que tu publies (écho, intention, profil, groupe) n’est visible que de la façon décrite plus bas, et tu peux le retirer.</li>
+      <li>Dans un groupe, ta participation aux <strong>rendez-vous</strong>, aux <strong>neuvaines</strong>, au <strong>Rosaire vivant</strong> et aux <strong>chaînes d’adoration</strong> n’est visible que des membres de ce groupe.</li>
+      <li>Les <strong>rappels</strong> sont des notifications programmées sur ton téléphone : aucun service de notifications à distance n’est utilisé.</li>
       <li><strong>Aucune publicité, aucun suivi</strong>, aucun outil de mesure d’audience, aucune revente de données.</li>
       <li>Tu peux <strong>supprimer ton compte et tes données</strong> depuis l’application, en quelques secondes : voir <a href="suppression-compte.html">Supprimer mon compte et mes données</a>.</li>
     </ul>
@@ -73,65 +84,90 @@
 
   <h2>1. Ce qui reste sur ton téléphone</h2>
   <ul>
-    <li><strong>La liste de confession</strong> : les péchés que tu notes au fil des jours. Elle n’est jamais synchronisée : un bouton « J’ai reçu l’absolution » l’efface.</li>
-    <li><strong>Le verrou de la confession</strong> (empreinte, visage ou Face ID) : le réglage reste sur le téléphone. L’application ne reçoit pas ton empreinte ni ton visage, seulement la réponse « oui » ou « non » du système.</li>
+    <li><strong>La liste de confession</strong> : les péchés que tu notes au fil des jours. Elle n’est jamais synchronisée : un bouton «&nbsp;J’ai reçu l’absolution&nbsp;» l’efface.</li>
+    <li><strong>Le verrou de la confession</strong> (empreinte, visage ou Face ID) : le réglage reste sur le téléphone. L’application ne reçoit pas ton empreinte ni ton visage, seulement la réponse «&nbsp;oui&nbsp;» ou «&nbsp;non&nbsp;» du système.</li>
     <li><strong>Le cache des textes du jour</strong> (liturgie, actualités), qui sert à lire hors connexion.</li>
     <li><strong>Une copie de tout ton chemin</strong> (lecture, prières, réglages), pour que l’application fonctionne sans réseau.</li>
   </ul>
   <p>Sur Android, l’application est <strong>exclue de la sauvegarde automatique</strong> du téléphone : changer de téléphone ne transporte donc pas ces données toutes seules. C’est le compte relié qui permet de retrouver ton chemin, hors liste de confession.</p>
-  <p>Le rappel quotidien est une notification <strong>programmée sur le téléphone</strong> : aucun service de notifications à distance n’est utilisé. Le réglage de l’heure du rappel est toutefois enregistré avec ta progression (voir ci-dessous).</p>
+  <p>Les <strong>rappels</strong> (rappel quotidien, rendez-vous de groupe, neuvaine, Rosaire vivant, chaîne d’adoration) sont des notifications <strong>programmées sur le téléphone</strong> : aucun service de notifications à distance n’est utilisé, et nos serveurs n’envoient aucune notification. Pour qu’ils suivent sur tes autres appareils, certains réglages sont toutefois enregistrés avec ton compte : l’heure du rappel quotidien (avec ta progression), l’heure du rappel d’une neuvaine ou du Rosaire vivant, et les rendez-vous auxquels tu participes (voir ci-dessous).</p>
 
   <h2>2. Ce qui est synchronisé avec Supabase</h2>
-  <p>Nous utilisons <a href="https://supabase.com">Supabase</a> comme hébergeur de la base de données et du service de connexion. Supabase agit comme sous-traitant : il stocke et fait fonctionner ces données pour nous, sans les utiliser pour son propre compte. Région d’hébergement : Irlande (région « West EU », eu-west-1), dans l’Union européenne.</p>
+  <p>Nous utilisons <a href="https://supabase.com">Supabase</a> comme hébergeur de la base de données, du service de connexion et du canal en direct de la salle de prière. Supabase agit comme sous-traitant : il stocke et fait fonctionner ces données pour nous, sans les utiliser pour son propre compte. Région d’hébergement : Irlande (région «&nbsp;West EU&nbsp;», eu-west-1), dans l’Union européenne.</p>
 
   <div class="scroll">
   <table>
     <thead><tr><th>Donnée</th><th>À quoi elle sert</th><th>Qui peut la voir</th></tr></thead>
     <tbody>
       <tr>
-        <td><strong>Compte</strong> : identifiant aléatoire de la session anonyme ; si tu relies un compte, ton adresse e-mail (ou celle fournie par Apple ou Google, parfois une adresse-relais) et l’identifiant chez le fournisseur</td>
-        <td>T’authentifier et retrouver ton chemin</td>
-        <td>Toi, et nous (administration du service)</td>
+        <td data-label="Donnée"><strong>Compte</strong> : identifiant aléatoire de la session anonyme ; si tu relies un compte, ton adresse e-mail (ou celle fournie par Apple ou Google, parfois une adresse-relais) et l’identifiant chez le fournisseur</td>
+        <td data-label="À quoi elle sert">T’authentifier et retrouver ton chemin</td>
+        <td data-label="Qui peut la voir">Toi, et nous (administration du service)</td>
       </tr>
       <tr>
-        <td><strong>Progression</strong> : marque-pages, plans de lecture, journal des jours et série, versets aimés et gardés, <strong>prénom</strong> affiché dans l’app, prières épinglées et <strong>prières que tu écris</strong>, chapelet et adoration en cours, <strong>intentions d’adoration</strong>, parcours de l’Avent et du Carême, <strong>date de ta dernière confession</strong>, réglages d’apparence, traduction, heure du rappel</td>
-        <td>Retrouver ton chemin sur un autre téléphone</td>
-        <td>Toi seul. Elle n’apparaît sur aucun profil.</td>
+        <td data-label="Donnée"><strong>Progression</strong> : marque-pages, plans de lecture, journal des jours et série, versets aimés et gardés, <strong>prénom</strong> affiché dans l’app, prières épinglées et <strong>prières que tu écris</strong>, chapelet et adoration en cours, <strong>intentions d’adoration</strong>, parcours de l’Avent et du Carême, <strong>date de ta dernière confession</strong>, réglages d’apparence, traduction, heure du rappel</td>
+        <td data-label="À quoi elle sert">Retrouver ton chemin sur un autre téléphone</td>
+        <td data-label="Qui peut la voir">Toi seul. Elle n’apparaît sur aucun profil.</td>
       </tr>
       <tr>
-        <td><strong>Profil</strong> (si tu en crées un) : pseudo, bio et paroisse (facultatives), date d’acceptation de la charte, personnes que tu suis et que tu bloques</td>
-        <td>La communauté</td>
-        <td>Ton pseudo : toute personne qui le connaît exactement. Bio, paroisse et nombres d’abonnés et d’abonnements : toi, les personnes que tu suis et les membres de tes groupes.</td>
+        <td data-label="Donnée"><strong>Profil</strong> (si tu en crées un) : pseudo, bio et paroisse (facultatives), date d’acceptation de la charte, personnes que tu suis et que tu bloques</td>
+        <td data-label="À quoi elle sert">La communauté</td>
+        <td data-label="Qui peut la voir">Ton pseudo : toute personne qui le connaît exactement. Bio, paroisse et nombres d’abonnés et d’abonnements : toi, les personnes que tu suis et les membres de tes groupes.</td>
       </tr>
       <tr>
-        <td><strong>Vitrine du profil</strong> (si tu choisis d’afficher) : passages, copies de prières, intentions</td>
-        <td>Les montrer</td>
-        <td>Les mêmes personnes que pour la bio. Rien n’est affiché par défaut ; retirer supprime la copie.</td>
+        <td data-label="Donnée"><strong>Vitrine du profil</strong> (si tu choisis d’afficher) : passages, copies de prières, intentions</td>
+        <td data-label="À quoi elle sert">Les montrer</td>
+        <td data-label="Qui peut la voir">Les mêmes personnes que pour la bio. Rien n’est affiché par défaut ; retirer supprime la copie.</td>
       </tr>
       <tr>
-        <td><strong>J’aime</strong> sur un passage</td>
-        <td>Le compteur « cœur » commun</td>
-        <td>Toi ; les autres ne voient qu’un nombre.</td>
+        <td data-label="Donnée"><strong>J’aime</strong> sur un passage</td>
+        <td data-label="À quoi elle sert">Le compteur «&nbsp;cœur&nbsp;» commun</td>
+        <td data-label="Qui peut la voir">Toi ; les autres ne voient qu’un nombre.</td>
       </tr>
       <tr>
-        <td><strong>Échos</strong> : une courte méditation (240 caractères au plus) sur un passage</td>
-        <td>Partager avec la communauté</td>
-        <td>Les autres utilisateurs de l’application, <strong>sans ton nom ni ton pseudo</strong>.</td>
+        <td data-label="Donnée"><strong>Échos</strong> : une courte méditation (240 caractères au plus) sur un passage</td>
+        <td data-label="À quoi elle sert">Partager avec la communauté</td>
+        <td data-label="Qui peut la voir">Les autres utilisateurs de l’application, <strong>sans ton nom ni ton pseudo</strong>.</td>
       </tr>
       <tr>
-        <td><strong>Intentions confiées</strong> (280 caractères au plus) et « Je la porte »</td>
-        <td>Prier les uns pour les autres</td>
-        <td>Les autres utilisateurs, <strong>sans ton nom ni ton pseudo</strong> dans le fil commun ; sur ton profil seulement si tu l’y affiches.</td>
+        <td data-label="Donnée"><strong>Intentions confiées</strong> (280 caractères au plus) et «&nbsp;Je la porte&nbsp;»</td>
+        <td data-label="À quoi elle sert">Prier les uns pour les autres</td>
+        <td data-label="Qui peut la voir">Les autres utilisateurs, <strong>sans ton nom ni ton pseudo</strong> dans le fil commun ; sur ton profil seulement si tu l’y affiches.</td>
       </tr>
       <tr>
-        <td><strong>Groupes de prière</strong> : groupes que tu crées ou rejoins, ton rôle, tes demandes d’adhésion, intentions de groupe et leurs remerciements</td>
-        <td>Prier en groupe</td>
-        <td>Les membres du groupe (avec ton pseudo). Un groupe privé est introuvable sans son code d’invitation.</td>
+        <td data-label="Donnée"><strong>Groupes de prière</strong> : groupes que tu crées ou rejoins, ton rôle, tes demandes d’adhésion, intentions de groupe et leurs remerciements</td>
+        <td data-label="À quoi elle sert">Prier en groupe</td>
+        <td data-label="Qui peut la voir">Les membres du groupe (avec ton pseudo). Un groupe privé est introuvable sans son code d’invitation.</td>
       </tr>
       <tr>
-        <td><strong>Signalements</strong> que tu fais, et un <strong>compteur quotidien</strong> d’actions (type et date, sans leur contenu)</td>
-        <td>Modération et limite d’abus</td>
-        <td>Nous seulement</td>
+        <td data-label="Donnée"><strong>Rendez-vous de prière</strong> d’un groupe : les rendez-vous que tu organises (titre, description, jours, heure, fuseau horaire), ta participation («&nbsp;Je participe&nbsp;») et ta présence à une occurrence («&nbsp;Je suis là&nbsp;»)</td>
+        <td data-label="À quoi elle sert">Prier ensemble à heure fixe et programmer ton rappel</td>
+        <td data-label="Qui peut la voir">Les membres du groupe voient le nombre d’inscrits et de présents, sans les noms.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Salle de prière</strong> en direct : qui est connecté en ce moment, les «&nbsp;Amen&nbsp;», et les intentions écrites pendant le rendez-vous</td>
+        <td data-label="À quoi elle sert">Prier ensemble pendant un rendez-vous</td>
+        <td data-label="Qui peut la voir">Les membres déclarés présents à ce rendez-vous voient ton pseudo pendant que tu es dans la salle. Ta présence en direct et les «&nbsp;Amen&nbsp;» passent par un canal privé et <strong>ne sont pas enregistrés</strong>. Les intentions écrites dans la salle deviennent des intentions du groupe, visibles de ses membres.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Neuvaines</strong> d’un groupe : celles que tu lances (intention commune, prière écrite pour une neuvaine personnalisée), les jours que tu as priés, l’heure de ton rappel</td>
+        <td data-label="À quoi elle sert">Prier neuf jours ensemble et suivre ta progression</td>
+        <td data-label="Qui peut la voir">Les membres du groupe voient l’intention et le nombre de personnes qui ont prié chaque jour, <strong>sans les noms</strong>. Tes jours priés et ton rappel : toi seul.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Rosaire vivant</strong> d’un groupe : ta place (le mystère qui t’est confié), les jours où tu as prié ta dizaine, l’heure de ton rappel</td>
+        <td data-label="À quoi elle sert">Dire ensemble le rosaire chaque jour</td>
+        <td data-label="Qui peut la voir">Les membres du groupe voient ton pseudo à côté de ton mystère et si ta dizaine du jour est priée. Ton rappel : toi seul.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Chaînes d’adoration</strong> d’un groupe : celles que tu organises (titre, intention, lieu, période) et les créneaux que tu réserves</td>
+        <td data-label="À quoi elle sert">Se relayer pour adorer sans interruption</td>
+        <td data-label="Qui peut la voir">Les membres du groupe voient ton pseudo sur les créneaux que tu as réservés.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Signalements</strong> que tu fais, et un <strong>compteur quotidien</strong> d’actions (type et date, sans leur contenu)</td>
+        <td data-label="À quoi elle sert">Modération et limite d’abus</td>
+        <td data-label="Qui peut la voir">Nous seulement</td>
       </tr>
     </tbody>
   </table>
@@ -142,7 +178,8 @@
     <li>Quelqu’un qui connaît ton pseudo exact voit ton pseudo.</li>
     <li>Quand tu suis quelqu’un, tu lui ouvres ton profil. Les membres d’un même groupe se voient aussi entre eux.</li>
     <li>Ta progression et ta confession ne sont jamais sur ton profil.</li>
-    <li>Tu peux bloquer une personne : vous ne vous voyez plus.</li>
+    <li>Dans un groupe, les membres voient ton pseudo sur ce que tu y fais à visage découvert (intentions de groupe, Rosaire vivant, créneaux d’adoration, salle de prière). Les compteurs des rendez-vous et des neuvaines restent anonymes.</li>
+    <li>Tu peux bloquer une personne : vous ne vous voyez plus. Dans un groupe que vous partagez, elle apparaît comme «&nbsp;Un membre&nbsp;», sans pseudo.</li>
     <li>Un contenu signalé par plusieurs personnes (trois) est retiré automatiquement ; nous pouvons aussi en retirer un qui enfreint la charte.</li>
   </ul>
 
@@ -156,16 +193,18 @@
     <li>Si tu continues avec Apple, le nom qu’Apple transmet peut servir de prénom affiché dans l’application ; tu peux le modifier.</li>
     <li>La session est conservée sur ton téléphone dans l’espace sécurisé du système (trousseau iOS, Keystore Android).</li>
     <li>Créer un profil, suivre des personnes et rejoindre des groupes exigent un compte relié, et sont réservés aux personnes de <strong>15 ans ou plus</strong>.</li>
+    <li>Un <strong>accès relecteur</strong> (adresse et mot de passe) existe seulement pour le compte de démonstration fourni aux équipes de vérification des boutiques d’applications. Les autres comptes n’utilisent pas de mot de passe.</li>
   </ul>
 
   <h2>4. Services tiers contactés, sans donnée personnelle de ta part</h2>
   <p>Pour fonctionner, l’application contacte les services suivants. Comme pour tout accès à un site, ils reçoivent forcément ton adresse IP ; nous ne leur envoyons ni ton compte, ni ton pseudo, ni ta progression.</p>
   <ul>
     <li><strong>AELF</strong> (api.aelf.org) : les textes de la messe et de la Liturgie des Heures. L’application demande la date du jour.</li>
-    <li><strong>Actualités</strong> (« L’Église aujourd’hui ») : ce sont nos serveurs qui lisent les flux de Vatican News, de l’Église catholique en France et de cath.ch ; ton téléphone ne contacte que notre serveur. Ces sites ne voient une requête que si tu ouvres un article.</li>
+    <li><strong>Actualités</strong> («&nbsp;L’Église aujourd’hui&nbsp;») : ce sont nos serveurs qui lisent les flux de Vatican News, de l’Église catholique en France et de cath.ch ; ton téléphone ne contacte que notre serveur. Ces sites ne voient une requête que si tu ouvres un article.</li>
     <li><strong>Wikipédia</strong> et <strong>YouTube</strong> : uniquement si tu touches un lien d’une œuvre dans Découvrir (page Wikipédia, ou recherche pour écouter une œuvre). Le lien s’ouvre alors dans ton navigateur, selon les règles de ce site.</li>
     <li><strong>EAS Update (Expo)</strong> : l’application vérifie au lancement si une mise à jour est disponible. Le service voit l’identifiant de l’application, sa version et la plateforme.</li>
-    <li><strong>Apple</strong> et <strong>Google</strong> : seulement si tu choisis « Continuer avec Apple » ou « Continuer avec Google ».</li>
+    <li><strong>Apple</strong> et <strong>Google</strong> : seulement si tu choisis «&nbsp;Continuer avec Apple&nbsp;» ou «&nbsp;Continuer avec Google&nbsp;».</li>
+    <li><strong>Tipeee</strong> : seulement si tu touches «&nbsp;Soutenir Manne&nbsp;». La page s’ouvre dans ton navigateur, selon les règles de ce site ; un éventuel don se fait chez Tipeee, sans passer par nous.</li>
   </ul>
   <p>Nous ne vendons pas tes données et nous ne les partageons avec aucun tiers à des fins commerciales ou publicitaires. Les seuls destinataires sont nos prestataires techniques (Supabase, et le fournisseur d’e-mail de Supabase pour l’envoi du lien et du code).</p>
 
@@ -174,9 +213,10 @@
 
   <h2>6. Combien de temps nous gardons les données</h2>
   <ul>
-    <li><strong>Sur ton téléphone</strong> : tant que l’application est installée, ou jusqu’à ce que tu les effaces ou te déconnectes. La liste de confession s’efface avec « J’ai reçu l’absolution » ou en désinstallant.</li>
+    <li><strong>Sur ton téléphone</strong> : tant que l’application est installée, ou jusqu’à ce que tu les effaces ou te déconnectes. La liste de confession s’efface avec «&nbsp;J’ai reçu l’absolution&nbsp;» ou en désinstallant.</li>
     <li><strong>Sur nos serveurs</strong> : tant que ton compte existe. Quand tu le supprimes, ses données sont effacées aussitôt (voir <a href="suppression-compte.html">la page de suppression</a>).</li>
     <li><strong>Retraits</strong> : retirer un écho l’efface. Retirer une intention la cache à tous, mais l’enregistrement reste dans notre base jusqu’à la suppression du compte.</li>
+    <li><strong>Groupes</strong> : quitter un groupe efface tes inscriptions aux rendez-vous, tes rappels de neuvaine, ta place et tes dizaines du Rosaire vivant et tes créneaux d’adoration de ce groupe, et retire tes intentions de groupe (cachées à tous). Tes jours de neuvaine priés et tes présences aux rendez-vous restent dans la base, sans plus être comptés, jusqu’à la suppression de ton compte ou du groupe. Supprimer un groupe efface tout ce qui s’y rattache.</li>
     <li><strong>Sauvegardes</strong> : nous ne faisons pas de sauvegarde de la base, et l’offre Supabase que nous utilisons n’en propose pas : une fois supprimées, tes données ne subsistent pas dans une copie.</li>
     <li><strong>Journaux techniques</strong> : Supabase peut conserver, pour la sécurité du service, des journaux de connexion (comme l’adresse IP).</li>
     <li>Une session anonyme jamais reliée à un compte reste enregistrée tant qu’elle n’est pas supprimée : pour l’effacer, relie un compte puis supprime-le (voir la page de suppression).</li>
@@ -185,7 +225,7 @@
   <h2>7. Tes droits</h2>
   <p>Tu peux à tout moment :</p>
   <ul>
-    <li><strong>accéder</strong> à tes données : elles sont visibles dans l’application (Mon chemin, Profil) ; pour une copie de ce que nous détenons sur nos serveurs, écris-nous ;</li>
+    <li><strong>accéder</strong> à tes données : elles sont visibles dans l’application (Mon chemin, Profil, Communauté et la page de chaque groupe) ; pour une copie de ce que nous détenons sur nos serveurs, écris-nous ;</li>
     <li><strong>rectifier</strong> ton profil, ton prénom, tes prières, tes réglages, dans l’application ;</li>
     <li><strong>supprimer</strong> ton compte et tes données : dans l’application (Compte → Supprimer mon compte), ou par e-mail ;</li>
     <li>demander la <strong>portabilité</strong> de tes données, t’<strong>opposer</strong> à un traitement ou en demander la <strong>limitation</strong>.</li>
