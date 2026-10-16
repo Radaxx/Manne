@@ -14,6 +14,7 @@ import {
   MAIL_LIMIT,
   otpMessage,
   otpType,
+  passwordMessage,
   taken,
   userGone,
 } from './errors';
@@ -81,6 +82,21 @@ export async function verifyCode(email: string, input: string, branch: LinkBranc
   if (error) return { error: otpMessage(error) };
   if (branch === 'new') return { error: null };
   return { error: await adoptPending() };
+}
+
+/**
+ * Accès relecteur : connexion par adresse et mot de passe, pour le compte de démonstration que Google Play
+ * teste (un code reçu par e-mail ne peut pas lui être donné). Reprend ce que l'anonyme avait fait, comme Google.
+ */
+export async function signInWithPassword(email: string, password: string): Promise<Result> {
+  const client = supabase;
+  if (!client) return { error: 'Supabase n’est pas configuré.' };
+  if (!email.includes('@') || !password) return { error: 'Saisis l’adresse et le mot de passe.' };
+  const nonce = await depositNonce();
+  if (!nonce) return { error: 'Impossible de préparer la connexion.' };
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) return { error: passwordMessage(error) };
+  return { error: await adopt(client, nonce) };
 }
 
 export async function linkApple(): Promise<{ error: string | null; name?: string | null }> {

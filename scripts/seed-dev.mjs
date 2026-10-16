@@ -11,10 +11,22 @@
 // Usage : node scripts/seed-dev.mjs seed [--me <pseudo>]   crée ou met à jour les comptes de test
 //         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
 //         node scripts/seed-dev.mjs code <pseudo>          code de connexion d'un compte de test
-import { randomInt } from 'node:crypto';
+//         node scripts/seed-dev.mjs reviewer               crée ou met à jour le compte de démonstration de Google Play
+//         node scripts/seed-dev.mjs reviewer-remove        le supprime
+import { randomBytes, randomInt } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const PREFIX = 'dev_';
+
+// Compte de démonstration pour la validation Google Play : il se connecte avec « Accès relecteur » (adresse et mot de passe).
+// Son pseudo n'a pas le préfixe `dev_` : `reset` ne le touche pas, seule `reviewer-remove` le supprime.
+const REVIEWER_HANDLE = 'relecteur';
+const REVIEWER_PROFILE = {
+  bio: 'Compte de démonstration pour la validation de l’application.',
+  parish: 'Paroisse de démonstration',
+  passages: [[43, 3, 16, 16]],
+  intention: 'Pour la paix dans le monde.',
+};
 
 // Pseudos des comptes de test (préfixe `dev_` obligatoire : le reset ne touche que ceux-là).
 const HANDLES = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_therese', 'dev_paul'];
@@ -501,6 +513,101 @@ async function code(admin, base, handle) {
   );
 }
 
+/** Un mot de passe long tiré au hasard, sans caractère ambigu. */
+function newPassword() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(20);
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
+/**
+ * Crée ou met à jour le compte de démonstration : adresse confirmée, mot de passe neuf (REVIEWER_PASSWORD, ou tiré au hasard),
+ * profil, un passage, une intention et un abonnement aux comptes de test s'ils existent. Le mot de passe n'est affiché qu'ici.
+ */
+async function reviewer(admin, base) {
+  const email = emailFor(base, REVIEWER_HANDLE);
+  const password = process.env.REVIEWER_PASSWORD?.trim() || newPassword();
+  if (password.length < 12) fail('REVIEWER_PASSWORD doit faire au moins 12 caractères.');
+  const users = await allUsers(admin);
+  let user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  if (user) {
+    const updated = await admin.auth.admin.updateUserById(user.id, { password, email_confirm: true });
+    check(updated.error, `Mise à jour de ${email}`);
+  } else {
+    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    check(created.error, `Création de ${email}`);
+    user = created.data.user;
+  }
+  const { data: taken } = await admin.from('profiles').select('id').eq('handle', REVIEWER_HANDLE).maybeSingle();
+  if (taken && taken.id !== user.id) fail(`Le pseudo « ${REVIEWER_HANDLE} » appartient déjà à un autre compte.`);
+  check(
+    (
+      await admin.from('profiles').upsert(
+        {
+          id: user.id,
+          handle: REVIEWER_HANDLE,
+          display_name: REVIEWER_HANDLE,
+          bio: REVIEWER_PROFILE.bio,
+          parish: REVIEWER_PROFILE.parish,
+          charter_accepted_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+      )
+    ).error,
+    'Profil',
+  );
+  check((await admin.from('profile_passages').delete().eq('user_id', user.id)).error, 'Nettoyage des passages');
+  check(
+    (
+      await admin.from('profile_passages').insert(
+        REVIEWER_PROFILE.passages.map(([book, chapter, verse_from, verse_to]) => ({
+          user_id: user.id,
+          book,
+          chapter,
+          verse_from,
+          verse_to,
+        })),
+      )
+    ).error,
+    'Passages',
+  );
+  check((await admin.from('intentions').delete().eq('user_id', user.id)).error, 'Nettoyage des intentions');
+  check(
+    (await admin.from('intentions').insert({ user_id: user.id, body: REVIEWER_PROFILE.intention, shown_on_profile: true })).error,
+    'Intention',
+  );
+  const { data: devs, error: devErr } = await admin.from('profiles').select('id').in('handle', HANDLES);
+  check(devErr, 'Recherche des comptes de test');
+  if (devs.length) {
+    check(
+      (
+        await admin.from('follows').upsert(
+          devs.map((d) => ({ follower_id: user.id, followee_id: d.id })),
+          { onConflict: 'follower_id,followee_id', ignoreDuplicates: true },
+        )
+      ).error,
+      'Abonnements',
+    );
+  }
+  console.log(`Compte de démonstration prêt (pseudo : ${REVIEWER_HANDLE}).`);
+  console.log(`Adresse      : ${email}`);
+  console.log(`Mot de passe : ${password}`);
+  console.log('\nÀ coller dans la Play Console (Accès à l’application). Ne l’écrivez dans aucun fichier du dépôt.');
+}
+
+/** Supprime le compte de démonstration avec ses données (comme « Supprimer mon compte » dans l'app). */
+async function removeReviewer(admin, base) {
+  const email = emailFor(base, REVIEWER_HANDLE);
+  const user = (await allUsers(admin)).find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  if (!user) return console.log('Aucun compte de démonstration à supprimer.');
+  const { data, error } = await admin.from('profiles').select('handle').eq('id', user.id).maybeSingle();
+  check(error, 'Lecture du profil');
+  if (data && data.handle !== REVIEWER_HANDLE) fail(`Le profil de ${email} n’est pas « ${REVIEWER_HANDLE} » : rien n’est supprimé.`);
+  check((await admin.from('daily_posts').delete().eq('user_id', user.id)).error, 'Nettoyage de daily_posts');
+  check((await admin.auth.admin.deleteUser(user.id)).error, `Suppression de ${email}`);
+  console.log(`Supprimé : ${email}`);
+}
+
 function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
   seed [--me <pseudo>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test
@@ -508,11 +615,13 @@ function help() {
                          comme simple membre dans « ${GROUPS[0].name} »
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
+  reviewer               crée ou met à jour le compte de démonstration de Google Play (adresse + mot de passe affichés une fois)
+  reviewer-remove        supprime le compte de démonstration
 Via npm : npm run seed -- --me votre_pseudo   |   npm run seed:reset`);
 }
 
 const [command, ...args] = process.argv.slice(2);
-if (!['seed', 'reset', 'code'].includes(command)) {
+if (!['seed', 'reset', 'code', 'reviewer', 'reviewer-remove'].includes(command)) {
   help();
   process.exit(command ? 1 : 0);
 }
@@ -524,6 +633,10 @@ if (command === 'seed') {
   await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase());
 } else if (command === 'reset') {
   await reset(admin, base);
+} else if (command === 'reviewer') {
+  await reviewer(admin, base);
+} else if (command === 'reviewer-remove') {
+  await removeReviewer(admin, base);
 } else {
   if (!args[0]) fail('code demande un pseudo (par exemple dev_marie).');
   await code(admin, base, args[0]);

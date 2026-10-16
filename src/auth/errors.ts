@@ -82,3 +82,11 @@ export function otpMessage(error: AuthErrorLike): string {
   if (limited(error) || error.code === 'over_request_rate_limit') return 'Trop d’essais. Réessaie dans un instant.';
   return 'Le code n’a pas pu être vérifié. Réessaie dans un instant.';
 }
+
+/** Message d'une connexion par mot de passe refusée (l'accès relecteur). */
+export function passwordMessage(error: AuthErrorLike): string {
+  if (!error) return '';
+  if (error.code === 'invalid_credentials' || /invalid login/i.test(error.message ?? '')) return 'Adresse ou mot de passe incorrect.';
+  if (limited(error) || error.code === 'over_request_rate_limit') return 'Trop d’essais. Réessaie dans un instant.';
+  return 'La connexion a échoué. Réessaie dans un instant.';
+}

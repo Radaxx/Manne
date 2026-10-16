@@ -7,6 +7,7 @@ import {
   missingUser,
   otpMessage,
   otpType,
+  passwordMessage,
   readParams,
   taken,
   userGone,
@@ -116,5 +117,21 @@ describe('code reçu par e-mail', () => {
     expect(otpMessage({ message: 'Token has expired or is invalid' })).toMatch(/faux ou expiré/);
     expect(otpMessage({ code: 'over_request_rate_limit' })).toMatch(/Trop d’essais/);
     expect(otpMessage({ message: 'boom' })).toMatch(/n’a pas pu être vérifié/);
+  });
+});
+
+describe('connexion par mot de passe', () => {
+  it('dit que l’adresse ou le mot de passe est faux', () => {
+    expect(passwordMessage({ code: 'invalid_credentials' })).toBe('Adresse ou mot de passe incorrect.');
+    expect(passwordMessage({ message: 'Invalid login credentials' })).toBe('Adresse ou mot de passe incorrect.');
+  });
+
+  it('dit d’attendre quand les essais sont limités', () => {
+    expect(passwordMessage({ code: 'over_request_rate_limit' })).toBe('Trop d’essais. Réessaie dans un instant.');
+  });
+
+  it('ne montre pas le message du serveur', () => {
+    expect(passwordMessage({ message: 'boom' })).toBe('La connexion a échoué. Réessaie dans un instant.');
+    expect(passwordMessage(null)).toBe('');
   });
 });
