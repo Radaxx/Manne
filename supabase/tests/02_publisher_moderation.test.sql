@@ -149,7 +149,7 @@ select is((select bio from public.profiles where id = 'a0000000-0000-0000-0000-0
 select is((select parish from public.profiles where id = 'a0000000-0000-0000-0000-000000000002'), null, 'la paroisse est effacée');
 select is((select flagged_at from public.profiles where id = 'a0000000-0000-0000-0000-000000000002'), null, 'le drapeau du profil est levé');
 select is((select count(*)::int from public.profile_prayers where prayer_id = 'p1'), 0, 'la prière est supprimée');
-select is((select count(*)::int from public.profile_reports where resolved_at is null), 0, 'les signalements de profil sont clos');
+select is((select count(*)::int from public.profile_reports where resolved_at is null and target_id::text like 'a0000000-0000-0000-0000-%'), 0, 'les signalements de profil sont clos');
 select is((select hidden from public.group_intentions where id = 'c0000000-0000-0000-0000-000000000001'), false,
   'l''intention de groupe est visible');
 select is((select count(*)::int from public.group_reports where intention_id = 'c0000000-0000-0000-0000-000000000001' and resolved_at is null), 0,
@@ -193,7 +193,8 @@ select throws_ok($$select public.mod_restore('truc', 'x')$$, 'P0001', 'kind_inva
 select throws_ok($$select public.mod_remove('echo', 'pas-un-uuid')$$, 'P0001', 'introuvable', 'un identifiant illisible est refusé');
 select throws_ok($$select public.mod_unsuspend('test_alice')$$, 'P0001', 'introuvable', 'lever une suspension inexistante est refusé');
 
--- Actions de modération de groupe : elles écrivent aussi dans le journal.
+-- Actions de modération de groupe : elles écrivent aussi dans le journal. Chaque requête sur le journal se limite aux
+-- comptes de test : une base de développement contient déjà de vraies lignes.
 reset role;
 insert into public.group_reports (user_id, intention_id, reason) values
   ('a0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000002', 'spam');
@@ -209,13 +210,13 @@ reset role;
 select is((select array_agg(action order by id) from public.moderation_log where moderator_id = 'a0000000-0000-0000-0000-000000000001'),
   array['group_dismiss', 'group_restore', 'group_remove', 'group_ban', 'group_unban'],
   'le journal contient les cinq actions de groupe, une fois chacune');
-select is((select target_user from public.moderation_log where action = 'group_ban'), 'a0000000-0000-0000-0000-000000000002'::uuid,
+select is((select target_user from public.moderation_log where action = 'group_ban' and moderator_id = 'a0000000-0000-0000-0000-000000000001'), 'a0000000-0000-0000-0000-000000000002'::uuid,
   'le bannissement journalise la personne bannie');
 
 -- Le journal ne garde aucun pseudo : après la suppression d'un compte, rien ne le désigne plus.
-select is((select target_ref from public.moderation_log where action = 'remove' and kind = 'profil'), null,
+select is((select target_ref from public.moderation_log where action = 'remove' and kind = 'profil' and moderator_id = 'a0000000-0000-0000-0000-000000000004'), null,
   'le journal ne garde pas le pseudo d''un profil modéré');
-select is((select count(*)::int from public.moderation_log where target_ref like '%test\_%' or note like '%test\_%'), 0,
+select is((select count(*)::int from public.moderation_log where (target_ref like '%test\_%' or note like '%test\_%') and moderator_id::text like 'a0000000-0000-0000-0000-%'), 0,
   'aucune ligne du journal ne contient un pseudo');
 
 -- Le journal est en ajout seulement, même pour le propriétaire des tables.
