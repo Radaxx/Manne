@@ -1,21 +1,23 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LITURGICAL_COLORS, OFFICES, type OfficeId, plainText, useOffice } from '../../aelf';
 import type { Palette } from '../../appearance';
 import { SERIF } from '../../cards';
 import { OfficeBody } from '../../liturgy';
-import { useApp } from '../../storage';
+import { useActions } from '../../storage';
 import { Text } from '../../text';
 import { useThemed } from '../../theme';
-import { liveLog } from '../../today';
 
 export default function OfficeScreen() {
   const { C, styles } = useThemed(stylesFor);
   const { id } = useLocalSearchParams<{ id: string }>();
   const office = OFFICES.find((o) => o.id === id) ?? OFFICES[1];
   const { data, error } = useOffice(office.id as OfficeId);
-  const { progress, markOffice } = useApp();
-  const officeRead = liveLog(progress).office;
+  const { markOffice } = useActions();
+  // Le journal ne retient qu'« un office prié aujourd'hui » : le bouton ne reflète que cet office-ci.
+  const [readId, setReadId] = useState<string | null>(null);
+  const officeRead = readId === office.id;
   const info = data?.informations;
   const body = data?.[office.id];
 
@@ -42,7 +44,10 @@ export default function OfficeScreen() {
         )}
         {body ? (
           <Pressable
-            onPress={markOffice}
+            onPress={() => {
+              markOffice();
+              setReadId(office.id);
+            }}
             disabled={officeRead}
             style={({ pressed }) => [styles.doneBtn, officeRead && styles.doneBtnOn, pressed && !officeRead && styles.pressed]}
           >

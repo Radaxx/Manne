@@ -334,7 +334,7 @@ const stylesFor = (C: Palette) =>
     manage: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 2 },
     link: { color: C.faint, fontSize: 13, fontWeight: '700' },
     allow: { gap: 8 },
-    settingsLink: { color: C.gold, fontSize: 13, fontWeight: '700' },
+    settingsLink: { color: C.gold, fontSize: 13, fontWeight: '700', paddingBottom: 15 },
     meeting: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
     badge: {
       width: 52,
