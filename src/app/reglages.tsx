@@ -33,8 +33,8 @@ export default function ReglagesScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
-        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir et le rappel
-        du jour.
+        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir et les
+        notifications.
       </Text>
 
       <Text style={styles.section}>Apparence</Text>
@@ -150,13 +150,15 @@ export default function ReglagesScreen() {
         />
       </Pressable>
 
-      <Text style={styles.section}>Notification</Text>
-      <Pressable onPress={() => router.push('/rappel')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+      <Text style={styles.section}>Notifications</Text>
+      <Pressable onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
         <Ionicons name={reminder.enabled ? 'notifications' : 'notifications-outline'} size={22} color={C.gold} />
         <View style={styles.rowBody}>
-          <Text style={styles.rowLabel}>Rappel quotidien</Text>
+          <Text style={styles.rowLabel}>Notifications</Text>
           <Text style={styles.rowHint}>
-            {reminder.enabled ? `Chaque jour à ${formatTime(reminder.hour, reminder.minute)}` : 'Désactivé'}
+            {reminder.enabled
+              ? `Rappel quotidien à ${formatTime(reminder.hour, reminder.minute)}, rappels de groupe, communauté`
+              : 'Rappels, communauté et groupes'}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={C.faint} />

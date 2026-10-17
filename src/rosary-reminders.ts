@@ -9,6 +9,7 @@ import {
   nextReminderDays,
   REMINDER_DAYS,
 } from './living-rosary';
+import { localReminderAllowed } from './push';
 import { configure, notificationsSupported, reminderPermissionGranted } from './reminder';
 import { supabase } from './supabase';
 
@@ -114,6 +115,13 @@ export function syncRosaryReminders({ profileMissing = false }: { profileMissing
     }
     if (stale()) return;
     if (!linked || profileMissing) {
+      await clearRosaryReminders();
+      return;
+    }
+    // Interrupteur de l'écran Notifications (gardé avec le compte). Hors ligne : on garde ce qui est programmé.
+    const allowed = await localReminderAllowed('local_rosary');
+    if (allowed === null || stale()) return;
+    if (!allowed) {
       await clearRosaryReminders();
       return;
     }

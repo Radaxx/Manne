@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Clés de compte de service Firebase (secrètes) : à garder hors du dépôt
+*firebase-adminsdk*.json

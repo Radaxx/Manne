@@ -9,6 +9,7 @@ import {
   reminderAt,
   SOON_MIN,
 } from './adoration-chain';
+import { localReminderAllowed } from './push';
 import { configure, notificationsSupported, reminderPermissionGranted } from './reminder';
 import { supabase } from './supabase';
 
@@ -108,6 +109,13 @@ export function syncAdorationReminders({ profileMissing = false }: { profileMiss
     }
     if (stale()) return;
     if (!linked || profileMissing) {
+      await clearAdorationReminders();
+      return;
+    }
+    // Interrupteur de l'écran Notifications (gardé avec le compte). Hors ligne : on garde ce qui est programmé.
+    const allowed = await localReminderAllowed('local_adoration');
+    if (allowed === null || stale()) return;
+    if (!allowed) {
       await clearAdorationReminders();
       return;
     }

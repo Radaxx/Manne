@@ -18,6 +18,7 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0d0e12",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,7 +28,11 @@
       "predictiveBackGestureEnabled": false,
       "allowBackup": false,
       "package": "com.radaxx.manne",
-      "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT", "android.permission.SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

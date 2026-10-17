@@ -3,6 +3,7 @@ import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking, Platform } from 'react-native';
 import { flushLikes, resetCommunity } from '../community';
+import { forgetPushToken, unregisterPushToken } from '../push';
 import { supabase } from '../supabase';
 import { adopt, adoptPending, clearNonce, depositNonce, finishRedirect, REDIRECT, rememberNonce } from './adoption';
 import {
@@ -241,6 +242,8 @@ export async function signOut(reset: () => void) {
   if (!client) return;
   // Les j'aime en attente partent encore sous le compte ; ceux qui ne passent pas sont abandonnés.
   await flushLikes().catch(() => {});
+  // Le jeton de notification de ce téléphone quitte le compte tant que la session existe encore.
+  await unregisterPushToken().catch(() => {});
   await client.auth.signOut({ scope: 'local' });
   await startOver(reset);
 }
@@ -259,6 +262,8 @@ export async function deleteAccount(reset: () => void): Promise<Result> {
     return { error: 'Ton compte n’a pas pu être supprimé. Réessaie avec du réseau.' };
   }
   await clearNonce();
+  // Le serveur a déjà effacé les jetons du compte avec lui ; il reste à oublier celui que l'app garde en mémoire.
+  forgetPushToken();
   await client.auth.signOut({ scope: 'local' });
   await startOver(reset);
   return { error: null };

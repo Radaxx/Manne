@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { type DayReminder, dayOfLabel, MAX_REMINDED_NOVENAS, type MyNovena, myNovenas, nextReminderDays } from './novenas';
+import { localReminderAllowed } from './push';
 import { configure, notificationsSupported, reminderPermissionGranted } from './reminder';
 import { supabase } from './supabase';
 
@@ -110,6 +111,13 @@ export function syncNovenaReminders({ profileMissing = false }: { profileMissing
     }
     if (stale()) return;
     if (!linked || profileMissing) {
+      await clearNovenaReminders();
+      return;
+    }
+    // Interrupteur de l'écran Notifications (gardé avec le compte). Hors ligne : on garde ce qui est programmé.
+    const allowed = await localReminderAllowed('local_novenas');
+    if (allowed === null || stale()) return;
+    if (!allowed) {
       await clearNovenaReminders();
       return;
     }

@@ -1,6 +1,6 @@
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
@@ -21,6 +21,7 @@ import { openRosary } from '../living-rosary-ui';
 import { novenaIdFromUrl, syncNovenaReminders } from '../novena-reminders';
 import { openNovena } from '../novena-ui';
 import { onNovenasChanged } from '../novenas';
+import { canAskNotificationPermission, clearPrefsCache, onPushTokenChanged, pushRouteFromUrl, registerPushToken } from '../push';
 import { notificationsSupported, scheduleReminders } from '../reminder';
 import { rosaryIdFromUrl, syncRosaryReminders } from '../rosary-reminders';
 import { removedKeys, type ShowcasePassage } from '../showcase';
@@ -203,6 +204,37 @@ function AdorationSync() {
   return null;
 }
 
+/**
+ * Le jeton de notification de ce téléphone est enregistré pour le compte relié : au lancement, au retour au premier plan, quand
+ * le compte change et quand le téléphone change de jeton. On ne demande l'autorisation qu'une fois, à une personne qui a un
+ * profil (c'est elle qui reçoit des demandes, des abonnés, des nouvelles de groupe) ; sans autorisation, rien n'est enregistré.
+ * Sans compte relié, rien n'est enregistré. Les erreurs (Firebase absent, hors ligne) ne bloquent rien.
+ */
+function PushSync() {
+  const { status, userId, profile } = useAuth();
+  const hasProfile = !!profile;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance l'enregistrement quand on change de compte
+  useEffect(() => {
+    clearPrefsCache();
+    if (!notificationsSupported || status !== 'signedIn') return;
+    const register = (force = false) => registerPushToken({ force }).catch(() => {});
+    const start = async () => {
+      const ask = hasProfile && (await canAskNotificationPermission().catch(() => false));
+      await registerPushToken({ ask, force: true }).catch(() => {});
+    };
+    void start();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void register();
+    });
+    const off = onPushTokenChanged(() => void register(true));
+    return () => {
+      sub.remove();
+      off();
+    };
+  }, [status, userId, hasProfile]);
+  return null;
+}
+
 /** Toucher le rappel d'un rendez-vous ouvre son groupe, celui d'une neuvaine ouvre la neuvaine, celui du Rosaire vivant ouvre le Rosaire, celui d'un créneau d'adoration ouvre la chaîne. Le rappel quotidien n'a pas d'adresse : il ouvre l'app, comme avant. */
 function NotificationLinks() {
   useEffect(() => {
@@ -226,7 +258,13 @@ function NotificationLinks() {
         return;
       }
       const id = groupIdFromUrl(url);
-      if (id) openGroup(id);
+      if (id) {
+        openGroup(id);
+        return;
+      }
+      // Push de la communauté : réglages du groupe (demande, signalement) et profil d'un abonné.
+      const route = pushRouteFromUrl(url);
+      if (route) router.push(route);
     };
     // Le toucher qui a lancé l'app, puis ceux de la session ; on l'efface pour ne pas rouvrir le groupe au prochain montage.
     const last = Notifications.getLastNotificationResponse();
@@ -257,6 +295,7 @@ function ThemedShell() {
         <NovenaSync />
         <RosarySync />
         <AdorationSync />
+        <PushSync />
         <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
@@ -290,6 +329,7 @@ function ThemedShell() {
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
+          <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
           <Stack.Screen name="compte" options={{ title: '' }} />
           <Stack.Screen name="inscription" options={{ headerShown: false }} />
           <Stack.Screen name="profil/index" options={{ title: 'Profil' }} />

@@ -35,7 +35,7 @@ Le chapelet s’affiche en 3D : un chapelet en bois d’olivier posé sur une na
 
 **Mon chemin** (la flamme de la série) : la journée en cours, la semaine, la part de la Bible lue, les plans, le chapelet, l’adoration et les étapes atteintes. On peut y relier une adresse e-mail, Apple ou Google pour retrouver son chemin sur un autre téléphone.
 
-**Réglages** : le thème de l’app (clair, sombre ou celui du téléphone), sa couleur d’accent (la couleur liturgique du jour, calculée sur le téléphone : violet, vert, rouge ou rose, et doré pour le blanc des fêtes ; ou toujours doré), la matière du chapelet (olivier, or, bois de rose, nacre, ébène, lapis), le fond de la lecture (le livre, nuit, parchemin, sépia, aube, encre) et le rappel quotidien.
+**Réglages** : le thème de l’app (clair, sombre ou celui du téléphone), sa couleur d’accent (la couleur liturgique du jour, calculée sur le téléphone : violet, vert, rouge ou rose, et doré pour le blanc des fêtes ; ou toujours doré), la matière du chapelet (olivier, or, bois de rose, nacre, ébène, lapis), le fond de la lecture (le livre, nuit, parchemin, sépia, aube, encre) et les **notifications** (un écran qui liste le rappel quotidien, les rappels de groupe et les notifications de la communauté, chacun avec son interrupteur).
 
 ## Deux fils
 
@@ -155,9 +155,49 @@ En local, `npm run db:local` suffit : il applique les migrations et active la se
 
 Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS : `supabase functions deploy news --no-verify-jwt`. Elle relit les flux au plus toutes les 30 minutes ; l’app garde la dernière liste 30 minutes, et l’affiche encore hors connexion. Le téléphone ne contacte que Supabase : les sites d’actualité ne voient une requête que quand on ouvre un article.
 
+## Notifications push
+
+Les rappels (quotidien, rendez-vous, neuvaines, Rosaire vivant, adoration) sont programmés par le téléphone. Les **notifications de la communauté** viennent du serveur : demande pour rejoindre un groupe et signalement à traiter (responsables), nouvel abonné, et, désactivées par défaut, vie des groupes (nouvelle intention, intention exaucée) et nouveautés (rendez-vous, neuvaine, Rosaire vivant, chaîne d’adoration). Le texte ne contient jamais celui d’une intention : seulement le type d’événement et le nom du groupe ou le @pseudo. Les préférences (écran Réglages > Notifications, et « Notifications de ce groupe » dans la page d’un groupe) sont gardées côté serveur.
+
+Chaîne : trigger SQL (`017_push_notifications.sql`) -> file `push_outbox` -> `push_kick()` appelle l'Edge Function `push-dispatch` par `pg_net` -> API Expo -> Google FCM (Android) / Apple APNs (iOS). Un job `pg_cron` relance chaque minute ce qui est resté en attente, un autre relève les reçus toutes les 15 minutes (`push-receipts`) et un troisième purge chaque jour (file de plus de 7 jours, jetons non revus depuis 60 jours).
+
+**À faire une fois, côté Firebase (Android)**
+
+1. Créer un projet sur console.firebase.google.com (ou réutiliser celui de l'app), y ajouter une app Android de package `com.radaxx.manne`.
+2. Télécharger `google-services.json` et le placer à la racine du projet. Expo indique qu'on peut le versionner (il ne contient que des identifiants publics). Puis ajouter `"googleServicesFile": "./google-services.json"` dans `expo.android` de `app.json` : on ne le fait pas avant d'avoir le fichier, car Expo copie ce fichier au prebuild (à vérifier : un fichier absent doit faire échouer la génération native). Sans ce fichier, `getExpoPushTokenAsync` échoue ; l'app l'attrape et l'écran Notifications affiche « Les notifications de la communauté ne sont pas encore disponibles sur cet appareil ». Si la clé API du fichier est restreinte, autoriser « FCM Registration API » et « Firebase Installations API » et utiliser le SHA-1 de la clé de signature de l'app (celle de Google Play), pas celui de la clé d'upload.
+3. Firebase > Paramètres > Comptes de service > « Générer une nouvelle clé privée » (clé FCM V1, un JSON **secret** : ne pas le versionner), puis `npx eas-cli@latest credentials` > Android > production > Google Service Account > FCM V1 (ou expo.dev > Credentials).
+4. Refaire un build natif (`eas build`) : `app.json` a changé.
+
+**iOS** : compte Apple Developer payant ; lors du premier `eas build`, accepter la création d'une clé APNs (ou `eas credentials`). Les appareils de test doivent être enregistrés avant le build interne.
+
+**Jeton d'accès Expo (facultatif, recommandé)** : expo.dev > Access tokens > créer un jeton, puis activer « Enhanced security for push notifications » du projet. Le jeton se passe à l'Edge Function (`EXPO_ACCESS_TOKEN`).
+
+**Supabase, en production**
+
+```bash
+# 1. Extensions (Dashboard > Database > Extensions, ou la migration 017 les crée si le projet l'autorise) : pg_net, pg_cron.
+supabase db push                    # applique 017 (jamais avant d'avoir relu la migration)
+# 2. Secrets des Edge Functions
+supabase secrets set PUSH_DISPATCH_SECRET="$(openssl rand -hex 32)" EXPO_ACCESS_TOKEN=<jeton expo, facultatif>
+# SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis par Supabase.
+# 3. Déploiement (le secret partagé remplace le JWT : --no-verify-jwt, déjà déclaré dans supabase/config.toml)
+supabase functions deploy push-dispatch push-receipts --no-verify-jwt
+```
+
+Puis, dans le SQL Editor, créer les **deux secrets Vault** lus par la base (jamais écrits dans une migration) :
+
+```sql
+select vault.create_secret('https://<ref>.supabase.co/functions/v1', 'push_functions_url');
+select vault.create_secret('<la même valeur que PUSH_DISPATCH_SECRET>', 'push_dispatch_secret');
+```
+
+Tant que ces deux secrets ou pg_net manquent, rien ne casse : les notifications restent en attente dans `push_outbox` (une notification de plus d'une heure n'est de toute façon plus envoyée). Vérifier les tâches : `select jobname, schedule from cron.job;` (`push-retry`, `push-receipts`, `push-purge`).
+
+**Tester** : sur un téléphone en development build ou release (pas Expo Go, pas un émulateur sans Google Play), compte relié avec profil, autoriser les notifications ; le jeton apparaît dans `push_tokens`. Pour tester l'envoi seul, copier le jeton dans l'outil expo.dev/notifications. En local, `supabase functions serve --env-file <fichier avec PUSH_DISPATCH_SECRET>` puis `curl -X POST -H 'x-push-secret: …' http://127.0.0.1:54321/functions/v1/push-dispatch`.
+
 ## Structure
 
-- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, saint du jour, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, groupes de prière (`groupe/`, `rejoindre/`, `neuvaine/`, `rosaire/`), compte, réglages, rappel
+- `src/app/` : les écrans (Expo Router) — onglets Accueil, Lecture, Prières, Découvrir ; offices, messe, suivre la messe, année liturgique, saint du jour, parcours de l’Avent et de Carême, plans, confession, chapelet, adoration, intentions confiées, groupes de prière (`groupe/`, `rejoindre/`, `neuvaine/`, `rosaire/`), compte, réglages, rappel, notifications
 - `src/home.tsx` : l’écran d’accueil
 - `src/feeds.tsx` : le fil Découvrir (cartes plein écran) et l’écran Lecture
 - `src/chapter.tsx` : la lecture d’un chapitre entier (libre et plans), sélection de versets, J’aime / Garder / Partager
@@ -181,6 +221,7 @@ Pour « L’Église aujourd’hui », déployer la fonction qui lit les flux RSS
 - `src/storage.ts` : progression (marque-page, journal du jour, série, favoris), stockée sur l’appareil ; `useApp()` pour l’état et les actions, `useActions()` pour les seules actions
 - `src/appearance.ts` / `src/theme.tsx` : palettes claire et sombre, chapelet et fonds de lecture ; `useThemed()` pour des styles qui suivent le thème
 - `src/reminder.ts` / `src/lock.ts` : rappel quotidien, verrou biométrique de la confession
+- `src/push.ts` / `src/app/notifications.tsx` / `src/group-mute.tsx` : jeton de notification, préférences (serveur), écran Notifications et interrupteur de groupe
 - `src/dates.ts` / `src/haptics.ts` : dates en français et retours tactiles, partagés par les écrans
 - `src/today.ts` : journée faite (Évangile, lecture, prière), série, reprise, étapes
 - `src/supabase.ts` / `src/auth.ts` / `src/sync.ts` / `src/community.ts` / `src/echoes.tsx` : session anonyme, rattachement du compte, synchro, j’aime, échos et intentions

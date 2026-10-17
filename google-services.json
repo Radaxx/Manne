@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "470607209836",
+    "project_id": "manne-b026d",
+    "storage_bucket": "manne-b026d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:470607209836:android:22ee32e5973e5b0d00bf49",
+        "android_client_info": {
+          "package_name": "com.radaxx.manne"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCquk7julx_zZn_GfucCYivsl3M_VIJMLk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:470607209836:android:bc11213ce7287d7b00bf49",
+        "android_client_info": {
+          "package_name": "com.radaxx.manne.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCquk7julx_zZn_GfucCYivsl3M_VIJMLk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

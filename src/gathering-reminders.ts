@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { type MyGathering, myGatherings, nextOccurrences } from './gatherings';
+import { localReminderAllowed } from './push';
 import { configure, notificationsSupported, reminderPermissionGranted } from './reminder';
 import { supabase } from './supabase';
 
@@ -102,6 +103,13 @@ export function syncGatheringReminders({ profileMissing = false }: { profileMiss
     }
     if (stale()) return;
     if (!linked || profileMissing) {
+      await clearGatheringReminders();
+      return;
+    }
+    // Interrupteur de l'écran Notifications (gardé avec le compte). Hors ligne : on garde ce qui est programmé.
+    const allowed = await localReminderAllowed('local_gatherings');
+    if (allowed === null || stale()) return;
+    if (!allowed) {
       await clearGatheringReminders();
       return;
     }

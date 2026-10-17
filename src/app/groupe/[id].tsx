@@ -33,6 +33,7 @@ import {
   withParticipation,
   withPresence,
 } from '../../gatherings';
+import { GroupNotificationsEntry } from '../../group-mute';
 import { KIND_ICONS, NeedProfile, openRoom, useGroupGate } from '../../group-ui';
 import {
   cancelRequest,
@@ -755,6 +756,7 @@ export default function GroupeScreen() {
                       onPress={() => router.push({ pathname: '/groupe/reglages', params: { id: group.id } })}
                     />
                   ) : null}
+                  <GroupNotificationsEntry groupId={group.id} />
                 </View>
                 <Pressable onPress={leave} style={styles.leave} accessibilityRole="button">
                   <Text style={styles.leaveText}>Quitter le groupe</Text>
