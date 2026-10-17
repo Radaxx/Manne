@@ -1,32 +1,50 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, router, Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { AccountForm, LinkedAccount } from '../account-form';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
-import { useAccount } from '../auth';
 import { TOTAL_CHAPTERS } from '../bible';
 import { SERIF } from '../cards';
 import { planById, planStatus } from '../plans';
 import { SettingsButton } from '../profile-ui';
+import { SectionHead } from '../section';
 import { today, useApp } from '../storage';
-import { Text, TextInput } from '../text';
+import { Text } from '../text';
 import { useThemed } from '../theme';
-import { agoPhrase, bibleShare, bookShares, reachedSteps, resumeTarget, todayTasks, weekStrip } from '../today';
+import { agoPhrase, bibleShare, bookShares, reachedSteps, todayTasks, weekStrip } from '../today';
 
+/** Une ligne qui mène ailleurs : une icône, un titre et une précision. */
+function NavRow({
+  icon,
+  title,
+  hint,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  hint: string;
+  onPress: () => void;
+}) {
+  const { C, styles } = useThemed(stylesFor);
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.navRow, pressed && styles.pressed]} accessibilityRole="button">
+      <View style={styles.navIcon}>
+        <Ionicons name={icon} size={20} color={C.gold} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.navTitle}>{title}</Text>
+        <Text style={styles.navHint}>{hint}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={C.faint} />
+    </Pressable>
+  );
+}
+
+/** Mon chemin : la progression, rien que la progression. Le prénom et le compte se règlent dans le profil. */
 export default function CompteScreen() {
   const { C, styles } = useThemed(stylesFor);
-  const { progress, setDisplayName, seeMilestone, selectBook, goTo } = useApp();
-  const account = useAccount();
-  // Le texte en cours de frappe ; hors saisie, le champ suit toujours le prénom de la progression.
-  const [draft, setDraft] = useState<string | null>(null);
-  const [keyboard, setKeyboard] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const accountY = useRef(0);
-  const revealAccount = useRef(false);
+  const { progress, seeMilestone, selectBook } = useApp();
   const day = today();
   const tasks = todayTasks(progress);
-  const resume = resumeTarget(progress);
   const week = weekStrip(progress);
   const share = bibleShare(progress.chaptersRead);
   const started = bookShares(progress.chaptersRead, progress.translation).filter((book) => book.read > 0);
@@ -35,33 +53,7 @@ export default function CompteScreen() {
     return plan ? [planStatus(plan, state, day, progress.translation)] : [];
   });
   const steps = reachedSteps(progress);
-
-  const showAccount = () => {
-    revealAccount.current = true;
-    scrollRef.current?.scrollTo({ y: Math.max(0, accountY.current - 12), animated: true });
-  };
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (e) => setKeyboard(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvent, () => {
-      setKeyboard(0);
-      revealAccount.current = false;
-    });
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!revealAccount.current || keyboard === 0) return;
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: Math.max(0, accountY.current - 12), animated: true });
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [keyboard]);
+  const { streak, saved, customPrayers } = progress;
 
   const open = (href: string, book?: number) => {
     if (book) selectBook(book);
@@ -72,186 +64,184 @@ export default function CompteScreen() {
   return (
     <>
       <Stack.Screen options={{ headerRight: () => <SettingsButton /> }} />
-      <ScrollView
-        ref={scrollRef}
-        style={styles.root}
-        contentContainerStyle={[styles.scroll, { paddingBottom: 48 + keyboard }]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        nestedScrollEnabled
-      >
-        <Text style={styles.kicker}>Mon chemin</Text>
-        <TextInput
-          value={draft ?? progress.displayName}
-          onChangeText={setDraft}
-          onEndEditing={() => {
-            if (draft !== null) setDisplayName(draft);
-            setDraft(null);
-          }}
-          placeholder="Ton prénom"
-          placeholderTextColor={C.faint}
-          style={styles.name}
-          maxLength={40}
-          autoCorrect={false}
-        />
+      <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
+        <Text style={styles.title}>Mon chemin</Text>
+        <Text style={styles.lead}>Ta progression, jour après jour.</Text>
 
-        <Pressable onPress={() => open(resume.href, resume.book)} style={({ pressed }) => [styles.resume, pressed && styles.pressed]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.resumeKicker}>Reprendre</Text>
-            <Text style={styles.resumeLabel}>{resume.label}</Text>
+        {/* La série et la semaine, en grand : c'est ce qui motive */}
+        <View style={styles.hero}>
+          <View style={styles.heroTop}>
+            <View style={styles.flame}>
+              <Ionicons name="flame" size={28} color={C.gold} />
+            </View>
+            <Text style={styles.streakValue}>
+              {streak} <Text style={styles.streakLabel}>jour{streak > 1 ? 's' : ''} de suite</Text>
+            </Text>
           </View>
-          <Ionicons name="arrow-forward" size={20} color={C.onGold} />
-        </Pressable>
+          <View
+            style={styles.week}
+            accessibilityLabel={`Cette semaine : ${week.filter((cell) => cell.complete).length} jours complets sur 7`}
+          >
+            {week.map((cell) => (
+              <View key={cell.date} style={styles.weekDay}>
+                <View style={[styles.dot, cell.complete && styles.dotOn, cell.isToday && !cell.complete && styles.dotToday]} />
+                <Text style={[styles.weekLetter, cell.isToday && styles.weekToday]}>{cell.letter}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
-        <Text style={styles.section}>Aujourd’hui</Text>
-        {tasks.map((task) => (
-          <Pressable key={task.id} onPress={() => open(task.href)} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-            <Ionicons name={task.done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={task.done ? '#5cc48a' : C.muted} />
-            <Text style={[styles.rowLabel, task.done && styles.rowDone]}>{task.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color={C.faint} />
-          </Pressable>
-        ))}
-
-        <Text style={styles.section}>Cette semaine</Text>
-        <View style={styles.week}>
-          {week.map((cell) => (
-            <View key={cell.date} style={styles.weekDay}>
-              <View style={[styles.dot, cell.complete && styles.dotOn, cell.isToday && styles.dotToday]} />
-              <Text style={[styles.weekLetter, cell.isToday && styles.weekToday]}>{cell.letter}</Text>
+        <SectionHead title="Aujourd’hui" />
+        <View style={styles.group}>
+          {tasks.map((task, i) => (
+            <View key={task.id}>
+              {i > 0 ? <View style={styles.separator} /> : null}
+              <Pressable
+                onPress={() => open(task.href)}
+                style={({ pressed }) => [styles.task, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <Ionicons name={task.done ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={task.done ? C.gold : C.muted} />
+                <Text style={[styles.taskLabel, task.done && styles.taskDone]}>{task.label}</Text>
+                {task.done ? null : <Ionicons name="chevron-forward" size={18} color={C.faint} />}
+              </Pressable>
             </View>
           ))}
         </View>
 
-        <Text style={styles.section}>La Parole</Text>
+        <SectionHead title="La Parole" />
         <View style={styles.card}>
-          <Text style={styles.statValue}>{Math.round(share * 100)} %</Text>
-          <Text style={styles.muted}>
-            {progress.chaptersRead.length} chapitres sur {TOTAL_CHAPTERS}
-          </Text>
+          <View style={styles.shareRow}>
+            <Text style={styles.shareValue}>{Math.round(share * 100)} %</Text>
+            <Text style={styles.muted}>
+              de la Bible lue · {progress.chaptersRead.length} chapitre{progress.chaptersRead.length > 1 ? 's' : ''} sur {TOTAL_CHAPTERS}
+            </Text>
+          </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${Math.round(Math.min(1, share) * 100)}%` }]} />
           </View>
+          {started.length === 0 ? (
+            <Text style={[styles.muted, { marginTop: 14 }]}>Aucun livre commencé. Marc t’attend.</Text>
+          ) : (
+            <View style={styles.books}>
+              {started.map((book) => (
+                <Pressable
+                  key={book.n}
+                  onPress={() => open('/lecture', book.n)}
+                  style={({ pressed }) => [styles.book, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.bookName} numberOfLines={1}>
+                    {book.name}
+                  </Text>
+                  <View style={[styles.track, styles.bookTrack]}>
+                    <View style={[styles.fill, { width: `${Math.round((book.read / book.total) * 100)}%` }]} />
+                  </View>
+                  <Text style={styles.bookCount}>
+                    {book.read}/{book.total}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {plans.map((status) => (
+            <View key={status.plan.id}>
+              <View style={styles.divider} />
+              <Pressable
+                onPress={() => open(status.finished ? '/plans' : `/plan/${status.plan.id}`)}
+                style={({ pressed }) => [styles.plan, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planKicker}>PLAN DE LECTURE</Text>
+                  <Text style={styles.cardTitle}>{status.plan.title}</Text>
+                  <Text style={styles.muted}>
+                    {status.finished
+                      ? 'Plan terminé'
+                      : status.behind > 0
+                        ? `${status.behind} chapitre${status.behind > 1 ? 's' : ''} à rattraper`
+                        : `Jour ${status.day + 1} sur ${status.plan.days}`}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={C.faint} />
+              </Pressable>
+            </View>
+          ))}
         </View>
-        {started.length === 0 ? (
-          <Text style={styles.muted}>Aucun livre commencé. Marc t’attend.</Text>
-        ) : (
-          started.map((book) => (
-            <Pressable
-              key={book.n}
-              onPress={() => open('/lecture', book.n)}
-              style={({ pressed }) => [styles.book, pressed && styles.pressed]}
-            >
-              <Text style={styles.bookName}>{book.name}</Text>
-              <View style={[styles.track, styles.bookTrack]}>
-                <View style={[styles.fill, { width: `${Math.round((book.read / book.total) * 100)}%` }]} />
-              </View>
-              <Text style={styles.bookCount}>
-                {book.read}/{book.total}
-              </Text>
-            </Pressable>
-          ))
-        )}
-        {plans.map((status) => (
-          <Pressable
-            key={status.plan.id}
-            onPress={() => open(status.finished ? '/plans' : `/plan/${status.plan.id}`)}
-            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-          >
-            <Text style={styles.cardTitle}>{status.plan.title}</Text>
-            <Text style={styles.muted}>
-              {status.finished
-                ? 'Plan terminé'
-                : status.behind > 0
-                  ? `${status.behind} chapitre${status.behind > 1 ? 's' : ''} à rattraper`
-                  : `Jour ${status.day + 1}/${status.plan.days}`}
-            </Text>
-          </Pressable>
-        ))}
 
-        <Text style={styles.section}>La prière</Text>
+        <SectionHead title="La prière" />
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{progress.rosary.count}</Text>
-            <Text style={styles.muted}>chapelet{progress.rosary.count > 1 ? 's' : ''}</Text>
+            <Text style={styles.statLabel}>chapelet{progress.rosary.count > 1 ? 's' : ''}</Text>
             <Text style={styles.faint}>{agoPhrase(progress.rosary.last, day)}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{progress.adoration.count}</Text>
-            <Text style={styles.muted}>adoration{progress.adoration.count > 1 ? 's' : ''}</Text>
+            <Text style={styles.statLabel}>adoration{progress.adoration.count > 1 ? 's' : ''}</Text>
             <Text style={styles.faint}>{agoPhrase(progress.adoration.last, day)}</Text>
           </View>
         </View>
-        <Text style={styles.muted}>Dernier office : {agoPhrase(progress.lastOffice, day)}.</Text>
+        <Text style={styles.lastOffice}>Dernier office : {agoPhrase(progress.lastOffice, day)}.</Text>
+
+        <SectionHead title="Confession" />
+        <View style={styles.group}>
+          <NavRow
+            icon="heart-outline"
+            title="Confession"
+            hint={`Dernière absolution : ${agoPhrase(progress.confession.lastConfession, day)}`}
+            onPress={() => open('/confession')}
+          />
+        </View>
 
         {steps.length > 0 && (
           <>
-            <Text style={styles.section}>Étapes</Text>
-            {steps.map((step) => (
-              <Pressable
-                key={step.id}
-                onPress={() => {
-                  seeMilestone(step.id);
-                  open(step.href, step.book);
-                }}
-                style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-              >
-                <Text style={styles.cardTitle}>{step.title}</Text>
-                <Text style={styles.link}>{step.next}</Text>
-              </Pressable>
-            ))}
+            <SectionHead title="Étapes" />
+            <View style={styles.list}>
+              {steps.map((step) => (
+                <Pressable
+                  key={step.id}
+                  onPress={() => {
+                    seeMilestone(step.id);
+                    open(step.href, step.book);
+                  }}
+                  style={({ pressed }) => [styles.step, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.stepIcon}>
+                    <Ionicons name={step.id.startsWith('streak') ? 'flame' : 'book-outline'} size={22} color={C.gold} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{step.title}</Text>
+                    <Text style={styles.stepNext}>{step.next}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </>
         )}
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Passages gardés</Text>
-          {progress.saved.length > 3 && (
-            <Pressable onPress={() => open('/passages')} hitSlop={8}>
-              <Text style={styles.link}>Tout voir</Text>
-            </Pressable>
-          )}
-        </View>
-        {progress.saved.length === 0 ? (
-          <Text style={styles.muted}>Garde un verset pendant la lecture : il reviendra ici.</Text>
-        ) : (
-          progress.saved.slice(0, 3).map((passage) => (
-            <Pressable
-              key={passage.id}
-              onPress={() => {
-                goTo(passage.book, passage.chapter);
-                open('/lecture');
-              }}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            >
-              <Text style={styles.link}>{passage.reference}</Text>
-              <Text style={styles.passage} numberOfLines={2}>
-                {passage.text}
-              </Text>
-            </Pressable>
-          ))
-        )}
-
-        <Text style={styles.section}>Confession</Text>
-        <Pressable onPress={() => open('/confession')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-          <Ionicons name="heart-outline" size={22} color={C.gold} />
-          <Text style={styles.rowLabel}>Dernière absolution : {agoPhrase(progress.confession.lastConfession, day)}</Text>
-          <Ionicons name="chevron-forward" size={18} color={C.faint} />
-        </Pressable>
-
-        <View
-          onLayout={(e) => {
-            accountY.current = e.nativeEvent.layout.y;
-          }}
-        >
-          <Text style={styles.section}>Compte</Text>
-          {!account.configured ? (
-            <Text style={styles.muted}>
-              La synchro se réveille quand le projet Supabase est configuré. Ton chemin reste sur ce téléphone.
-            </Text>
-          ) : account.anonymous ? (
-            <AccountForm account={account} onFieldFocus={showAccount} />
-          ) : (
-            <LinkedAccount account={account} />
-          )}
+        <SectionHead title="Ma bibliothèque" />
+        <View style={styles.group}>
+          <NavRow
+            icon="bookmark-outline"
+            title="Passages gardés"
+            hint={saved.length === 0 ? 'Garde un verset pendant la lecture' : `${saved.length} verset${saved.length > 1 ? 's' : ''}`}
+            onPress={() => open('/passages')}
+          />
+          <View style={styles.separator} />
+          <NavRow
+            icon="create-outline"
+            title="Mes prières"
+            hint={
+              customPrayers.length === 0
+                ? 'Écris tes propres mots'
+                : `${customPrayers.length} prière${customPrayers.length > 1 ? 's' : ''} écrite${customPrayers.length > 1 ? 's' : ''}`
+            }
+            onPress={() => open('/prieres')}
+          />
+          <View style={styles.separator} />
+          <NavRow icon="heart-circle-outline" title="Mes intentions" hint="Celles que tu as confiées" onPress={() => open('/intentions')} />
         </View>
       </ScrollView>
     </>
@@ -261,59 +251,62 @@ export default function CompteScreen() {
 const stylesFor = (C: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    scroll: { padding: 20 },
-    kicker: { color: C.gold, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
-    name: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 42, marginTop: 4, padding: 0 },
-    resume: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      backgroundColor: C.gold,
-      borderRadius: 16,
-      padding: 16,
-      marginTop: 18,
-    },
-    resumeKicker: { color: C.onGold, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7 },
-    resumeLabel: { color: C.onGold, fontSize: 18, fontWeight: '800', marginTop: 2 },
-    section: { color: C.text, fontSize: 19, fontWeight: '800', marginTop: 28, marginBottom: 10 },
-    sectionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
-      marginTop: 28,
-      marginBottom: 10,
-    },
-    sectionTitle: { color: C.text, fontSize: 19, fontWeight: '800', flexShrink: 1 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 8 },
-    rowLabel: { color: C.text, fontSize: 16, fontWeight: '600', flex: 1 },
-    rowDone: { color: C.muted },
+    scroll: { padding: 20, paddingBottom: 48 },
+    title: { color: C.text, fontFamily: SERIF, fontSize: 34, lineHeight: 40, fontWeight: '700' },
+    lead: { color: C.muted, fontSize: 15, lineHeight: 22, marginTop: 4 },
+    hero: { backgroundColor: C.card, borderRadius: 24, borderWidth: 1, borderColor: C.line, padding: 20, marginTop: 20, gap: 18 },
+    heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    flame: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    streakValue: { color: C.text, fontFamily: SERIF, fontSize: 44, lineHeight: 48, fontWeight: '700', flexShrink: 1 },
+    streakLabel: { color: C.muted, fontFamily: undefined, fontSize: 16, fontWeight: '700' },
     week: { flexDirection: 'row', justifyContent: 'space-between' },
     weekDay: { alignItems: 'center', gap: 6 },
-    dot: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
-    dotOn: { backgroundColor: C.gold, borderColor: C.gold },
-    dotToday: { borderColor: C.gold, borderWidth: 2 },
+    dot: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.cardHi },
+    dotOn: { backgroundColor: C.gold },
+    dotToday: { backgroundColor: 'transparent', borderWidth: 2, borderColor: C.gold },
     weekLetter: { color: C.muted, fontSize: 12, fontWeight: '700' },
-    weekToday: { color: C.text },
-    card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, marginBottom: 10 },
-    cardTitle: { color: C.text, fontSize: 17, fontWeight: '700' },
-    statValue: { color: C.text, fontSize: 28, fontWeight: '800' },
-    muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
-    faint: { color: C.faint, fontSize: 12, marginTop: 2 },
-    track: { height: 4, borderRadius: 2, backgroundColor: C.track, overflow: 'hidden', marginTop: 8 },
-    fill: { height: '100%', backgroundColor: C.gold },
-    book: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-    bookName: { color: C.text, fontSize: 14, fontWeight: '600', width: 118 },
+    weekToday: { color: C.gold, fontWeight: '800' },
+    group: { backgroundColor: C.card, borderRadius: 20 },
+    separator: { height: StyleSheet.hairlineWidth, backgroundColor: C.line, marginHorizontal: 16 },
+    task: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingHorizontal: 16, paddingVertical: 10 },
+    taskLabel: { color: C.text, fontSize: 16, fontWeight: '600', flex: 1 },
+    taskDone: { color: C.muted, textDecorationLine: 'line-through' },
+    card: { backgroundColor: C.card, borderRadius: 20, padding: 20 },
+    shareRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' },
+    shareValue: { color: C.gold, fontFamily: SERIF, fontSize: 40, lineHeight: 44, fontWeight: '700' },
+    track: { height: 6, borderRadius: 3, backgroundColor: C.track, overflow: 'hidden', marginTop: 10 },
+    fill: { height: '100%', minWidth: 6, borderRadius: 3, backgroundColor: C.gold },
+    books: { marginTop: 8 },
+    book: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+    bookName: { color: C.text, fontSize: 15, fontWeight: '700', width: 92 },
     bookTrack: { flex: 1, marginTop: 0 },
-    bookCount: { color: C.faint, fontSize: 12, width: 48, textAlign: 'right' },
-    stats: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-    stat: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14 },
-    link: { color: C.gold, fontSize: 14, fontWeight: '700' },
-    passage: { color: C.muted, fontFamily: SERIF, fontSize: 15, lineHeight: 22 },
-    secondary: { borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: C.line },
-    secondaryText: { color: C.text, fontWeight: '700', fontSize: 15 },
-    quiet: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
-    danger: { color: C.red, fontSize: 14, fontWeight: '700' },
-    error: { color: C.red, fontSize: 14, marginTop: 8 },
+    bookCount: { color: C.muted, fontSize: 13, width: 48, textAlign: 'right' },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: C.line, marginTop: 16, marginBottom: 4 },
+    plan: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12 },
+    planKicker: { color: C.faint, fontSize: 11, letterSpacing: 1.5, fontWeight: '800' },
+    cardTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
+    stats: { flexDirection: 'row', gap: 10 },
+    stat: { flex: 1, backgroundColor: C.card, borderRadius: 20, padding: 16 },
+    statValue: { color: C.text, fontFamily: SERIF, fontSize: 36, lineHeight: 40, fontWeight: '700' },
+    statLabel: { color: C.text, fontSize: 15, fontWeight: '700', marginTop: 2 },
+    faint: { color: C.muted, fontSize: 13, marginTop: 2 },
+    lastOffice: { color: C.muted, fontSize: 14, marginTop: 12 },
+    list: { gap: 10 },
+    step: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 20, padding: 16 },
+    stepIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    stepNext: { color: C.gold, fontSize: 14, fontWeight: '600', marginTop: 2 },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      minHeight: 64,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: 'transparent',
+    },
+    navIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    navTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    navHint: { color: C.muted, fontSize: 13, lineHeight: 18 },
     pressed: { opacity: 0.75 },
   });

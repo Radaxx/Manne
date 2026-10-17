@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-na
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { SERIF } from '../../cards';
 import { haptic } from '../../haptics';
 import { useReportSheet } from '../../moderation-ui';
 import { follow, getProfile, type OtherProfile, unfollow } from '../../profile';
@@ -151,13 +152,16 @@ export default function AutreProfil() {
           </View>
         </View>
       ) : (
-        <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit ou que vous êtes dans un même groupe.</Text>
+        <View style={styles.closedCard}>
+          <View style={styles.lock}>
+            <Ionicons name="lock-closed-outline" size={22} color={C.gold} />
+          </View>
+          <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit ou que vous êtes dans un même groupe.</Text>
+        </View>
       )}
 
-      {other.visible ? <ShowcaseSections showcase={showcase} mine={false} handle={other.handle} /> : null}
-
       {mine ? (
-        <>
+        <View style={styles.follow}>
           <Button
             label={other.iFollow ? 'Ne plus suivre' : 'Suivre'}
             kind={other.iFollow ? 'secondary' : 'primary'}
@@ -165,13 +169,15 @@ export default function AutreProfil() {
             busy={busy}
           />
           <Text style={styles.note}>Le suivre lui ouvre ton profil.</Text>
-        </>
+        </View>
       ) : (
         <View style={styles.card}>
           <Text style={styles.muted}>Crée ton profil pour suivre des personnes.</Text>
           <Button label="Créer mon profil" kind="secondary" onPress={() => router.push('/inscription/pseudo')} />
         </View>
       )}
+      {other.visible ? <ShowcaseSections showcase={showcase} mine={false} handle={other.handle} /> : null}
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {note ? <Text style={styles.note}>{note}</Text> : null}
       <Button label={`Signaler @${other.handle}`} kind="quiet" onPress={report} />
@@ -186,13 +192,25 @@ const stylesFor = (C: Palette) =>
     root: { flex: 1, backgroundColor: C.bg },
     scroll: { padding: 20, paddingBottom: 48, gap: 6 },
     identity: { alignItems: 'center', gap: 4, marginBottom: 12 },
-    name: { color: C.text, fontSize: 26, fontWeight: '800', marginTop: 8, textAlign: 'center' },
-    bio: { color: C.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
+    name: { color: C.text, fontFamily: SERIF, fontSize: 30, lineHeight: 36, fontWeight: '700', marginTop: 8, textAlign: 'center' },
+    bio: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 6 },
     parish: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-    counts: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-    count: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, alignItems: 'center' },
-    countValue: { color: C.text, fontSize: 24, fontWeight: '800' },
-    closed: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginVertical: 8 },
+    counts: { flexDirection: 'row', gap: 10 },
+    count: { flex: 1, height: 72, backgroundColor: C.card, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    countValue: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 30, fontWeight: '700' },
+    closedCard: {
+      backgroundColor: C.card,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: C.line,
+      padding: 20,
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 12,
+    },
+    lock: { width: 48, height: 48, borderRadius: 24, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    closed: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+    follow: { marginTop: 14, marginBottom: 6 },
     note: { color: C.faint, fontSize: 13, textAlign: 'center', marginTop: 8 },
     card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, marginTop: 8 },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
