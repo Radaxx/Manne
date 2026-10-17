@@ -1,42 +1,41 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { type ReactNode, useCallback, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinkedAccount } from '../../account-form';
 import type { Palette } from '../../appearance';
 import { useAccount, useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { SERIF } from '../../cards';
 import { MASKED_NOTE } from '../../moderation';
 import { Button, SettingsButton } from '../../profile-ui';
 import { SuspensionBanner, useMySuspension } from '../../publisher-moderation-ui';
+import { SectionHead } from '../../section';
 import { ShowcaseSections } from '../../showcase-sections';
 import { useMyShowcase } from '../../showcase-store';
 import { useApp } from '../../storage';
-import { Text } from '../../text';
+import { Text, TextInput } from '../../text';
 import { useThemed } from '../../theme';
+import { weekStrip } from '../../today';
 
 const days = (n: number) => (n === 0 ? 'Pas encore de jours de suite' : `${n} jour${n > 1 ? 's' : ''} de suite`);
 
 export default function ProfilScreen() {
   const { C, styles } = useThemed(stylesFor);
-  const { progress } = useApp();
+  const { progress, setDisplayName } = useApp();
   const { configured, status, profile, profileLoaded, profileOffline, refreshProfile } = useAuth();
   const account = useAccount();
   const mine = useMyShowcase();
   const suspension = useMySuspension(status === 'signedIn');
+  // Le prénom en cours de frappe ; hors saisie, le champ suit toujours le prénom de la progression.
+  const [draft, setDraft] = useState<string | null>(null);
+  const week = weekStrip(progress);
 
   // Les compteurs bougent quand on revient d'une liste ou du profil d'un autre.
   useFocusEffect(
     useCallback(() => {
       void refreshProfile();
     }, [refreshProfile]),
-  );
-
-  const streak = (
-    <View style={styles.streak}>
-      <Ionicons name="flame" size={18} color={C.gold} />
-      <Text style={styles.streakText}>{days(progress.streak)}</Text>
-    </View>
   );
 
   let body: ReactNode;
@@ -103,9 +102,9 @@ export default function ProfilScreen() {
   }
 
   return (
-    <>
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
       <Stack.Screen options={{ headerRight: () => <SettingsButton /> }} />
-      <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <SuspensionBanner suspension={suspension} />
         {status === 'signedIn' && profile ? null : (
           <View style={styles.identity}>
@@ -113,48 +112,118 @@ export default function ProfilScreen() {
           </View>
         )}
         {body}
-        {streak}
+
+        {/* La porte d'entrée de la page de progression */}
+        <SectionHead title="Mon chemin" />
+        <Pressable
+          onPress={() => router.push('/compte')}
+          style={({ pressed }) => [styles.chemin, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`Mon chemin, ${days(progress.streak)}`}
+        >
+          <View style={styles.cheminHead}>
+            <View style={styles.flame}>
+              <Ionicons name="flame" size={22} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cheminTitle}>{days(progress.streak)}</Text>
+              <Text style={styles.muted}>Ta progression, ta Bible, tes étapes</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </View>
+          <View style={styles.bars}>
+            {week.map((cell) => (
+              <View
+                key={cell.date}
+                style={[styles.bar, cell.complete && styles.barOn, cell.isToday && !cell.complete && styles.barToday]}
+              />
+            ))}
+          </View>
+        </Pressable>
+
         {profile && status === 'signedIn' && mine.showcase ? <ShowcaseSections showcase={mine.showcase} mine /> : null}
-        {profile && status === 'signedIn' ? <Button label="Modifier mon profil" onPress={() => router.push('/profil/modifier')} /> : null}
-        <Button label="Mon chemin" kind="secondary" onPress={() => router.push('/compte')} />
+
+        <SectionHead title="Moi" />
+        <View style={styles.group}>
+          <View style={styles.field}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Prénom</Text>
+              <TextInput
+                value={draft ?? progress.displayName}
+                onChangeText={setDraft}
+                onEndEditing={() => {
+                  if (draft !== null) setDisplayName(draft);
+                  setDraft(null);
+                }}
+                placeholder="Ton prénom"
+                placeholderTextColor={C.faint}
+                style={styles.fieldInput}
+                maxLength={40}
+                autoCorrect={false}
+              />
+            </View>
+            <Text style={styles.fieldHint}>Pour te saluer sur l’Accueil</Text>
+          </View>
+          {configured && status !== 'signedIn' ? (
+            <>
+              <View style={styles.separator} />
+              <Pressable
+                onPress={() => router.push('/inscription')}
+                style={({ pressed }) => [styles.field, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Compte</Text>
+                  <Text style={styles.fieldValue}>Pas encore relié</Text>
+                </View>
+                <Text style={styles.fieldHint}>Retrouve ton chemin ailleurs</Text>
+                <Ionicons name="chevron-forward" size={18} color={C.faint} />
+              </Pressable>
+            </>
+          ) : null}
+        </View>
+        {status === 'signedIn' ? <LinkedAccount account={account} /> : null}
+
         {profile && status === 'signedIn' ? (
-          <Button label="Personnes bloquées" kind="quiet" onPress={() => router.push('/profil/bloques')} />
-        ) : null}
-        {status === 'signedIn' ? (
-          <>
-            <Text style={styles.section}>Compte</Text>
-            <LinkedAccount account={account} />
-          </>
+          <View style={{ marginTop: 18 }}>
+            <Button label="Modifier mon profil" onPress={() => router.push('/profil/modifier')} />
+            <Button label="Personnes bloquées" kind="quiet" onPress={() => router.push('/profil/bloques')} />
+          </View>
         ) : null}
       </ScrollView>
-    </>
+    </KeyboardAvoidingView>
   );
 }
 
 const stylesFor = (C: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    scroll: { padding: 20, paddingBottom: 48, gap: 6 },
+    scroll: { padding: 20, paddingBottom: 48 },
     identity: { alignItems: 'center', gap: 4, marginBottom: 12 },
-    name: { color: C.text, fontSize: 26, fontWeight: '800', marginTop: 8, textAlign: 'center' },
-    bio: { color: C.text, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
+    name: { color: C.text, fontFamily: SERIF, fontSize: 30, lineHeight: 36, fontWeight: '700', marginTop: 8, textAlign: 'center' },
+    bio: { color: C.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 6 },
     parish: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-    counts: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-    count: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, alignItems: 'center' },
-    countValue: { color: C.text, fontSize: 24, fontWeight: '800' },
-    streak: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      backgroundColor: C.card,
-      borderRadius: 14,
-      padding: 14,
-    },
-    streakText: { color: C.text, fontSize: 16, fontWeight: '700' },
+    counts: { flexDirection: 'row', gap: 10, marginTop: 6 },
+    count: { flex: 1, height: 72, backgroundColor: C.card, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    countValue: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 30, fontWeight: '700' },
+    chemin: { backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line, padding: 18, gap: 14 },
+    cheminHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    flame: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    cheminTitle: { color: C.text, fontSize: 17, fontWeight: '800' },
+    bars: { flexDirection: 'row', gap: 8 },
+    bar: { flex: 1, height: 8, borderRadius: 4, backgroundColor: C.track },
+    barOn: { backgroundColor: C.gold },
+    barToday: { backgroundColor: 'transparent', borderWidth: 2, borderColor: C.gold },
+    group: { backgroundColor: C.card, borderRadius: 20, marginBottom: 10 },
+    field: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingHorizontal: 16, paddingVertical: 10 },
+    fieldLabel: { color: C.muted, fontSize: 13 },
+    fieldValue: { color: C.text, fontSize: 16, fontWeight: '700' },
+    fieldInput: { color: C.text, fontSize: 16, fontWeight: '700', padding: 0 },
+    fieldHint: { color: C.faint, fontSize: 13, lineHeight: 17, maxWidth: 120, textAlign: 'right' },
+    separator: { height: StyleSheet.hairlineWidth, backgroundColor: C.line, marginHorizontal: 16 },
+    pressed: { opacity: 0.75 },
     card: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 6, marginBottom: 10 },
     cardTitle: { color: C.text, fontSize: 18, fontWeight: '700' },
-    section: { color: C.text, fontSize: 19, fontWeight: '800', marginTop: 22, marginBottom: 4 },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
     masked: { color: C.muted, fontSize: 13, lineHeight: 18, fontStyle: 'italic', textAlign: 'center', marginTop: 10 },
   });

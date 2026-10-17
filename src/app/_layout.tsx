@@ -290,7 +290,7 @@ function ThemedShell() {
           <Stack.Screen name="plans" options={{ title: 'Plans de lecture', presentation: 'modal' }} />
           <Stack.Screen name="intentions" options={{ title: 'Intentions confiées' }} />
           <Stack.Screen name="rappel" options={{ title: 'Rappel quotidien', presentation: 'modal' }} />
-          <Stack.Screen name="compte" options={{ title: 'Compte' }} />
+          <Stack.Screen name="compte" options={{ title: '' }} />
           <Stack.Screen name="inscription" options={{ headerShown: false }} />
           <Stack.Screen name="profil/index" options={{ title: 'Profil' }} />
           <Stack.Screen name="profil/[handle]" options={{ title: 'Profil' }} />
