@@ -84,6 +84,7 @@ describe('lecteurs de lignes', () => {
       parish: null,
       followers: 3,
       following: 2,
+      flagged: false,
     });
     expect(readProfile({ handle: 'paul', followers: 'x', following_count: 2 })).toBeNull();
     expect(readProfile({ handle: 'paul', followers: -1, following_count: 2 })).toBeNull();

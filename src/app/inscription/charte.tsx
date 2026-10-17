@@ -24,6 +24,8 @@ const CHARTER = [
   'Pas de prosélytisme agressif, pas de contenu blessant.',
   'Un message qui te blesse : signale-le plutôt que d’y répondre.',
   'Les messages signalés peuvent être retirés.',
+  'Un filtre refuse certains mots (insultes, injures) dans les textes que tu publies.',
+  'Le propriétaire ou un modérateur d’un groupe peut exclure une personne et l’empêcher d’y revenir.',
 ];
 
 function Check({ label, checked, onPress }: { label: string; checked: boolean; onPress: () => void }) {

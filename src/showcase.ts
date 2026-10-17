@@ -1,3 +1,4 @@
+import type { ReportReason } from './moderation';
 import { asRecord, call, readRows } from './profile';
 
 // Vitrine du profil : les passages, prières et intentions qu'on choisit d'afficher, et le blocage.
@@ -11,7 +12,8 @@ export const PRAYER_BODY_MAX = 4000;
 
 /** Un passage : livre, chapitre, premier et dernier verset. */
 export type ShowcasePassage = { book: number; chapter: number; from: number; to: number };
-export type ShowcasePrayer = { id: string; title: string; text: string };
+/** `hidden` : la prière est masquée pour les autres après plusieurs signalements (le serveur ne l'envoie qu'à son propriétaire). */
+export type ShowcasePrayer = { id: string; title: string; text: string; hidden?: boolean };
 export type ShowcaseIntention = {
   id: string;
   body: string;
@@ -64,7 +66,7 @@ export function readPrayerRow(row: unknown): ShowcasePrayer | null {
   if (typeof id !== 'string' || !id || id.length > 64) return null;
   if (typeof title !== 'string' || !title.trim() || title.length > PRAYER_TITLE_MAX) return null;
   if (typeof body !== 'string' || !body.trim() || body.length > PRAYER_BODY_MAX) return null;
-  return { id, title, text: body };
+  return record.hidden === true ? { id, title, text: body, hidden: true } : { id, title, text: body };
 }
 
 export function readIntentionRow(row: unknown): ShowcaseIntention | null {
@@ -146,4 +148,18 @@ export async function listBlocked(): Promise<{ ok: true; handles: string[] } | {
       return record && typeof record.handle === 'string' && record.handle ? record.handle : null;
     }),
   };
+}
+
+/** Signale le profil d'un pseudo exact (bio et paroisse). */
+export async function reportProfile(handle: string, reason: ReportReason) {
+  return call('report_profile', { p_handle: handle.trim().replace(/^@+/, '').toLowerCase(), p_reason: reason });
+}
+
+/** Signale une prière affichée sur le profil d'un pseudo exact. */
+export async function reportProfilePrayer(handle: string, prayerId: string, reason: ReportReason) {
+  return call('report_profile_prayer', {
+    p_handle: handle.trim().replace(/^@+/, '').toLowerCase(),
+    p_prayer_id: prayerId,
+    p_reason: reason,
+  });
 }

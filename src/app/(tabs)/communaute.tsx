@@ -15,6 +15,7 @@ import { LivingRosaryRows, useMyRosaries } from '../../living-rosary-ui';
 import { RunningNovenaRows, useRunningNovenas } from '../../novena-ui';
 import { type FoundProfile, findProfile, listFollowing, normalizeHandle, type ProfileCard } from '../../profile';
 import { Button, openProfile, PersonRow } from '../../profile-ui';
+import { SuspensionBanner, useMySuspension } from '../../publisher-moderation-ui';
 import { SectionHead } from '../../section';
 import { Text, TextInput } from '../../text';
 import { useThemed } from '../../theme';
@@ -38,6 +39,7 @@ export default function CommunauteScreen() {
   const [groupResults, setGroupResults] = useState<GroupCard[] | undefined>(undefined);
   const inputRef = useRef<TextInput>(null);
   const hasProfile = status === 'signedIn' && !!profile;
+  const suspension = useMySuspension(status === 'signedIn');
   // Mes prochains rendez-vous (inscriptions) : les 3 plus proches, section masquée s'il n'y en a pas.
   const upcoming = useUpcomingGatherings(hasProfile);
   // Mes neuvaines de groupe en cours aujourd'hui : section masquée s'il n'y en a pas.
@@ -135,6 +137,8 @@ export default function CommunauteScreen() {
               <Avatar handle={profile?.handle} size={36} />
             </Pressable>
           </View>
+
+          <SuspensionBanner suspension={suspension} />
 
           {!configured ? (
             <Text style={styles.muted}>La communauté n’est pas disponible pour le moment.</Text>

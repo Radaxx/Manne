@@ -7,8 +7,18 @@ import { clampChapter, loadPassage, passageLabel } from './bible';
 import { SERIF } from './cards';
 import { setCarry } from './community';
 import { haptic } from './haptics';
+import { MASKED_NOTE } from './moderation';
+import { useReportSheet } from './moderation-ui';
 import { PrayerText } from './prayers';
-import { excerpt, passageKey, type Showcase, type ShowcaseIntention, type ShowcasePassage, type ShowcasePrayer } from './showcase';
+import {
+  excerpt,
+  passageKey,
+  reportProfilePrayer,
+  type Showcase,
+  type ShowcaseIntention,
+  type ShowcasePassage,
+  type ShowcasePrayer,
+} from './showcase';
 import { setIntentionShown, setPassageShown, setPrayerShown } from './showcase-store';
 import { useApp } from './storage';
 import { Text } from './text';
@@ -20,11 +30,28 @@ const carried = (n: number) => (n === 0 ? 'Personne ne la porte encore' : n === 
  * Les passages, prières et intentions affichés sur un profil.
  * `mine` : c'est ma vitrine (toutes les sections, une aide quand elles sont vides, « Retirer du profil »).
  * Sinon : celle d'une personne qui me suit, sans section vide, avec « Je la porte » sur les intentions.
+ * `handle` : le pseudo de la personne dont c'est la vitrine ; il permet de signaler une de ses prières.
  */
-export function ShowcaseSections({ showcase, mine }: { showcase: Showcase; mine: boolean }) {
+export function ShowcaseSections({ showcase, mine, handle }: { showcase: Showcase; mine: boolean; handle?: string }) {
   const { styles } = useThemed(stylesFor);
+  const { ask, sheet } = useReportSheet();
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const fail = (result: { ok: boolean; message?: string }) => setError(result.ok ? null : (result.message ?? null));
+  const reportPrayer = (prayer: ShowcasePrayer) =>
+    ask({
+      title: 'Signaler cette prière ?',
+      message: 'Trois signalements la masquent.',
+      send: (reason) => {
+        setError(null);
+        setNote(null);
+        if (!handle) return;
+        void reportProfilePrayer(handle, prayer.id, reason).then((result) => {
+          if (!result.ok) setError(result.message);
+          else setNote('Merci, ton signalement est envoyé.');
+        });
+      },
+    });
 
   const passages = showcase.passages;
   const prayers = showcase.prayers;
@@ -64,7 +91,12 @@ export function ShowcaseSections({ showcase, mine }: { showcase: Showcase; mine:
             </Text>
           ) : null}
           {prayers.map((prayer) => (
-            <PrayerCard key={prayer.id} prayer={prayer} onRemove={mine ? () => void setPrayerShown(prayer, false).then(fail) : undefined} />
+            <PrayerCard
+              key={prayer.id}
+              prayer={prayer}
+              onRemove={mine ? () => void setPrayerShown(prayer, false).then(fail) : undefined}
+              onReport={!mine && handle ? () => reportPrayer(prayer) : undefined}
+            />
           ))}
         </>
       ) : null}
@@ -87,6 +119,8 @@ export function ShowcaseSections({ showcase, mine }: { showcase: Showcase; mine:
         </>
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {note ? <Text style={styles.help}>{note}</Text> : null}
+      {sheet}
     </View>
   );
 }
@@ -115,7 +149,7 @@ function PassageCard({ passage, onRemove }: { passage: ShowcasePassage; onRemove
   );
 }
 
-function PrayerCard({ prayer, onRemove }: { prayer: ShowcasePrayer; onRemove?: () => void }) {
+function PrayerCard({ prayer, onRemove, onReport }: { prayer: ShowcasePrayer; onRemove?: () => void; onReport?: () => void }) {
   const { C, styles } = useThemed(stylesFor);
   const [open, setOpen] = useState(false);
   return (
@@ -137,7 +171,11 @@ function PrayerCard({ prayer, onRemove }: { prayer: ShowcasePrayer; onRemove?: (
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={C.faint} />
       </Pressable>
       {open ? <PrayerText text={prayer.text} style={styles.prayerText} /> : null}
+      {prayer.hidden ? (
+        <Text style={styles.masked}>{MASKED_NOTE}. Si tu modifies cette prière, elle redevient visible pour les autres.</Text>
+      ) : null}
       {onRemove ? <RemoveLink onPress={onRemove} /> : null}
+      {onReport ? <ReportLink onPress={onReport} /> : null}
     </View>
   );
 }
@@ -190,6 +228,15 @@ function IntentionCard({
   );
 }
 
+function ReportLink({ onPress }: { onPress: () => void }) {
+  const { styles } = useThemed(stylesFor);
+  return (
+    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel="Signaler cette prière" style={styles.remove}>
+      <Text style={styles.removeText}>Signaler</Text>
+    </Pressable>
+  );
+}
+
 function RemoveLink({ onPress }: { onPress: () => void }) {
   const { styles } = useThemed(stylesFor);
   return (
@@ -230,6 +277,7 @@ const stylesFor = (C: Palette) =>
     carryOn: { backgroundColor: C.gold },
     carryText: { color: C.gold, fontWeight: '700', fontSize: 14 },
     carryTextOn: { color: C.onGold },
+    masked: { color: C.muted, fontSize: 13, lineHeight: 18, fontStyle: 'italic' },
     remove: { alignSelf: 'flex-start' },
     removeText: { color: C.faint, fontSize: 13, fontWeight: '700' },
   });

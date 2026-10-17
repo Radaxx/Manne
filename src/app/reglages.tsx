@@ -3,8 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { ACCENT_OPTIONS, type Palette, READING_THEMES, ROSARY_COLORS, SCHEME_OPTIONS } from '../appearance';
+import { useAuth } from '../auth';
 import { SERIF } from '../cards';
 import { liturgicalDay, SEASONS } from '../liturgical-year';
+import { pendingLabel } from '../publisher-moderation';
+import { useModeratorStatus } from '../publisher-moderation-ui';
 import { formatTime } from '../reminder';
 import { TranslationPicker } from '../sheets';
 import { today, useApp } from '../storage';
@@ -23,6 +26,9 @@ export default function ReglagesScreen() {
   const { progress, setAppearance, setTranslation, setCultureCalendar } = useApp();
   const { appearance, reminder } = progress;
   const { C, styles } = useThemed(stylesFor);
+  const { status } = useAuth();
+  // L'entrée « Modération » n'existe que pour un modérateur de l'éditeur.
+  const { moderator, pending } = useModeratorStatus(status === 'signedIn');
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
@@ -155,6 +161,20 @@ export default function ReglagesScreen() {
         </View>
         <Ionicons name="chevron-forward" size={18} color={C.faint} />
       </Pressable>
+
+      {moderator ? (
+        <>
+          <Text style={styles.section}>Modération</Text>
+          <Pressable onPress={() => router.push('/moderation')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={C.gold} />
+            <View style={styles.rowBody}>
+              <Text style={styles.rowLabel}>Modération</Text>
+              <Text style={styles.rowHint}>{pendingLabel(pending)}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.faint} />
+          </Pressable>
+        </>
+      ) : null}
     </ScrollView>
   );
 }

@@ -2,18 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
@@ -21,6 +10,7 @@ import { markPresent, prayerKindLabel } from '../../gatherings';
 import { NeedProfile, useGroupGate } from '../../group-ui';
 import { firstParam, INTENTION_MAX, reportGroupIntention, setGroupCarry } from '../../groups';
 import { haptic } from '../../haptics';
+import { useReportSheet } from '../../moderation-ui';
 import { Button, openProfile } from '../../profile-ui';
 import {
   AMEN_SHOWN_MS,
@@ -61,6 +51,7 @@ export default function SalleScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
   const lastAmen = useRef(0);
+  const { ask, sheet } = useReportSheet();
 
   // Une horloge à la seconde : minuteur et délai de l'« Amen ».
   useEffect(() => {
@@ -179,20 +170,16 @@ export default function SalleScreen() {
     });
   };
 
-  const report = (itemId: string) => {
-    Alert.alert('Signaler cette intention ?', 'Trois signalements la masquent.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Signaler',
-        style: 'destructive',
-        onPress: () => {
-          void reportGroupIntention(itemId).then((result) => {
-            if (!result.ok) setNotice(result.message);
-          });
-        },
+  const report = (itemId: string) =>
+    ask({
+      title: 'Signaler cette intention ?',
+      message: 'Trois signalements la masquent.',
+      send: (reason) => {
+        void reportGroupIntention(itemId, reason).then((result) => {
+          if (!result.ok) setNotice(result.message);
+        });
       },
-    ]);
-  };
+    });
 
   const amenNow = () => {
     if (sendAmen()) {
@@ -315,6 +302,7 @@ export default function SalleScreen() {
           }
         />
       ) : null}
+      {sheet}
     </KeyboardAvoidingView>
   );
 }

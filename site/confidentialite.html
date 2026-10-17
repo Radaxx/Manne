@@ -62,7 +62,7 @@
 
   <p class="kicker">Manne</p>
   <h1>Politique de confidentialité</h1>
-  <p class="muted">Dernière mise à jour : 16 octobre 2026.</p>
+  <p class="muted">Dernière mise à jour : 17 octobre 2026.</p>
 
   <p>Manne est une application de lecture de la Bible et de prière catholique. Cette page dit, sans détour, ce que l’application garde sur ton téléphone, ce qu’elle envoie à nos serveurs, qui peut le voir, et comment tout effacer.</p>
 
@@ -75,6 +75,7 @@
       <li>Le reste de ton chemin (lecture, prières, plans, réglages…) est <strong>synchronisé</strong> avec notre base de données hébergée chez Supabase, pour que tu le retrouves sur un autre téléphone.</li>
       <li>Tu commences avec une session <strong>anonyme</strong>. Une adresse e-mail, Apple ou Google ne sont demandés que si tu relies un compte.</li>
       <li>Ce que tu publies (écho, intention, profil, groupe) n’est visible que de la façon décrite plus bas, et tu peux le retirer.</li>
+      <li>Ce que tu publies peut être <strong>signalé</strong> par les autres. Un modérateur de l’éditeur voit alors l’élément signalé et <strong>son auteur</strong>, y compris pour un écho ou une intention publiés sans nom dans le fil commun, et peut le retirer ou suspendre le compte : voir «&nbsp;Modération, suspensions et journal&nbsp;».</li>
       <li>Dans un groupe, ta participation aux <strong>rendez-vous</strong>, aux <strong>neuvaines</strong>, au <strong>Rosaire vivant</strong> et aux <strong>chaînes d’adoration</strong> n’est visible que des membres de ce groupe.</li>
       <li>Les <strong>rappels</strong> sont des notifications programmées sur ton téléphone : aucun service de notifications à distance n’est utilisé.</li>
       <li><strong>Aucune publicité, aucun suivi</strong>, aucun outil de mesure d’audience, aucune revente de données.</li>
@@ -112,12 +113,12 @@
       <tr>
         <td data-label="Donnée"><strong>Profil</strong> (si tu en crées un) : pseudo, bio et paroisse (facultatives), date d’acceptation de la charte, personnes que tu suis et que tu bloques</td>
         <td data-label="À quoi elle sert">La communauté</td>
-        <td data-label="Qui peut la voir">Ton pseudo : toute personne qui le connaît exactement. Bio, paroisse et nombres d’abonnés et d’abonnements : toi, les personnes que tu suis et les membres de tes groupes.</td>
+        <td data-label="Qui peut la voir">Ton pseudo : toute personne qui le connaît exactement. Bio, paroisse et nombres d’abonnés et d’abonnements : toi, les personnes que tu suis et les membres de tes groupes, sauf si ton profil a été masqué après signalements : ta bio et ta paroisse ne sont alors plus visibles que de toi (ton pseudo reste visible).</td>
       </tr>
       <tr>
         <td data-label="Donnée"><strong>Vitrine du profil</strong> (si tu choisis d’afficher) : passages, copies de prières, intentions</td>
         <td data-label="À quoi elle sert">Les montrer</td>
-        <td data-label="Qui peut la voir">Les mêmes personnes que pour la bio. Rien n’est affiché par défaut ; retirer supprime la copie.</td>
+        <td data-label="Qui peut la voir">Les mêmes personnes que pour la bio. Rien n’est affiché par défaut ; retirer supprime la copie. Une prière masquée après signalements n’est plus visible que de toi.</td>
       </tr>
       <tr>
         <td data-label="Donnée"><strong>J’aime</strong> sur un passage</td>
@@ -127,17 +128,17 @@
       <tr>
         <td data-label="Donnée"><strong>Échos</strong> : une courte méditation (240 caractères au plus) sur un passage</td>
         <td data-label="À quoi elle sert">Partager avec la communauté</td>
-        <td data-label="Qui peut la voir">Les autres utilisateurs de l’application, <strong>sans ton nom ni ton pseudo</strong>.</td>
+        <td data-label="Qui peut la voir">Les autres utilisateurs de l’application, <strong>sans ton nom ni ton pseudo</strong>. Si un écho est signalé, un modérateur de l’éditeur voit qui l’a écrit.</td>
       </tr>
       <tr>
         <td data-label="Donnée"><strong>Intentions confiées</strong> (280 caractères au plus) et «&nbsp;Je la porte&nbsp;»</td>
         <td data-label="À quoi elle sert">Prier les uns pour les autres</td>
-        <td data-label="Qui peut la voir">Les autres utilisateurs, <strong>sans ton nom ni ton pseudo</strong> dans le fil commun ; sur ton profil seulement si tu l’y affiches.</td>
+        <td data-label="Qui peut la voir">Les autres utilisateurs, <strong>sans ton nom ni ton pseudo</strong> dans le fil commun ; sur ton profil seulement si tu l’y affiches. Si une intention est signalée, un modérateur de l’éditeur voit qui l’a écrite.</td>
       </tr>
       <tr>
         <td data-label="Donnée"><strong>Groupes de prière</strong> : groupes que tu crées ou rejoins, ton rôle, tes demandes d’adhésion, intentions de groupe et leurs remerciements</td>
         <td data-label="À quoi elle sert">Prier en groupe</td>
-        <td data-label="Qui peut la voir">Les membres du groupe (avec ton pseudo). Un groupe privé est introuvable sans son code d’invitation.</td>
+        <td data-label="Qui peut la voir">Les membres du groupe (avec ton pseudo). Un groupe privé est introuvable sans son code d’invitation. Le propriétaire et les modérateurs du groupe voient en plus les intentions signalées avec le pseudo de leur auteur, et peuvent bannir un membre.</td>
       </tr>
       <tr>
         <td data-label="Donnée"><strong>Rendez-vous de prière</strong> d’un groupe : les rendez-vous que tu organises (titre, description, jours, heure, fuseau horaire), ta participation («&nbsp;Je participe&nbsp;») et ta présence à une occurrence («&nbsp;Je suis là&nbsp;»)</td>
@@ -165,9 +166,24 @@
         <td data-label="Qui peut la voir">Les membres du groupe voient ton pseudo sur les créneaux que tu as réservés.</td>
       </tr>
       <tr>
-        <td data-label="Donnée"><strong>Signalements</strong> que tu fais, et un <strong>compteur quotidien</strong> d’actions (type et date, sans leur contenu)</td>
+        <td data-label="Donnée"><strong>Signalements</strong> que tu fais (l’élément signalé, le motif choisi, la date), et un <strong>compteur quotidien</strong> d’actions (type et date, sans leur contenu)</td>
         <td data-label="À quoi elle sert">Modération et limite d’abus</td>
-        <td data-label="Qui peut la voir">Nous seulement</td>
+        <td data-label="Qui peut la voir">Nous seulement. L’écran de modération montre le nombre de signalements par motif, pas qui les a faits.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Bannissement</strong> d’un groupe, s’il t’est appliqué : ton identifiant, le groupe, la date et le pseudo de la personne qui l’a décidé</td>
+        <td data-label="À quoi elle sert">T’empêcher de rejoindre de nouveau ce groupe, même avec son code</td>
+        <td data-label="Qui peut la voir">Le propriétaire et les modérateurs du groupe, et nous. Enregistré tant que le bannissement n’est pas levé.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Suspension</strong> de ton compte, si elle t’est appliquée : sa fin (ou l’absence de fin), le motif écrit par le modérateur (280 caractères au plus), qui l’a décidée et quand</td>
+        <td data-label="À quoi elle sert">Empêcher ce compte de publier, et te l’expliquer</td>
+        <td data-label="Qui peut la voir">Toi (un bandeau de l’application affiche la date de fin et le motif) et les modérateurs de l’éditeur.</td>
+      </tr>
+      <tr>
+        <td data-label="Donnée"><strong>Journal de modération</strong> : pour chaque décision, la date, l’action, le type et l’identifiant de l’élément, la personne concernée, l’auteur de la décision et une note (pour une suspension : la durée et le motif)</td>
+        <td data-label="À quoi elle sert">Garder la trace des décisions, pour les revoir ou les contester</td>
+        <td data-label="Qui peut la voir">Les modérateurs de l’éditeur, et nous. Le journal ne recopie pas le texte des contenus.</td>
       </tr>
     </tbody>
   </table>
@@ -180,8 +196,17 @@
     <li>Ta progression et ta confession ne sont jamais sur ton profil.</li>
     <li>Dans un groupe, les membres voient ton pseudo sur ce que tu y fais à visage découvert (intentions de groupe, Rosaire vivant, créneaux d’adoration, salle de prière). Les compteurs des rendez-vous et des neuvaines restent anonymes.</li>
     <li>Tu peux bloquer une personne : vous ne vous voyez plus. Dans un groupe que vous partagez, elle apparaît comme «&nbsp;Un membre&nbsp;», sans pseudo.</li>
-    <li>Un contenu signalé par plusieurs personnes (trois) est retiré automatiquement ; nous pouvons aussi en retirer un qui enfreint la charte.</li>
+    <li>Un contenu signalé par plusieurs personnes (trois) est masqué automatiquement ; un modérateur de l’éditeur peut aussi en retirer un qui enfreint la charte.</li>
   </ul>
+
+  <h3>Modération, suspensions et journal</h3>
+  <p><strong>Signaler.</strong> Tu peux signaler un écho, une intention du fil commun, une intention de groupe, un profil ou une prière affichée sur un profil. Tu choisis un motif : «&nbsp;Propos blessants&nbsp;», «&nbsp;Contenu inapproprié&nbsp;», «&nbsp;Publicité ou spam&nbsp;» ou «&nbsp;Autre raison&nbsp;».</p>
+  <p><strong>Masquage.</strong> Trois signalements distincts et non traités masquent le contenu pour les autres : un écho (son auteur voit seulement qu’il a été retiré après des signalements), une intention du fil commun (retirée du fil), une intention de groupe (masquée pour les membres du groupe), la bio et la paroisse d’un profil (le pseudo reste visible) ou une prière de la vitrine (que son propriétaire voit encore, avec la mention «&nbsp;Masqué après plusieurs signalements&nbsp;»). Un contenu masqué n’est pas supprimé pour autant. Modifier la bio, la paroisse ou le texte d’une prière masquée lève le masquage et clôt les signalements en cours, car c’est un nouveau texte. Dans un groupe, le propriétaire ou un modérateur peut rétablir une intention masquée, la laisser visible ou la retirer.</p>
+  <p><strong>Filtre de mots.</strong> Avant d’enregistrer un texte que tu publies (écho, intention, pseudo, bio, paroisse, prière de la vitrine, nom et description d’un groupe, intention de groupe, rendez-vous, neuvaine, chaîne d’adoration), nos serveurs le comparent à une liste de mots refusés (insultes, injures, grossièretés). Si le texte en contient un, il est refusé : <strong>il n’est pas enregistré</strong> et tu dois le reformuler. Le vocabulaire chrétien (enfer, démon, péché…) n’est pas dans la liste.</p>
+  <p><strong>Bannissement d’un groupe.</strong> Le propriétaire ou un modérateur d’un groupe peut exclure un membre et l’empêcher de revenir, même avec le code d’invitation. Le bannissement est enregistré (identifiant de la personne, groupe, date et pseudo de qui l’a décidé) tant qu’il n’est pas levé. Seuls le propriétaire et les modérateurs du groupe en voient la liste.</p>
+  <p><strong>Modération par l’éditeur.</strong> Quelques comptes, désignés par l’éditeur directement dans la base de données (aucune fonction de l’application ne permet de se donner ce rôle), ont accès à un écran «&nbsp;Modération&nbsp;». Il liste les éléments signalés et non traités : échos, intentions du fil commun, profils (bio et paroisse), prières de la vitrine et intentions de groupe, y compris celles d’un groupe privé, avec le nom du groupe. Pour chacun, il montre le texte, le nombre de signalements par motif et <strong>l’auteur</strong> : son pseudo s’il a un profil, sinon la mention «&nbsp;Compte sans profil&nbsp;». Cela vaut aussi pour les échos et les intentions publiés <strong>sans nom dans le fil commun</strong> : si l’un d’eux est signalé, un modérateur de l’éditeur sait qui l’a écrit. L’écran ne montre pas qui a signalé. Le modérateur peut rétablir l’élément, le laisser visible, le retirer (un écho ou une prière de la vitrine est supprimé ; une intention est retirée ; la bio et la paroisse d’un profil sont effacées) ou suspendre son auteur.</p>
+  <p><strong>Suspension de compte.</strong> Un modérateur de l’éditeur peut suspendre un compte pour 1, 7 ou 30 jours, ou sans fin, en écrivant un motif. Tant que la suspension dure, le compte ne peut plus rien publier : écho, intention, pseudo, bio, paroisse, passage ou prière de la vitrine, intention de groupe ; il ne peut plus créer de groupe, de rendez-vous, de neuvaine, de Rosaire vivant ni de chaîne d’adoration, suivre quelqu’un, ni rejoindre un groupe ou en demander l’entrée. Il peut toujours lire, prier, aimer un passage, porter une intention, participer aux rendez-vous, neuvaines, Rosaires vivants et chaînes d’adoration des groupes dont il est déjà membre, se déconnecter et supprimer son compte. L’application affiche à la personne la date de fin (ou «&nbsp;une durée indéterminée&nbsp;»), le motif et l’adresse à laquelle écrire si elle pense à une erreur. Une suspension levée par un modérateur est effacée ; une suspension arrivée à son terme n’a plus d’effet mais reste enregistrée jusqu’à la suppression du compte.</p>
+  <p><strong>Journal de modération.</strong> Chaque décision d’un modérateur de l’éditeur est inscrite dans un journal que seuls les modérateurs de l’éditeur (et nous, comme administrateurs du service) peuvent lire : la date, l’action (rétablir, laisser visible, retirer, suspendre, lever une suspension), le type et l’identifiant de l’élément, la personne concernée, l’auteur de la décision et une note (pour une suspension : la durée et le motif). Le journal comprend aussi les décisions des propriétaires et modérateurs de groupe (rétablir, laisser visible ou retirer une intention de groupe, bannir, lever un bannissement). Il ne recopie pas le texte des contenus. Il ne peut qu’être complété, jamais modifié. <strong>Aucune purge automatique n’existe</strong> : ses lignes sont conservées tant que le service existe ; seule la suppression d’un compte les détache de la personne concernée (voir <a href="suppression-compte.html">la page de suppression</a>).</p>
 
   <h3>Données qui peuvent révéler une conviction religieuse</h3>
   <p>Utiliser une application de prière catholique peut en soi laisser deviner une appartenance religieuse. Nous ne traitons ces données que pour te rendre le service que tu demandes, et nous ne les utilisons ni ne les partageons à d’autres fins. Tu décides de ce que tu publies : la communauté (échos, intentions, profil, groupes) est facultative.</p>
@@ -215,7 +240,8 @@
   <ul>
     <li><strong>Sur ton téléphone</strong> : tant que l’application est installée, ou jusqu’à ce que tu les effaces ou te déconnectes. La liste de confession s’efface avec «&nbsp;J’ai reçu l’absolution&nbsp;» ou en désinstallant.</li>
     <li><strong>Sur nos serveurs</strong> : tant que ton compte existe. Quand tu le supprimes, ses données sont effacées aussitôt (voir <a href="suppression-compte.html">la page de suppression</a>).</li>
-    <li><strong>Retraits</strong> : retirer un écho l’efface. Retirer une intention la cache à tous, mais l’enregistrement reste dans notre base jusqu’à la suppression du compte.</li>
+    <li><strong>Retraits</strong> : retirer un écho l’efface. Retirer une intention la cache à tous, mais l’enregistrement reste dans notre base jusqu’à la suppression du compte. Un contenu masqué après signalements, ou retiré par un modérateur (sauf un écho ou une prière de la vitrine, effacés), reste de la même façon dans la base jusqu’à la suppression du compte de son auteur.</li>
+    <li><strong>Modération</strong> : un bannissement dure jusqu’à ce qu’il soit levé ; une suspension, jusqu’à sa fin, puis reste enregistrée sans effet jusqu’à la suppression du compte, ou est effacée si un modérateur la lève ; le journal de modération n’est pas purgé automatiquement.</li>
     <li><strong>Groupes</strong> : quitter un groupe efface tes inscriptions aux rendez-vous, tes rappels de neuvaine, ta place et tes dizaines du Rosaire vivant et tes créneaux d’adoration de ce groupe, et retire tes intentions de groupe (cachées à tous). Tes jours de neuvaine priés et tes présences aux rendez-vous restent dans la base, sans plus être comptés, jusqu’à la suppression de ton compte ou du groupe. Supprimer un groupe efface tout ce qui s’y rattache.</li>
     <li><strong>Sauvegardes</strong> : nous ne faisons pas de sauvegarde de la base, et l’offre Supabase que nous utilisons n’en propose pas : une fois supprimées, tes données ne subsistent pas dans une copie.</li>
     <li><strong>Journaux techniques</strong> : Supabase peut conserver, pour la sécurité du service, des journaux de connexion (comme l’adresse IP).</li>
@@ -233,7 +259,7 @@
   <p>Pour exercer un droit, écris à radaxx.studio@gmail.com. Nous répondons dans un délai d’un mois. Si tu estimes que tes droits ne sont pas respectés, tu peux saisir la <a href="https://www.cnil.fr/fr/plaintes">CNIL</a>.</p>
 
   <h2>8. Sécurité</h2>
-  <p>Les échanges avec le serveur sont chiffrés (HTTPS). Les tables de la base ne sont pas lisibles directement depuis l’application : chaque accès passe par une fonction qui vérifie ton identité et ce que tu as le droit de voir. Aucun système n’étant infaillible, nous ne pouvons pas promettre un risque nul.</p>
+  <p>Les échanges avec le serveur sont chiffrés (HTTPS). Les tables de la base ne sont pas lisibles directement depuis l’application : chaque accès passe par une fonction qui vérifie ton identité et ce que tu as le droit de voir. Les fonctions de modération ne répondent qu’aux comptes que l’éditeur a désignés. Aucun système n’étant infaillible, nous ne pouvons pas promettre un risque nul.</p>
 
   <h2>9. Modifications</h2>
   <p>Si cette politique change, la date en haut de page change aussi.</p>

@@ -6,9 +6,10 @@ import type { Palette } from '../../appearance';
 import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
 import { haptic } from '../../haptics';
+import { useReportSheet } from '../../moderation-ui';
 import { follow, getProfile, type OtherProfile, unfollow } from '../../profile';
 import { Button } from '../../profile-ui';
-import { blockPerson, EMPTY_SHOWCASE, fetchShowcase, type Showcase } from '../../showcase';
+import { blockPerson, EMPTY_SHOWCASE, fetchShowcase, reportProfile, type Showcase } from '../../showcase';
 import { ShowcaseSections } from '../../showcase-sections';
 import { Text } from '../../text';
 import { useThemed } from '../../theme';
@@ -22,6 +23,8 @@ export default function AutreProfil() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showcase, setShowcase] = useState<Showcase>(EMPTY_SHOWCASE);
+  const [note, setNote] = useState<string | null>(null);
+  const { ask, sheet } = useReportSheet();
 
   const load = useCallback(async () => {
     const result = await getProfile(handle);
@@ -78,6 +81,20 @@ export default function AutreProfil() {
     await load();
     setBusy(false);
   };
+
+  const report = () =>
+    ask({
+      title: `Signaler @${other.handle} ?`,
+      message: 'Si plusieurs personnes le signalent, sa bio et sa paroisse sont masquées pour les autres. Son pseudo reste visible.',
+      send: (reason) => {
+        setError(null);
+        setNote(null);
+        void reportProfile(other.handle, reason).then((result) => {
+          if (!result.ok) setError(result.message);
+          else setNote('Merci, ton signalement est envoyé.');
+        });
+      },
+    });
 
   const block = () => {
     Alert.alert(
@@ -137,7 +154,7 @@ export default function AutreProfil() {
         <Text style={styles.closed}>Son profil s’ouvre à toi quand cette personne te suit ou que vous êtes dans un même groupe.</Text>
       )}
 
-      {other.visible ? <ShowcaseSections showcase={showcase} mine={false} /> : null}
+      {other.visible ? <ShowcaseSections showcase={showcase} mine={false} handle={other.handle} /> : null}
 
       {mine ? (
         <>
@@ -156,7 +173,10 @@ export default function AutreProfil() {
         </View>
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {note ? <Text style={styles.note}>{note}</Text> : null}
+      <Button label={`Signaler @${other.handle}`} kind="quiet" onPress={report} />
       <Button label={`Bloquer @${other.handle}`} kind="quiet" onPress={block} />
+      {sheet}
     </ScrollView>
   );
 }

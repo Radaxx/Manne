@@ -1,3 +1,4 @@
+import { REFUSED_TEXT, SUSPENDED_TEXT } from './moderation';
 import { supabase } from './supabase';
 
 // Profils et abonnements. Pas d'image : l'avatar vient des initiales du pseudo.
@@ -8,6 +9,8 @@ export type MyProfile = {
   parish: string | null;
   followers: number;
   following: number;
+  /** Ta bio et ta paroisse sont masquées pour les autres après plusieurs signalements ; les modifier lève le masquage. */
+  flagged: boolean;
 };
 /** La carte minimale d'une personne : tout ce que montre une recherche ou une liste. */
 export type ProfileCard = { handle: string };
@@ -84,7 +87,7 @@ export function readProfile(row: unknown): MyProfile | null {
   const followers = count(record.followers);
   const following = count(record.following_count);
   if (followers === null || following === null) return null;
-  return { ...card, bio: text(record.bio), parish: text(record.parish), followers, following };
+  return { ...card, bio: text(record.bio), parish: text(record.parish), followers, following, flagged: record.flagged === true };
 }
 
 export function readOther(row: unknown): OtherProfile | null {
@@ -106,7 +109,11 @@ export function readOther(row: unknown): OtherProfile | null {
   };
 }
 
-function failureMessage(message: string) {
+export function failureMessage(message: string) {
+  // Filtre de publication : le serveur refuse un texte qui contient un mot interdit.
+  if (message.includes('contenu_refuse')) return REFUSED_TEXT;
+  // Compte suspendu par la modération de l'éditeur : plus rien ne se publie.
+  if (message.includes('compte_suspendu')) return SUSPENDED_TEXT;
   // Rosaire vivant : messages français du serveur, avant « déjà pris » (« Ce mystère est déjà pris » n'est pas un pseudo).
   if (
     message.includes('Ce Rosaire') ||
@@ -129,6 +136,7 @@ function failureMessage(message: string) {
     message.includes('Tu es déjà') ||
     message.includes('Tu es le propriétaire') ||
     message.includes('Cette personne') ||
+    message.includes('Tu ne peux pas rejoindre') ||
     message.includes('Code d’invitation')
   ) {
     return message;
@@ -177,13 +185,14 @@ function failureMessage(message: string) {
   if (message.includes('fuseau_invalide')) return 'Le fuseau horaire de ton téléphone n’est pas reconnu.';
   if (message.includes('date_invalide')) return 'Le rendez-vous doit être dans le futur, à un an au plus.';
   if (message.includes('priere_invalide')) return 'Cette prière n’existe pas.';
+  if (message.includes('priere_inconnue')) return 'Cette prière n’est plus affichée sur ce profil.';
   if (message.includes('salle_fermee')) return 'La salle est fermée : le rendez-vous n’est pas en cours.';
   if (message.includes('pas_present')) return 'Dis d’abord « Je suis là » pour entrer dans la salle.';
   if (message.includes('role_invalide')) return 'Ce rôle n’existe pas.';
   if (message.includes('recherche')) return 'Écris au moins 2 caractères pour chercher un groupe.';
   if (message.includes('proprio')) return 'Ce n’est pas possible pour le propriétaire du groupe, ni pour toi-même.';
   if (message.includes('cible')) return 'Cette personne n’est pas dans ce groupe.';
-  if (message.includes('Déjà signalé')) return 'Tu l’as déjà signalée.';
+  if (message.includes('Déjà signalé')) return 'Tu as déjà fait ce signalement.';
   if (message.includes('Trop d') || message.includes('Tu affiches') || message.includes('Tu as déjà')) return message;
   if (message.includes('bloquee')) return 'Tu as bloqué cette personne. Débloque-la pour la suivre.';
   if (message.includes('passage')) return 'Ce passage ne peut pas être affiché.';

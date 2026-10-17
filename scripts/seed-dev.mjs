@@ -9,6 +9,7 @@
 //   SEED_EMAIL          : votre adresse ; les comptes de test en dérivent (a@b.fr -> a+manne-dev_marie@b.fr)
 //
 // Usage : node scripts/seed-dev.mjs seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test
+//         (avec --me, seed fait aussi de votre compte un MODÉRATEUR ÉDITEUR, sur la base locale seulement : table app_moderators)
 //         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
 //         node scripts/seed-dev.mjs code <pseudo>          code de connexion d'un compte de test
 //         node scripts/seed-dev.mjs reviewer               crée ou met à jour le compte de démonstration de Google Play
@@ -132,7 +133,11 @@ const PROFILES = {
     parish: 'Saint-Paul, Bordeaux',
     passages: [MT5],
     prayers: [],
-    intentions: [{ body: 'Pour trouver ma place dans une communauté.', shown: false }],
+    intentions: [
+      { body: 'Pour trouver ma place dans une communauté.', shown: false },
+      // Intention signalée pour spam par deux comptes de test : elle attend dans la file de modération éditeur (SPAM_REPORTS).
+      { body: 'Bougies bénies à prix cassés, commandez vite sur mon site !', shown: false },
+    ],
   },
 };
 
@@ -159,11 +164,38 @@ const CARRIES = [
   ['dev_paul', 'dev_jean', 0],
 ];
 
+// Signalements en attente pour la file de modération éditeur (écran Modération, réglages). Un écho signalé trois fois
+// (donc masqué : « Rétablir »), l'intention de dev_paul signalée deux fois (encore visible : « Laisser visible »), le profil
+// de dev_paul signalé une fois. Les signalements des intentions partent avec elles à chaque seed ; ceux des échos aussi.
+const ECHO_REPORT = {
+  author: 'dev_pierre',
+  target: '19:23:1-4',
+  body: 'Écho de test à modérer : cet exemple est signalé par trois comptes de test.',
+  by: [
+    ['dev_claire', 'insulte'],
+    ['dev_marie', 'insulte'],
+    ['dev_jean', 'autre'],
+  ],
+};
+const INTENTION_REPORT = {
+  author: 'dev_paul',
+  rank: 1,
+  by: [
+    ['dev_claire', 'spam'],
+    ['dev_jean', 'spam'],
+  ],
+};
+const PROFILE_REPORT = { target: 'dev_paul', by: [['dev_claire', 'inapproprie']] };
+
+// Hôtes sur lesquels `seed --me` accorde le rôle de modérateur éditeur : la base locale, jamais un projet distant.
+const LOCAL_HOSTS = ['127.0.0.1', 'localhost', '[::1]'];
+
 // Qui suit l'utilisateur avec --me : tous sauf dev_therese (cas « profil fermé »). dev_paul sert au test du blocage.
 const FOLLOW_ME = ['dev_marie', 'dev_pierre', 'dev_claire', 'dev_jean', 'dev_paul'];
 
 // Groupes de test (recréés à chaque `seed`, supprimés par `reset`). Les pseudos sont ceux de HANDLES.
-//   members : [pseudo, rôle] ; `me` s'ajoute comme simple membre des groupes où `includeMe` est vrai : la fraternité et la neuvaine (option --me).
+//   members : [pseudo, rôle] ; `me` s'ajoute aux groupes où `includeMe` est vrai (la fraternité et la neuvaine, option --me), simple membre sauf si `meRole` dit autre chose : MODÉRATEUR de la fraternité, pour voir la file de signalements.
+//   reports : signalements en attente. { rank, by, reason } : l'intention de rang `rank` est signalée par ces pseudos pour ce motif (insulte, inapproprie, spam ou autre) ; trois signalements la masqueraient, deux la laissent visible.
 //   requests : demandes en attente. intentions : [auteur, texte, { thanks }] ; `thanks` présent = exaucée.
 //   carries : [qui porte, rang de l'intention dans la liste du groupe].
 //   gatherings : rendez-vous de prière (hebdomadaire `weekly` ou ponctuel `once`, qui commence dans --rdv-in minutes) ; `prayerKind` : libre (défaut), chapelet, office ou adoration ; `roomPresent` / `roomIntentions` (ponctuel seulement) : présents et intentions déjà dans la salle ; `participants` : pseudos
@@ -190,6 +222,7 @@ const GROUPS = [
       ['dev_claire', 'member'],
     ],
     includeMe: true,
+    meRole: 'moderator',
     requests: [],
     intentions: [
       ['dev_marie', 'Pour notre fraternité, que nous restions fidèles à nous retrouver chaque mois.'],
@@ -206,6 +239,8 @@ const GROUPS = [
       ['dev_marie', 1],
       ['dev_claire', 1],
     ],
+    // Un signalement en attente : l'intention de dev_pierre, signalée pour spam par dev_claire et dev_marie.
+    reports: [{ rank: 1, by: ['dev_claire', 'dev_marie'], reason: 'spam' }],
     gatherings: [
       {
         title: 'Chapelet',
@@ -471,7 +506,7 @@ function assertTarget(command, host) {
   }
 }
 
-async function seed(admin, base, meHandle, rdvIn) {
+async function seed(admin, base, meHandle, rdvIn, host) {
   let me = null;
   if (meHandle) {
     if (meHandle.startsWith(PREFIX)) fail(`--me doit être votre vrai pseudo, pas un compte de test (${PREFIX}…).`);
@@ -560,6 +595,8 @@ async function seed(admin, base, meHandle, rdvIn) {
   }));
   check((await admin.from('carries').insert(carries)).error, 'Intentions portées');
 
+  const moderation = await seedModeration(admin, ids, intentionId, me, host);
+
   // Abonnements.
   const follows = FOLLOWS.map(([a, b]) => ({
     follower_id: ids[a],
@@ -578,6 +615,10 @@ async function seed(admin, base, meHandle, rdvIn) {
 
   const groupSummary = await seedGroups(admin, ids, me, rdvIn);
 
+  console.log('Modération éditeur (file globale) :');
+  for (const line of moderation) console.log(`  ${line}`);
+  console.log('');
+
   console.log('Comptes de test prêts :');
   for (const handle of HANDLES) console.log(`  ${handle.padEnd(12)} ${emailFor(base, handle)}`);
   if (me) {
@@ -592,11 +633,71 @@ async function seed(admin, base, meHandle, rdvIn) {
   for (const line of groupSummary) console.log(`  ${line}`);
   if (me) {
     console.log(
-      `\nÉcritures à votre nom : votre adhésion (simple membre) à « ${GROUPS[0].name} » et à « ${GROUPS[2].name} », et votre inscription aux rendez-vous de « ${GROUPS[0].name} » (« Je participe »). Aucun jour de neuvaine n’est coché, aucun rappel de neuvaine réglé et aucune place prise dans le Rosaire vivant à votre nom. Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
+      `\nÉcritures à votre nom : votre adhésion à « ${GROUPS[0].name} » (en tant que MODÉRATEUR, pour voir la file de signalements : une intention de dev_pierre y est signalée pour spam par dev_claire et dev_marie) et à « ${GROUPS[2].name} » (simple membre), et votre inscription aux rendez-vous de « ${GROUPS[0].name} » (« Je participe »). Aucun jour de neuvaine n’est coché, aucun rappel de neuvaine réglé et aucune place prise dans le Rosaire vivant à votre nom. Vous n’êtes pas dans « ${GROUPS[1].name} » : demandez à la rejoindre depuis la recherche.`,
     );
   } else {
     console.log('\nSans --me, vous n’êtes membre d’aucun groupe de test.');
   }
+}
+
+/**
+ * Signalements en attente pour la file de modération éditeur : un écho, une intention du fil et un profil de test. Avec --me
+ * et une base LOCALE, votre compte devient aussi modérateur éditeur (app_moderators). Renvoie les lignes du résumé.
+ */
+async function seedModeration(admin, ids, intentionId, me, host) {
+  const idList = Object.values(ids);
+  const lines = [];
+
+  // Échos de test : supprimés puis recréés (leurs signalements partent avec eux).
+  check((await admin.from('echoes').delete().in('user_id', idList)).error, 'Nettoyage des échos');
+  const { data: echo, error: echoError } = await admin
+    .from('echoes')
+    .insert({ user_id: ids[ECHO_REPORT.author], target: ECHO_REPORT.target, body: ECHO_REPORT.body })
+    .select('id')
+    .single();
+  check(echoError, 'Écho de test');
+  check(
+    (await admin.from('reports').insert(ECHO_REPORT.by.map(([by, reason]) => ({ user_id: ids[by], echo_id: echo.id, reason })))).error,
+    'Signalements de l’écho',
+  );
+  lines.push(`un écho de ${ECHO_REPORT.author} signalé ${ECHO_REPORT.by.length} fois (masqué)`);
+
+  const target = intentionId.get(`${INTENTION_REPORT.author}:${INTENTION_REPORT.rank}`);
+  check(
+    (await admin.from('reports').insert(INTENTION_REPORT.by.map(([by, reason]) => ({ user_id: ids[by], intention_id: target, reason }))))
+      .error,
+    'Signalements de l’intention',
+  );
+  lines.push(`une intention de ${INTENTION_REPORT.author} signalée ${INTENTION_REPORT.by.length} fois (visible)`);
+
+  check((await admin.from('profile_reports').delete().in('reporter_id', idList)).error, 'Nettoyage des signalements de profil');
+  check(
+    (
+      await admin.from('profile_reports').insert(
+        PROFILE_REPORT.by.map(([by, reason]) => ({
+          reporter_id: ids[by],
+          target_id: ids[PROFILE_REPORT.target],
+          subject: 'profil',
+          reason,
+        })),
+      )
+    ).error,
+    'Signalement du profil',
+  );
+  lines.push(`le profil de ${PROFILE_REPORT.target} signalé ${PROFILE_REPORT.by.length} fois (visible)`);
+
+  if (!me) {
+    lines.push('sans --me, aucun compte n’est modérateur éditeur');
+  } else if (!LOCAL_HOSTS.includes(host.replace(/:\d+$/, ''))) {
+    lines.push(`${me.handle} n’est PAS déclaré modérateur éditeur : ce projet n’est pas une base locale`);
+  } else {
+    check(
+      (await admin.from('app_moderators').upsert({ user_id: me.id }, { onConflict: 'user_id', ignoreDuplicates: true })).error,
+      'Modérateur éditeur',
+    );
+    lines.push(`${me.handle} est modérateur éditeur de la base locale (Réglages > Modération)`);
+  }
+  return lines;
 }
 
 /** Recrée les groupes de test avec leurs membres, demandes, intentions et « je la porte ». Renvoie les lignes du résumé. */
@@ -635,7 +736,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
       members.push({
         group_id: groupId,
         user_id: me.id,
-        role: 'member',
+        role: group.meRole ?? 'member',
         joined_at: new Date(now - DAY).toISOString(),
       });
     }
@@ -667,6 +768,15 @@ async function seedGroups(admin, ids, me, rdvIn) {
     }));
     check((await admin.from('group_carries').insert(carries)).error, `Intentions portées de « ${group.name} »`);
 
+    const reports = (group.reports ?? []).flatMap(({ rank, by, reason }) =>
+      by.map((handle) => ({
+        user_id: ids[handle],
+        intention_id: idByBody.get(group.intentions[rank][1]),
+        reason,
+      })),
+    );
+    if (reports.length) check((await admin.from('group_reports').insert(reports)).error, `Signalements de « ${group.name} »`);
+
     const meetings = await seedGatherings(admin, group, groupId, ids, me, now, rdvIn);
     const novenas = await seedNovenas(admin, group, groupId, ids, now);
     const rosaries = await seedRosaries(admin, group, groupId, ids, now);
@@ -676,7 +786,7 @@ async function seedGroups(admin, ids, me, rdvIn) {
     summary.push(
       `${group.name} — ${group.kind}${group.endsInDays ? `, fin dans ${group.endsInDays} jours` : ''}`,
       `    code : ${code}   lien : manne://rejoindre/${code}`,
-      `    membres : ${who}${me && group.includeMe ? `, ${me.handle} (member)` : ''}${group.requests.length ? ` ; demande en attente : ${group.requests.join(', ')}` : ''}`,
+      `    membres : ${who}${me && group.includeMe ? `, ${me.handle} (${group.meRole ?? 'member'})` : ''}${group.requests.length ? ` ; demande en attente : ${group.requests.join(', ')}` : ''}`,
       ...meetings,
       ...novenas,
       ...rosaries,
@@ -1175,7 +1285,8 @@ function help() {
   console.log(`Usage : node scripts/seed-dev.mjs <commande>
   seed [--me <pseudo>] [--rdv-in <minutes>]   crée ou met à jour les comptes de test (${HANDLES.join(', ')}) et trois groupes de test avec leurs rendez-vous, deux neuvaines, un Rosaire vivant et deux chaînes d’adoration
                          --me : ces comptes suivent votre profil (sauf dev_therese) et vous entrez
-                         comme simple membre dans « ${GROUPS[0].name} » et inscrit à ses rendez-vous
+                         comme MODÉRATEUR dans « ${GROUPS[0].name} » (un signalement en attente à traiter) et inscrit à ses rendez-vous ; simple membre dans « ${GROUPS[2].name} »
+                         --me : votre compte devient aussi modérateur éditeur de la base LOCALE (écran Modération), avec trois éléments signalés en attente
                          --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
@@ -1202,7 +1313,7 @@ if (command === 'seed') {
     if (!(rdvIn >= RDV_IN_MIN && rdvIn <= RDV_IN_MAX))
       fail(`--rdv-in demande un nombre entier de minutes, de ${RDV_IN_MIN} à ${RDV_IN_MAX}.`);
   }
-  await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase(), rdvIn);
+  await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase(), rdvIn, host);
 } else if (command === 'reset') {
   await reset(admin, base);
 } else if (command === 'reviewer') {

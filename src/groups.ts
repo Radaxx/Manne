@@ -1,4 +1,5 @@
 import { localDate, longDate } from './dates';
+import { type GroupBan, type GroupReport, type ReportReason, readGroupBan, readGroupReport } from './moderation';
 import { asRecord, call, type Result, readRows } from './profile';
 
 // Groupes de prière. Être membre demande un compte relié ET un profil : le pseudo est vu des autres membres.
@@ -29,6 +30,8 @@ export type MyGroup = {
   role: GroupRole;
   memberCount: number;
   pendingRequests: number;
+  /** Intentions signalées à traiter (propriétaire et modérateurs seulement). */
+  pendingReports: number;
 };
 
 /** Ce qu'un non-membre voit : nom, description, type, nombre de membres, date de fin. */
@@ -51,6 +54,8 @@ export type GroupDetail = GroupCard & {
   myRole: GroupRole | null;
   inviteCode: string | null;
   pendingRequests: number;
+  /** Intentions signalées à traiter (propriétaire et modérateurs seulement). */
+  pendingReports: number;
 };
 
 export type GroupMember = { handle: string; role: GroupRole; joinedAt: string; mine: boolean };
@@ -262,7 +267,14 @@ export function readGroupDetail(row: unknown): GroupDetail | null {
   const myRole = readRole(record.my_role);
   // Le code n'est donné qu'à un membre : sans rôle, on l'ignore même si le serveur en envoyait un.
   const inviteCode = myRole ? str(record.invite_code) : null;
-  return { ...card, myRole, inviteCode, pendingRequests: myRole && canModerate(myRole) ? (nat(record.pending_requests) ?? 0) : 0 };
+  const moderator = !!myRole && canModerate(myRole);
+  return {
+    ...card,
+    myRole,
+    inviteCode,
+    pendingRequests: moderator ? (nat(record.pending_requests) ?? 0) : 0,
+    pendingReports: moderator ? (nat(record.pending_reports) ?? 0) : 0,
+  };
 }
 
 export function readMyGroup(row: unknown): MyGroup | null {
@@ -281,6 +293,7 @@ export function readMyGroup(row: unknown): MyGroup | null {
     memberCount: card.memberCount,
     role,
     pendingRequests: canModerate(role) ? (nat(record.pending_requests) ?? 0) : 0,
+    pendingReports: canModerate(role) ? (nat(record.pending_reports) ?? 0) : 0,
   };
 }
 
@@ -459,11 +472,45 @@ export function setGroupCarry(intentionId: string, on: boolean) {
   return call('set_group_carry', { p_intention_id: intentionId, p_on: on });
 }
 
-export function reportGroupIntention(intentionId: string) {
-  return call('report_group_intention', { p_intention_id: intentionId });
+export function reportGroupIntention(intentionId: string, reason: ReportReason = 'autre') {
+  return call('report_group_intention', { p_intention_id: intentionId, p_reason: reason });
 }
 
 /** Modération : le propriétaire ou un modérateur retire l'intention d'un membre. */
 export function removeGroupIntention(intentionId: string) {
   return call('remove_group_intention', { p_intention_id: intentionId });
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Modération du groupe : file de signalements et bannissements (propriétaire et modérateurs)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Les intentions signalées et pas encore traitées, les masquées d'abord. */
+export function listGroupReports(id: string) {
+  return list('list_group_reports', { p_group_id: id }, readGroupReport, 'reports');
+}
+
+/** Rétablit une intention masquée et clôt ses signalements. */
+export function restoreGroupIntention(intentionId: string) {
+  return call('restore_group_intention', { p_intention_id: intentionId });
+}
+
+/** Garde l'intention visible et clôt ses signalements. */
+export function dismissGroupReports(intentionId: string) {
+  return call('dismiss_group_reports', { p_intention_id: intentionId });
+}
+
+/** Exclut un membre ET l'empêche de revenir (code, recherche, demande). */
+export function banMember(id: string, handle: string) {
+  return call('ban_member', { p_id: id, p_handle: handle });
+}
+
+export function unbanMember(id: string, handle: string) {
+  return call('unban_member', { p_id: id, p_handle: handle });
+}
+
+export function listBans(id: string) {
+  return list('list_bans', { p_id: id }, readGroupBan, 'bans');
+}
+
+export type { GroupBan, GroupReport };

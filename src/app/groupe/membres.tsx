@@ -5,6 +5,7 @@ import type { Palette } from '../../appearance';
 import { Avatar } from '../../avatar';
 import { NeedProfile, useGroupGate } from '../../group-ui';
 import {
+  banMember,
   firstParam,
   type GroupDetail,
   type GroupMember,
@@ -101,6 +102,14 @@ export default function MembresScreen() {
           destructive: true,
           run: () => removeMember(group.id, handle),
         },
+        {
+          label: 'Exclure et bannir',
+          title: `Exclure et bannir @${handle} ?`,
+          message:
+            'Cette personne sort du groupe, ses intentions y sont retirées, et elle ne peut plus le rejoindre, même avec le code d’invitation. Tu pourras lever le bannissement dans les réglages du groupe.',
+          destructive: true,
+          run: () => banMember(group.id, handle),
+        },
       ];
     }
     if (myRole === 'moderator' && member.role === 'member') {
@@ -111,6 +120,14 @@ export default function MembresScreen() {
           message: 'Cette personne sort du groupe et ses intentions y sont retirées. Elle peut revenir si elle a le code d’invitation.',
           destructive: true,
           run: () => removeMember(group.id, handle),
+        },
+        {
+          label: 'Exclure et bannir',
+          title: `Exclure et bannir @${handle} ?`,
+          message:
+            'Cette personne sort du groupe, ses intentions y sont retirées, et elle ne peut plus le rejoindre, même avec le code d’invitation. Tu pourras lever le bannissement dans les réglages du groupe.',
+          destructive: true,
+          run: () => banMember(group.id, handle),
         },
       ];
     }

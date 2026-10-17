@@ -313,6 +313,7 @@ function ThemedShell() {
           <Stack.Screen name="salle/[id]" options={{ title: 'Salle de prière', gestureEnabled: false }} />
           <Stack.Screen name="rejoindre/[code]" options={{ title: 'Rejoindre un groupe' }} />
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
+          <Stack.Screen name="moderation" options={{ title: 'Modération' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
         </Stack>
       </ThemeProvider>

@@ -63,6 +63,7 @@ import {
 import { haptic } from '../../haptics';
 import { getGroupRosary, type LivingRosary, startRosary } from '../../living-rosary';
 import { LivingRosaryCard, openRosary } from '../../living-rosary-ui';
+import { useReportSheet } from '../../moderation-ui';
 import { NovenaCard } from '../../novena-ui';
 import { listNovenas, MAX_ACTIVE_NOVENAS, type Novena, novenaDay, novenasChanged } from '../../novenas';
 import { Button, openProfile } from '../../profile-ui';
@@ -79,6 +80,7 @@ export default function GroupeScreen() {
   const id = firstParam(useLocalSearchParams<{ id?: string | string[] }>().id);
   const gate = useGroupGate();
   const { profile } = useAuth();
+  const { ask, sheet } = useReportSheet();
   const [tab, setTab] = useState<Tab>('prier');
   const [group, setGroup] = useState<GroupDetail | null | undefined>(undefined);
   const [intentions, setIntentions] = useState<GroupIntention[]>([]);
@@ -434,7 +436,7 @@ export default function GroupeScreen() {
                 <HeaderAction
                   icon="options-outline"
                   label="Réglages"
-                  badge={group.pendingRequests}
+                  badge={group.pendingRequests + group.pendingReports}
                   onPress={() => router.push({ pathname: '/groupe/reglages', params: { id: group.id } })}
                 />
               ) : null}
@@ -691,9 +693,11 @@ export default function GroupeScreen() {
                                 ) : null}
                                 <Pressable
                                   onPress={() =>
-                                    confirm('Signaler cette intention ?', 'Trois signalements la masquent.', 'Signaler', () =>
-                                      reportGroupIntention(item.id),
-                                    )
+                                    ask({
+                                      title: 'Signaler cette intention ?',
+                                      message: 'Trois signalements la masquent.',
+                                      send: (reason) => void act(() => reportGroupIntention(item.id, reason)),
+                                    })
                                   }
                                   hitSlop={8}
                                   accessibilityLabel="Signaler cette intention"
@@ -742,8 +746,12 @@ export default function GroupeScreen() {
                     <Entry
                       icon="options-outline"
                       label="Réglages du groupe"
-                      hint="Nom, description, code d’invitation"
-                      badge={group.pendingRequests}
+                      hint={
+                        group.myRole === 'owner'
+                          ? 'Nom, description, code d’invitation, signalements'
+                          : 'Demandes, signalements, personnes bannies'
+                      }
+                      badge={group.pendingRequests + group.pendingReports}
                       onPress={() => router.push({ pathname: '/groupe/reglages', params: { id: group.id } })}
                     />
                   ) : null}
@@ -758,11 +766,12 @@ export default function GroupeScreen() {
 
         {notice ? <Text style={styles.noticeError}>{notice}</Text> : null}
       </ScrollView>
+      {sheet}
     </KeyboardAvoidingView>
   );
 }
 
-/** Un des boutons sous l'en-tête : Inviter, Membres, Réglages (avec la pastille des demandes en attente). */
+/** Un des boutons sous l'en-tête : Inviter, Membres, Réglages (avec la pastille des demandes et des signalements à traiter). */
 function HeaderAction({
   icon,
   label,
@@ -780,7 +789,7 @@ function HeaderAction({
       onPress={onPress}
       style={({ pressed }) => [styles.action, pressed && { opacity: 0.75 }]}
       accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge} demande${badge > 1 ? 's' : ''} en attente` : label}
+      accessibilityLabel={badge ? `${label}, ${badge} à traiter` : label}
     >
       <Ionicons name={icon} size={20} color={C.gold} />
       <Text style={styles.actionLabel}>{label}</Text>
@@ -857,7 +866,7 @@ const stylesFor = (C: Palette) =>
     meta: { color: C.muted, fontSize: 14, fontWeight: '600', marginTop: 4 },
     description: { color: C.muted, fontSize: 15, lineHeight: 22, marginTop: 8 },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
-    hint: { color: C.faint, fontSize: 13, lineHeight: 18 },
+    hint: { color: C.faint, fontSize: 13, lineHeight: 18, paddingTop: 15 },
     hintCenter: { color: C.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
     notice: { color: C.text, backgroundColor: C.highlight, borderRadius: 12, padding: 12, fontSize: 14, lineHeight: 20, marginTop: 16 },
     noticeError: { color: C.red, fontSize: 14, textAlign: 'center', marginTop: 16 },

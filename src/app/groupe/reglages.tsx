@@ -2,7 +2,9 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import type { Palette } from '../../appearance';
+import { useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { GroupBansSection, GroupReportsSection } from '../../group-moderation-ui';
 import { NeedProfile, useGroupGate } from '../../group-ui';
 import {
   answerRequest,
@@ -14,6 +16,8 @@ import {
   type GroupDetail,
   type GroupRequest,
   getGroup,
+  listBans,
+  listGroupReports,
   listRequests,
   NAME_MAX,
   nameProblem,
@@ -21,6 +25,7 @@ import {
   updateGroup,
 } from '../../groups';
 import { haptic } from '../../haptics';
+import type { GroupBan, GroupReport } from '../../moderation';
 import { Button, Field, FormScreen } from '../../profile-ui';
 import { Text } from '../../text';
 import { useThemed } from '../../theme';
@@ -31,6 +36,9 @@ export default function ReglagesGroupe() {
   const gate = useGroupGate();
   const [group, setGroup] = useState<GroupDetail | null | undefined>(undefined);
   const [requests, setRequests] = useState<GroupRequest[]>([]);
+  const [reports, setReports] = useState<GroupReport[]>([]);
+  const [bans, setBans] = useState<GroupBan[]>([]);
+  const { profile } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,6 +65,11 @@ export default function ReglagesGroupe() {
       const listed = await listRequests(id);
       if (listed.ok) setRequests(listed.requests);
       else setError(listed.message);
+      const [queue, banned] = await Promise.all([listGroupReports(id), listBans(id)]);
+      if (queue.ok) setReports(queue.reports);
+      else setError(queue.message);
+      if (banned.ok) setBans(banned.bans);
+      else setError(banned.message);
     }
   }, [id]);
 
@@ -200,6 +213,17 @@ export default function ReglagesGroupe() {
           </View>
         ))
       )}
+
+      <GroupReportsSection
+        groupId={group.id}
+        reports={reports}
+        myRole={group.myRole}
+        myHandle={profile?.handle ?? null}
+        busy={busy}
+        run={run}
+      />
+
+      <GroupBansSection groupId={group.id} bans={bans} busy={busy} run={run} />
 
       {owner ? (
         <>

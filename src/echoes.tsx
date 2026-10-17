@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Palette } from './appearance';
 import { SERIF } from './cards';
 import { closeEchoes, deleteEcho, type Echo, flushLikes, listEchoes, postEcho, reportEcho, retryFailed, useCommunity } from './community';
+import { useReportSheet } from './moderation-ui';
 import { Text, TextInput } from './text';
 import { useThemed } from './theme';
 
@@ -17,6 +18,7 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const { ask, sheet } = useReportSheet();
 
   const load = useCallback(async () => {
     const result = await listEchoes(target);
@@ -66,21 +68,17 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
     ]);
   };
 
-  const report = (id: string) => {
-    Alert.alert('Signaler cet écho ?', 'Trois signalements le retirent.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Signaler',
-        style: 'destructive',
-        onPress: () => {
-          void reportEcho(target, id).then((result) => {
-            if (!result.ok) setNotice(result.message);
-            else void load();
-          });
-        },
+  const report = (id: string) =>
+    ask({
+      title: 'Signaler cet écho ?',
+      message: 'Trois signalements le retirent.',
+      send: (reason) => {
+        void reportEcho(target, id, reason).then((result) => {
+          if (!result.ok) setNotice(result.message);
+          else void load();
+        });
       },
-    ]);
-  };
+    });
 
   return (
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} statusBarTranslucent visible>
@@ -148,6 +146,7 @@ function EchoSheet({ target, reference, onClose }: { target: string; reference: 
             </View>
           )}
         </KeyboardAvoidingView>
+        {sheet}
       </SafeAreaView>
     </Modal>
   );

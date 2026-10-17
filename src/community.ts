@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 import { currentUserId } from './auth/session';
+import { REFUSED_TEXT, type ReportReason, SUSPENDED_TEXT } from './moderation';
 import { supabase } from './supabase';
 
 const QUEUE_KEY = 'manne/community/likes';
@@ -247,7 +248,9 @@ export async function queueLike(target: string, liked: boolean) {
   void flushLikes();
 }
 
-function failureMessage(message: string) {
+export function failureMessage(message: string) {
+  if (message.includes('contenu_refuse')) return REFUSED_TEXT;
+  if (message.includes('compte_suspendu')) return SUSPENDED_TEXT;
   if (message.includes('Trop d')) return message;
   if (message.includes('retiré')) return message;
   if (message.includes('Déjà signalé')) return 'Déjà signalé';
@@ -304,8 +307,8 @@ export async function deleteEcho(target: string, id: string) {
   return result;
 }
 
-export async function reportEcho(target: string, id: string) {
-  const result = await call('report_echo', { p_id: id });
+export async function reportEcho(target: string, id: string, reason: ReportReason = 'autre') {
+  const result = await call('report_echo', { p_id: id, p_reason: reason });
   if (result.ok) await refreshTarget(target);
   return result;
 }
@@ -334,8 +337,8 @@ export async function setCarry(id: string, on: boolean) {
   return call('set_carry', { p_id: id, p_on: on });
 }
 
-export async function reportIntention(id: string) {
-  return call('report_intention', { p_id: id });
+export async function reportIntention(id: string, reason: ReportReason = 'autre') {
+  return call('report_intention', { p_id: id, p_reason: reason });
 }
 
 export function useCommunity() {

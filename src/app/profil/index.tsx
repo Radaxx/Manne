@@ -6,7 +6,9 @@ import { LinkedAccount } from '../../account-form';
 import type { Palette } from '../../appearance';
 import { useAccount, useAuth } from '../../auth';
 import { Avatar } from '../../avatar';
+import { MASKED_NOTE } from '../../moderation';
 import { Button, SettingsButton } from '../../profile-ui';
+import { SuspensionBanner, useMySuspension } from '../../publisher-moderation-ui';
 import { ShowcaseSections } from '../../showcase-sections';
 import { useMyShowcase } from '../../showcase-store';
 import { useApp } from '../../storage';
@@ -21,6 +23,7 @@ export default function ProfilScreen() {
   const { configured, status, profile, profileLoaded, profileOffline, refreshProfile } = useAuth();
   const account = useAccount();
   const mine = useMyShowcase();
+  const suspension = useMySuspension(status === 'signedIn');
 
   // Les compteurs bougent quand on revient d'une liste ou du profil d'un autre.
   useFocusEffect(
@@ -79,6 +82,11 @@ export default function ProfilScreen() {
               <Text style={styles.muted}>{profile.parish}</Text>
             </View>
           ) : null}
+          {profile.flagged ? (
+            <Text style={styles.masked}>
+              {MASKED_NOTE}. Les autres ne voient plus ta bio ni ta paroisse. Si tu les modifies, elles redeviennent visibles.
+            </Text>
+          ) : null}
         </View>
         <View style={styles.counts}>
           <Pressable onPress={() => router.push('/profil/abonnes')} style={styles.count} accessibilityRole="button">
@@ -98,6 +106,7 @@ export default function ProfilScreen() {
     <>
       <Stack.Screen options={{ headerRight: () => <SettingsButton /> }} />
       <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
+        <SuspensionBanner suspension={suspension} />
         {status === 'signedIn' && profile ? null : (
           <View style={styles.identity}>
             <Avatar size={96} />
@@ -147,4 +156,5 @@ const stylesFor = (C: Palette) =>
     cardTitle: { color: C.text, fontSize: 18, fontWeight: '700' },
     section: { color: C.text, fontSize: 19, fontWeight: '800', marginTop: 22, marginBottom: 4 },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
+    masked: { color: C.muted, fontSize: 13, lineHeight: 18, fontStyle: 'italic', textAlign: 'center', marginTop: 10 },
   });

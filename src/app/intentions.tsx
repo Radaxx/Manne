@@ -7,6 +7,7 @@ import type { Palette } from '../appearance';
 import { listIntentions, postIntention, reportIntention, type SharedIntention, setCarry, withdrawIntention } from '../community';
 import { haptic } from '../haptics';
 import { useKeyboardOverlap } from '../keyboard';
+import { useReportSheet } from '../moderation-ui';
 import { setIntentionShown, useMyShowcase } from '../showcase-store';
 import { ShowSwitch } from '../showcase-ui';
 import { Text, TextInput } from '../text';
@@ -26,6 +27,7 @@ export default function IntentionsScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [onProfile, setOnProfile] = useState(false);
   const mine = useMyShowcase();
+  const { ask, sheet } = useReportSheet();
 
   useEffect(() => {
     if (prefill) setDraft(prefill);
@@ -104,21 +106,17 @@ export default function IntentionsScreen() {
     ]);
   };
 
-  const report = (id: string) => {
-    Alert.alert('Signaler cette intention ?', 'Trois signalements la retirent.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Signaler',
-        style: 'destructive',
-        onPress: () => {
-          void reportIntention(id).then((result) => {
-            if (!result.ok) setNotice(result.message);
-            else void load();
-          });
-        },
+  const report = (id: string) =>
+    ask({
+      title: 'Signaler cette intention ?',
+      message: 'Trois signalements la retirent.',
+      send: (reason) => {
+        void reportIntention(id, reason).then((result) => {
+          if (!result.ok) setNotice(result.message);
+          else void load();
+        });
       },
-    ]);
-  };
+    });
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
@@ -205,6 +203,7 @@ export default function IntentionsScreen() {
           </View>
         </KeyboardAvoidingView>
       </View>
+      {sheet}
     </SafeAreaView>
   );
 }
@@ -236,7 +235,7 @@ const stylesFor = (C: Palette) =>
     notice: { color: C.red, fontSize: 14, textAlign: 'center' },
     profileCheck: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingTop: 10 },
     profileCheckLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
-    profileCheckHint: { color: C.faint, fontSize: 13, lineHeight: 18, marginTop: 1 },
+    profileCheckHint: { color: C.faint, fontSize: 13, lineHeight: 18, marginTop: 1, paddingBottom: 10 },
     composer: {
       flexDirection: 'row',
       alignItems: 'flex-end',
