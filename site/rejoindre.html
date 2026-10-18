@@ -37,7 +37,6 @@
     background: var(--gold); color: var(--on-gold); border-radius: 999px; padding: .9rem 1rem; margin: 1rem 0 .5rem;
   }
   .button.secondary { background: transparent; color: var(--gold); border: 1px solid var(--line); }
-  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -46,7 +45,7 @@
   <h1>Tu es invité à rejoindre un groupe de prière</h1>
 
   <div id="valid" hidden>
-    <a id="open" class="button" href="#">Ouvrir dans Manne</a>
+    <a id="open" class="button" href="manne://rejoindre">Ouvrir dans Manne</a>
     <div class="card">
       <p class="muted">Code d’invitation</p>
       <p id="code" class="code"></p>
@@ -63,20 +62,20 @@
 </main>
 <script>
   // Le code arrive après le « # » : cette partie de l'adresse n'est jamais envoyée au serveur.
-  (function () {
+  (() => {
     var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     var raw = decodeURIComponent(location.hash.slice(1) || new URLSearchParams(location.search).get('code') || '');
     var code = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    var ok = code.length === 8 && code.split('').every(function (c) { return ALPHABET.indexOf(c) !== -1; });
+    var ok = code.length === 8 && code.split('').every((c) => ALPHABET.indexOf(c) !== -1);
     document.getElementById(ok ? 'valid' : 'invalid').hidden = false;
     if (!ok) return;
-    document.getElementById('code').textContent = code.slice(0, 4) + '-' + code.slice(4);
-    var deep = 'manne://rejoindre/' + code;
+    document.getElementById('code').textContent = `${code.slice(0, 4)}-${code.slice(4)}`;
+    var deep = `manne://rejoindre/${code}`;
     var android = /Android/i.test(navigator.userAgent);
     // Sur Android, un lien « intent » ouvre l'app si elle est installée, sinon le Play Store.
     var store = 'https://play.google.com/store/apps/details?id=com.radaxx.manne';
     var href = android
-      ? 'intent://rejoindre/' + code + '#Intent;scheme=manne;package=com.radaxx.manne;S.browser_fallback_url=' + encodeURIComponent(store) + ';end'
+      ? `intent://rejoindre/${code}#Intent;scheme=manne;package=com.radaxx.manne;S.browser_fallback_url=${encodeURIComponent(store)};end`
       : deep;
     var open = document.getElementById('open');
     open.href = href;
