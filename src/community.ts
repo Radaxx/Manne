@@ -251,6 +251,7 @@ export async function queueLike(target: string, liked: boolean) {
 export function failureMessage(message: string) {
   if (message.includes('contenu_refuse')) return REFUSED_TEXT;
   if (message.includes('compte_suspendu')) return SUSPENDED_TEXT;
+  if (message.includes('compte_requis')) return 'Relie un compte pour signaler.';
   if (message.includes('Trop d')) return message;
   if (message.includes('retiré')) return message;
   if (message.includes('Déjà signalé')) return 'Déjà signalé';

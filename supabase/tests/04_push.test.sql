@@ -28,6 +28,9 @@ insert into public.group_members (group_id, user_id, role) values
 insert into public.push_tokens (token, user_id, platform)
 select 'ExponentPushToken[test-' || n || ']', ('a0000000-0000-0000-0000-00000000000' || n)::uuid, 'android' from generate_series(1, 5) n;
 
+-- Le test ne dépend pas des données locales : la transaction est annulée à la fin, rien n'est supprimé pour de bon.
+delete from public.push_outbox;
+
 -- 1. Une demande d'adhésion : le propriétaire et le modérateur la reçoivent, pas le simple membre.
 insert into public.group_requests (group_id, user_id) values ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004');
 select is((select count(*)::int from public.push_outbox where kind = 'request'), 2, 'demande : deux destinataires');
