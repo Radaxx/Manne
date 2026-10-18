@@ -68,3 +68,81 @@ describe('adresses acceptées au toucher', () => {
     }
   });
 });
+
+describe('retrait du jeton en attente', () => {
+  const KEY = 'manne/push/pending-unregister/v1';
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.dontMock('../src/profile');
+  });
+
+  it('rejoue le retrait et ne lève le marqueur qu’une fois le serveur d’accord', async () => {
+    const storageModule = require('@react-native-async-storage/async-storage');
+    const AsyncStorage = storageModule.default ?? storageModule;
+    const callMock = jest.fn();
+    jest.doMock('../src/profile', () => ({ call: callMock, asRecord: (v: unknown) => v }));
+    const push = require('../src/push');
+    await AsyncStorage.setItem(KEY, JSON.stringify({ token: 'ExponentPushToken[abc]' }));
+
+    callMock.mockResolvedValueOnce({ ok: false, message: 'hors ligne' });
+    await push.retryPendingUnregister();
+    expect(callMock).toHaveBeenCalledWith('unregister_push_token', { p_token: 'ExponentPushToken[abc]' });
+    expect(await AsyncStorage.getItem(KEY)).not.toBeNull();
+
+    callMock.mockResolvedValueOnce({ ok: true, data: null });
+    await push.retryPendingUnregister();
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+
+    callMock.mockClear();
+    await push.retryPendingUnregister();
+    expect(callMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('cache des préférences', () => {
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.dontMock('../src/profile');
+  });
+
+  it('partage une seule lecture entre appelants simultanés', async () => {
+    const callMock = jest.fn().mockResolvedValue({ ok: true, data: { admin: false } });
+    jest.doMock('../src/profile', () => ({ call: callMock, asRecord: (v: unknown) => v }));
+    const push = require('../src/push');
+    const [a, b, c] = await Promise.all([push.getPrefs(), push.getPrefs(), push.getPrefs()]);
+    expect(callMock).toHaveBeenCalledTimes(1);
+    expect(a).toEqual(b);
+    expect(c.ok && c.prefs.admin).toBe(false);
+  });
+
+  it('une lecture partie avant clearPrefsCache n’écrit pas le cache', async () => {
+    let release: (value: unknown) => void = () => {};
+    const callMock = jest
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockResolvedValue({ ok: true, data: { admin: true } });
+    jest.doMock('../src/profile', () => ({ call: callMock, asRecord: (v: unknown) => v }));
+    const push = require('../src/push');
+    const stale = push.getPrefs();
+    push.clearPrefsCache();
+    release({ ok: true, data: { admin: false } });
+    await stale;
+    const fresh = await push.getPrefs();
+    expect(callMock).toHaveBeenCalledTimes(2);
+    expect(fresh.ok && fresh.prefs.admin).toBe(true);
+  });
+});

@@ -20,6 +20,7 @@ import {
   taken,
   userGone,
 } from './errors';
+import { clearOwner } from './owner';
 import { ensureSession } from './session';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -228,6 +229,7 @@ async function signInGoogle(): Promise<Result> {
 async function startOver(reset: () => void) {
   await resetCommunity().catch(() => {});
   reset();
+  await clearOwner();
   // Laisse l'état effacé arriver jusqu'à la synchro avant que la nouvelle session ne la déclenche.
   await new Promise((resolve) => setTimeout(resolve, 0));
   await ensureSession();

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
@@ -100,20 +101,36 @@ export function pushRouteFromUrl(url: unknown): PushRoute | null {
 
 let cached: { at: number; prefs: NotificationPrefs } | null = null;
 const CACHE_MS = 60_000;
+/** Change à chaque oubli du cache : une lecture partie avant ne peut plus l'écrire après. */
+let generation = 0;
+let inflightPrefs: Promise<PrefsResult> | null = null;
+
+type PrefsResult = { ok: true; prefs: NotificationPrefs } | { ok: false; message: string };
 
 /** Oublie les préférences lues (changement de compte, déconnexion). */
 export function clearPrefsCache() {
   cached = null;
+  generation++;
+  inflightPrefs = null;
 }
 
-export async function getPrefs(): Promise<{ ok: true; prefs: NotificationPrefs } | { ok: false; message: string }> {
-  if (cached && Date.now() - cached.at < CACHE_MS) return { ok: true, prefs: cached.prefs };
-  const result = await call('get_notification_prefs');
-  if (!result.ok) return result;
-  const row = Array.isArray(result.data) ? result.data[0] : result.data;
-  const prefs = readPrefs(row);
-  cached = { at: Date.now(), prefs };
-  return { ok: true, prefs };
+export function getPrefs(): Promise<PrefsResult> {
+  if (cached && Date.now() - cached.at < CACHE_MS) return Promise.resolve({ ok: true, prefs: cached.prefs });
+  // Les appelants simultanés (quatre rappels au lancement) partagent une seule lecture.
+  if (inflightPrefs) return inflightPrefs;
+  const started = generation;
+  const task = (async (): Promise<PrefsResult> => {
+    const result = await call('get_notification_prefs');
+    if (!result.ok) return result;
+    const row = Array.isArray(result.data) ? result.data[0] : result.data;
+    const prefs = readPrefs(row);
+    if (started === generation) cached = { at: Date.now(), prefs };
+    return { ok: true, prefs };
+  })().finally(() => {
+    if (inflightPrefs === task) inflightPrefs = null;
+  });
+  inflightPrefs = task;
+  return task;
 }
 
 export async function setPref(key: PrefKey, on: boolean): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -192,6 +209,7 @@ export async function canAskNotificationPermission(): Promise<boolean> {
 export async function registerPushToken({ ask = false, force = false }: { ask?: boolean; force?: boolean } = {}): Promise<PushStatus> {
   if (!notificationsSupported) return 'unsupported';
   try {
+    await retryPendingUnregister();
     await ensureChannel();
     const granted = ask ? await requestReminderPermission() : (await Notifications.getPermissionsAsync()).granted;
     if (!granted) return 'denied';
@@ -215,6 +233,38 @@ export function onPushTokenChanged(listener: () => void): () => void {
   return () => sub.remove();
 }
 
+const PENDING_UNREGISTER_KEY = 'manne/push/pending-unregister/v1';
+
+/**
+ * Le serveur ne supprime que les jetons du compte relié courant : le marqueur ne garde donc que le jeton. Retiré à la
+ * déconnexion si le réseau manquait, il est rejoué au prochain enregistrement, avant celui du compte suivant.
+ */
+async function readPendingUnregister(): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PENDING_UNREGISTER_KEY);
+    const token = raw ? (JSON.parse(raw) as { token?: unknown }).token : null;
+    return typeof token === 'string' && token ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+async function unregisterOnServer(token: string): Promise<boolean> {
+  const result = await call('unregister_push_token', { p_token: token });
+  return result.ok;
+}
+
+/** Rejoue le retrait resté en attente. Le marqueur ne tombe qu'une fois le serveur d'accord. */
+export async function retryPendingUnregister(): Promise<void> {
+  const token = await readPendingUnregister();
+  if (!token) return;
+  try {
+    if (await unregisterOnServer(token)) await AsyncStorage.removeItem(PENDING_UNREGISTER_KEY);
+  } catch {
+    // Reste en attente pour le prochain lancement.
+  }
+}
+
 /** Déconnexion : retire le jeton de ce téléphone du compte, avant que la session ne soit fermée. Ne lève jamais d'erreur. */
 export async function unregisterPushToken(): Promise<void> {
   clearPrefsCache();
@@ -223,9 +273,12 @@ export async function unregisterPushToken(): Promise<void> {
     const token = lastToken ?? (await fetchToken());
     lastToken = null;
     lastRegistered = 0;
-    if (token) await call('unregister_push_token', { p_token: token });
+    if (!token) return;
+    // Noté d'abord : si l'appel échoue (hors ligne) ou que l'app s'arrête, le retrait sera rejoué plus tard.
+    await AsyncStorage.setItem(PENDING_UNREGISTER_KEY, JSON.stringify({ token }));
+    if (await unregisterOnServer(token)) await AsyncStorage.removeItem(PENDING_UNREGISTER_KEY);
   } catch {
-    // Hors ligne : le jeton passera au compte suivant de ce téléphone, ou sera supprimé après 60 jours sans être revu.
+    // Le marqueur (s'il a pu être écrit) fera rejouer le retrait ; sinon le jeton est supprimé après 60 jours sans être revu.
   }
 }
 

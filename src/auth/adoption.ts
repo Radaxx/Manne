@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { supabase } from '../supabase';
 import { adoptionMessage, readParams } from './errors';
 import { currentUserId } from './session';
@@ -8,7 +10,45 @@ import { currentUserId } from './session';
 /** Doit être identique à l'adresse enregistrée dans Supabase. */
 export const REDIRECT = 'manne://auth/callback';
 
-const NONCE_KEY = 'manne/auth/pending-nonce';
+/** Ancienne clé (AsyncStorage, en clair) : lue une dernière fois pour la migration, puis supprimée. */
+const LEGACY_NONCE_KEY = 'manne/auth/pending-nonce';
+/** SecureStore n'accepte que lettres, chiffres, « . », « - » et « _ ». */
+const NONCE_KEY = 'manne.auth.pending-nonce';
+
+async function secureGet(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  try {
+    return await SecureStore.getItemAsync(NONCE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function readStoredNonce(): Promise<string | null> {
+  const secure = await secureGet();
+  if (secure) return secure;
+  const legacy = await AsyncStorage.getItem(LEGACY_NONCE_KEY).catch(() => null);
+  if (legacy) {
+    // Migration : le nonce passe dans le trousseau et quitte le stockage en clair.
+    if (await writeSecureNonce(legacy)) await AsyncStorage.removeItem(LEGACY_NONCE_KEY).catch(() => {});
+  }
+  return legacy;
+}
+
+async function writeSecureNonce(nonce: string): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  try {
+    await SecureStore.setItemAsync(NONCE_KEY, nonce);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function writeStoredNonce(nonce: string) {
+  // Trousseau indisponible : mieux vaut garder le nonce en clair que de perdre la reprise.
+  if (!(await writeSecureNonce(nonce))) await AsyncStorage.setItem(LEGACY_NONCE_KEY, nonce);
+}
 
 /**
  * Le nonce déposé vaut aussi longtemps que le lien du mail (une heure par défaut chez Supabase). Plus court,
@@ -35,26 +75,64 @@ export async function depositNonce(): Promise<string | null> {
 /** Garde le nonce en mémoire et sur le téléphone, le temps que l'utilisateur ouvre le lien ou saisisse le code. */
 export async function rememberNonce(nonce: string) {
   pendingNonce = nonce;
-  await AsyncStorage.setItem(NONCE_KEY, nonce);
+  await writeStoredNonce(nonce);
 }
 
 export async function clearNonce() {
   pendingNonce = null;
-  await AsyncStorage.removeItem(NONCE_KEY);
+  await SecureStore.deleteItemAsync(NONCE_KEY).catch(() => {});
+  await AsyncStorage.removeItem(LEGACY_NONCE_KEY).catch(() => {});
 }
 
-/** Reprend ce que l'anonyme avait fait. */
+/** Le serveur dit « nonce » quand il est inconnu, expiré ou déjà pris : réessayer n'y changera rien. */
+export function permanentAdoptionError(message: string): boolean {
+  return message.includes('nonce');
+}
+
+/** Reprend ce que l'anonyme avait fait. `permanent` : l'erreur ne passera pas en réessayant (nonce invalide ou expiré). */
+export async function adoptOutcome(client: SupabaseClient, nonce: string): Promise<{ error: string | null; permanent: boolean }> {
+  try {
+    const { error } = await client.rpc('adopt_account', { p_nonce: nonce });
+    if (!error) return { error: null, permanent: false };
+    return { error: adoptionMessage(error.message), permanent: permanentAdoptionError(error.message) };
+  } catch {
+    return { error: 'La reprise n’a pas pu partir. Réessaie quand tu as du réseau.', permanent: false };
+  }
+}
+
 export async function adopt(client: SupabaseClient, nonce: string): Promise<string | null> {
-  const { error } = await client.rpc('adopt_account', { p_nonce: nonce });
-  return error ? adoptionMessage(error.message) : null;
+  return (await adoptOutcome(client, nonce)).error;
 }
 
-/** Une fois connecté par le lien ou par le code : reprend avec le nonce en attente, s'il y en a un. */
-export async function adoptPending(): Promise<string | null> {
-  const nonce = pendingNonce ?? (await AsyncStorage.getItem(NONCE_KEY));
-  await clearNonce();
-  if (!nonce || !supabase) return null;
-  return adopt(supabase, nonce);
+/**
+ * Une fois connecté par le lien ou par le code : reprend avec le nonce en attente, s'il y en a un. Le nonce n'est
+ * oublié qu'après la réussite ou une erreur définitive ; un réseau absent le laisse pour un nouvel essai.
+ */
+export function adoptPending(): Promise<string | null> {
+  // Le retour de la connexion et la reprise automatique peuvent se croiser : un seul appel part, les deux en lisent le résultat.
+  pendingAdoption ??= runPendingAdoption().finally(() => {
+    pendingAdoption = null;
+  });
+  return pendingAdoption;
+}
+
+let pendingAdoption: Promise<string | null> | null = null;
+
+async function runPendingAdoption(): Promise<string | null> {
+  const nonce = pendingNonce ?? (await readStoredNonce());
+  if (!nonce) return null;
+  if (!supabase) {
+    await clearNonce();
+    return null;
+  }
+  const { error, permanent } = await adoptOutcome(supabase, nonce);
+  if (!error || permanent) await clearNonce();
+  return error;
+}
+
+/** Y a-t-il une reprise restée en attente (réseau absent lors de la connexion) ? */
+export async function hasPendingNonce(): Promise<boolean> {
+  return !!(pendingNonce ?? (await readStoredNonce()));
 }
 
 /**

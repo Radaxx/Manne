@@ -3,12 +3,14 @@ import * as Notifications from 'expo-notifications';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { onAdorationChanged } from '../adoration-chain';
 import { adorationChainIdFromUrl, syncAdorationReminders } from '../adoration-reminders';
 import { type Palette, paletteFor } from '../appearance';
-import { AuthProvider, useAuth } from '../auth';
+import { AuthProvider, ensureSession, useAuth } from '../auth';
+import { adoptPending, hasPendingNonce } from '../auth/adoption';
+import { loadOwner, ownerDecision, saveOwner } from '../auth/owner';
 import { EchoHost } from '../echoes';
 import { FONT_FILES } from '../font-files';
 import { fontFace } from '../fonts';
@@ -26,7 +28,7 @@ import { notificationsSupported, scheduleReminders } from '../reminder';
 import { rosaryIdFromUrl, syncRosaryReminders } from '../rosary-reminders';
 import { removedKeys, type ShowcasePassage } from '../showcase';
 import { dropPassageCopies } from '../showcase-store';
-import { ProgressProvider, useApp } from '../storage';
+import { type Progress, ProgressProvider, useApp } from '../storage';
 import { supabase } from '../supabase';
 import { syncProgress } from '../sync';
 import { PaletteProvider } from '../theme';
@@ -41,28 +43,88 @@ function navigationTheme(palette: Palette) {
   };
 }
 
+/**
+ * Avant toute synchro : la session est confirmée (ou rouverte en anonyme), puis on vérifie à qui appartient la progression
+ * du téléphone. Si elle venait d'un autre compte relié (session disparue sans « Se déconnecter »), elle est effacée avant
+ * d'être envoyée ou fusionnée où que ce soit. Faux si aucune session n'a pu être ouverte.
+ */
+async function claimProgress(reset: () => void, current: () => Progress): Promise<boolean> {
+  const client = supabase;
+  if (!client || !(await ensureSession())) return false;
+  const { data } = await client.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return false;
+  const owner = { userId: user.id, linked: user.is_anonymous === false };
+  const stored = await loadOwner();
+  const decision = ownerDecision(stored, owner);
+  if (decision.reset) {
+    const before = current();
+    reset();
+    // Laisse l'état effacé arriver jusqu'à la synchro avant qu'elle ne lise la progression.
+    for (let i = 0; i < 20 && current() === before; i++) await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  if (!stored || stored.userId !== owner.userId || stored.linked !== owner.linked) await saveOwner(decision.next);
+  return true;
+}
+
 /** Envoie la progression dès qu'une session existe, et la fusionne au retour du cloud. */
 function ProgressSync() {
-  const { loaded, progress, hydrate } = useApp();
+  const { loaded, progress, hydrate, resetAccountData } = useApp();
   const ref = useRef(progress);
   ref.current = progress;
+  const resetRef = useRef(resetAccountData);
+  resetRef.current = resetAccountData;
+  const claiming = useRef<Promise<boolean> | null>(null);
+  const sync = useCallback(async () => {
+    // Une seule vérification à la fois ; chaque synchro attend la sienne.
+    claiming.current ??= claimProgress(
+      () => resetRef.current(),
+      () => ref.current,
+    ).finally(() => {
+      claiming.current = null;
+    });
+    if (!(await claiming.current)) return;
+    await syncProgress(() => ref.current, hydrate);
+  }, [hydrate]);
   useEffect(() => {
     if (!loaded || !supabase) return;
     ref.current = progress;
     const timer = setTimeout(() => {
-      syncProgress(() => ref.current, hydrate).catch(() => {});
+      sync().catch(() => {});
     }, 800);
     return () => clearTimeout(timer);
-  }, [loaded, progress, hydrate]);
+  }, [loaded, progress, sync]);
   useEffect(() => {
     const client = supabase;
     if (!loaded || !client) return;
-    syncProgress(() => ref.current, hydrate).catch(() => {});
+    sync().catch(() => {});
     const { data } = client.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') syncProgress(() => ref.current, hydrate).catch(() => {});
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') sync().catch(() => {});
     });
     return () => data.subscription.unsubscribe();
-  }, [loaded, hydrate]);
+  }, [loaded, sync]);
+  return null;
+}
+
+/**
+ * Une reprise restée en attente (réseau absent quand le lien ou le code a abouti) est rejouée au lancement et au retour au
+ * premier plan, tant qu'un compte relié est connecté. Le serveur refuse un nonce expiré : il est alors abandonné.
+ */
+function AdoptionRetry() {
+  const { status, userId } = useAuth();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId relance l'essai quand on change de compte
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+    const retry = () =>
+      void hasPendingNonce()
+        .then((pending) => (pending ? adoptPending() : null))
+        .catch(() => {});
+    retry();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => sub.remove();
+  }, [status, userId]);
   return null;
 }
 
@@ -321,6 +383,7 @@ function ThemedShell() {
         <PushSync />
         <NotificationLinks />
         <ProgressSync />
+        <AdoptionRetry />
         <ShowcaseSync />
         <TourGate />
         <EchoHost />
