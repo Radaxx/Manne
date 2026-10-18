@@ -62,6 +62,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
     "test": "jest"
   },
   "private": true,
