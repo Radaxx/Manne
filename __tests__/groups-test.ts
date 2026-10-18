@@ -9,6 +9,7 @@ import {
   formatInviteCode,
   inviteLink,
   inviteMessage,
+  isGoneMessage,
   isGroupEnded,
   isInviteCode,
   KIND_HELP,
@@ -296,5 +297,15 @@ describe('readGroupIntention', () => {
     expect(readGroupIntention({ ...row, created_at: 'x' })).toBeNull();
     expect(readGroupIntention({ ...row, carries: null })).toBeNull();
     expect(readGroupIntention(undefined)).toBeNull();
+  });
+});
+
+describe('isGoneMessage', () => {
+  it('reconnaît un élément disparu ou un accès retiré, pas un échec passager', () => {
+    expect(isGoneMessage('Cette neuvaine n’existe plus, ou tu n’as pas accès à ce groupe.')).toBe(true);
+    expect(isGoneMessage('Ce groupe n’existe pas, ou tu n’en fais pas partie.')).toBe(true);
+    expect(isGoneMessage('Tu n’as pas le droit de faire ça dans ce groupe.')).toBe(true);
+    expect(isGoneMessage('Ça n’a pas pu partir. Réessaie quand tu as du réseau.')).toBe(false);
+    expect(isGoneMessage('Les profils demandent un compte relié.')).toBe(false);
   });
 });

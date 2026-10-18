@@ -120,11 +120,12 @@ export function syncGatheringReminders({ profileMissing = false }: { profileMiss
       return;
     }
     const planned = planReminders(result.gatherings, new Date());
+    // Une demande plus récente attend : on n'a encore rien touché, elle s'en chargera. Passé ce point, on efface puis on
+    // programme sans s'interrompre (30 appels rapides au plus) : jamais de programme partiel, même si la suivante échoue.
+    if (stale()) return;
     await ensureChannel();
     await clearGatheringReminders();
     for (const reminder of planned) {
-      // Une demande plus récente attend : inutile de finir celle-ci.
-      if (stale()) return;
       await Notifications.scheduleNotificationAsync({
         identifier: reminder.identifier,
         content: { title: reminder.title, body: GATHERING_REMINDER_BODY, data: { url: `/groupe/${reminder.groupId}` } },

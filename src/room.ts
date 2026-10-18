@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { currentOffice } from './aelf';
 import { type PrayerKind, readPrayerKind } from './gatherings';
-import { type GroupIntention, readGroupIntention } from './groups';
+import { type GroupIntention, isGoneMessage, readGroupIntention } from './groups';
 import { haptic } from './haptics';
 import { asRecord, call, readRows } from './profile';
 import { supabase } from './supabase';
@@ -220,6 +220,11 @@ export function readRoomState(data: unknown): RoomState | null {
 
 type Failure = { ok: false; message: string };
 
+/** Une lecture numéro `mine` vaut d'être appliquée si aucune lecture plus récente ne l'a été avant elle. Fonction pure. */
+export function isFreshRequest(applied: number, mine: number): boolean {
+  return mine > applied;
+}
+
 export async function fetchRoomState(gatheringId: string): Promise<{ ok: true; room: RoomState } | Failure> {
   const result = await call('room_state', { p_id: gatheringId });
   if (!result.ok) return result;
@@ -259,12 +264,27 @@ export function useRoom(gatheringId: string, myHandle: string | null) {
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const alive = useRef(true);
 
+  // Chaque lecture a un numéro croissant ; une lecture plus lente qu'une plus récente déjà appliquée est ignorée.
+  const requestSeq = useRef(0);
+  const appliedSeq = useRef(0);
+  const currentId = useRef(gatheringId);
+  currentId.current = gatheringId;
+
   const reload = useCallback(async () => {
+    // Pas d'identifiant (profil pas encore prêt) : on reste en chargement, sans appeler le serveur.
+    if (!gatheringId) return;
+    const mine = ++requestSeq.current;
     const result = await fetchRoomState(gatheringId);
-    if (!alive.current) return;
+    if (!alive.current || currentId.current !== gatheringId || !isFreshRequest(appliedSeq.current, mine)) return;
+    appliedSeq.current = mine;
     setLoading(false);
     if (!result.ok) {
       setError(result.message);
+      // Salle ou rendez-vous disparu, ou accès retiré (retiré du groupe, banni) : on quitte l'état de la salle, ce qui ferme le canal.
+      if (isGoneMessage(result.message)) {
+        declared.current = [];
+        setRoom(null);
+      }
       return;
     }
     setError(null);
@@ -342,13 +362,18 @@ export function useRoom(gatheringId: string, myHandle: string | null) {
     const connect = async () => {
       // Le JWT courant part avec le canal privé (Realtime Authorization) ; le client le renvoie aussi quand il se renouvelle.
       // On n'attend pas indéfiniment : un jeton qui tarde ne doit pas bloquer la salle en « connexion ».
+      let authTimer: ReturnType<typeof setTimeout> | null = null;
       try {
         await Promise.race([
           client.realtime.setAuth(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('jeton en retard')), AUTH_WAIT_MS)),
+          new Promise((_, reject) => {
+            authTimer = setTimeout(() => reject(new Error('jeton en retard')), AUTH_WAIT_MS);
+          }),
         ]);
       } catch (e) {
         console.warn(`[salle] jeton du canal : ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        if (authTimer) clearTimeout(authTimer);
       }
       if (closed) return;
       joinTimer = setTimeout(() => fail('pas de réponse à l’abonnement'), JOIN_WAIT_MS);

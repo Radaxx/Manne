@@ -8,6 +8,7 @@ import {
   declaredNote,
   hasUnknownHandle,
   inRoomLabel,
+  isFreshRequest,
   mergePresence,
   prayerButtonLabel,
   prayerHref,
@@ -259,5 +260,14 @@ describe('la salle d’un rendez-vous sur plusieurs jours', () => {
     const { opensAt, closesAt } = presenceWindow(new Date('2026-10-22T08:00:00Z'), 15);
     expect(opensAt.toISOString()).toBe('2026-10-22T07:50:00.000Z');
     expect(closesAt.toISOString()).toBe('2026-10-22T08:15:00.000Z');
+  });
+});
+
+describe('isFreshRequest', () => {
+  it('ignore une lecture plus ancienne que celle déjà appliquée', () => {
+    expect(isFreshRequest(0, 1)).toBe(true);
+    expect(isFreshRequest(2, 3)).toBe(true);
+    expect(isFreshRequest(3, 2)).toBe(false);
+    expect(isFreshRequest(3, 3)).toBe(false);
   });
 });

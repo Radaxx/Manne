@@ -132,11 +132,12 @@ export function syncRosaryReminders({ profileMissing = false }: { profileMissing
       return;
     }
     const planned = planRosaryReminders(result.rosaries, new Date());
+    // Une demande plus récente attend : on n'a encore rien touché, elle s'en chargera. Passé ce point, on efface puis on
+    // programme sans s'interrompre (30 appels rapides au plus) : jamais de programme partiel, même si la suivante échoue.
+    if (stale()) return;
     await ensureChannel();
     await clearRosaryReminders();
     for (const reminder of planned) {
-      // Une demande plus récente attend : inutile de finir celle-ci.
-      if (stale()) return;
       await Notifications.scheduleNotificationAsync({
         identifier: reminder.identifier,
         content: { title: reminder.title, body: reminder.body, data: { url: `/rosaire/${reminder.rosaryId}` } },

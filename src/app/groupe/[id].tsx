@@ -62,7 +62,7 @@ import {
   withdrawGroupIntention,
 } from '../../groups';
 import { haptic } from '../../haptics';
-import { getGroupRosary, type LivingRosary, startRosary } from '../../living-rosary';
+import { getGroupRosary, type LivingRosary, rosariesChanged, startRosary } from '../../living-rosary';
 import { LivingRosaryCard, openRosary } from '../../living-rosary-ui';
 import { useReportSheet } from '../../moderation-ui';
 import { NovenaCard } from '../../novena-ui';
@@ -160,6 +160,7 @@ export default function GroupeScreen() {
       // Les rappels des rendez-vous suivent ce que le serveur dit de mes inscriptions à l'ouverture de la page.
       gatheringsChanged();
       novenasChanged();
+      rosariesChanged();
       adorationChanged();
     }, [gate.ready, load]),
   );

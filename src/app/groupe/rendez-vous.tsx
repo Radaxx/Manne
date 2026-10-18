@@ -138,24 +138,40 @@ export default function RendezVousScreen() {
   const [loading, setLoading] = useState(!!gatheringId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // En modification, le rendez-vous n'a pas pu être chargé : pas de formulaire (il écraserait l'existant par des valeurs par défaut).
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` relance la lecture (bouton « Réessayer »).
   useEffect(() => {
     if (!gatheringId || !gate.ready) return;
     let alive = true;
+    setLoading(true);
+    setLoadError(null);
     void listGatherings(groupId).then((result) => {
       if (!alive) return;
       const found = result.ok ? result.gatherings.find((g) => g.id === gatheringId) : undefined;
       if (found) setDraft(draftFrom(found));
-      else setError(result.ok ? 'Ce rendez-vous n’existe plus.' : result.message);
+      else setLoadError(result.ok ? 'Ce rendez-vous n’existe plus.' : result.message);
       setLoading(false);
     });
     return () => {
       alive = false;
     };
-  }, [gatheringId, groupId, gate.ready]);
+  }, [gatheringId, groupId, gate.ready, attempt]);
 
   if (gate.loading || loading) return <ActivityIndicator color={C.gold} style={{ marginTop: 40 }} />;
   if (!gate.ready) return <NeedProfile />;
+  if (gatheringId && loadError) {
+    return (
+      <View style={{ padding: 24, gap: 16 }}>
+        <Text style={{ color: C.text, fontSize: 15 }}>{loadError}</Text>
+        <Pressable accessibilityRole="button" onPress={() => setAttempt((n) => n + 1)}>
+          <Text style={{ color: C.gold, fontSize: 15, fontWeight: '600' }}>Réessayer</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const titleError = draft.title.trim() ? titleProblem(draft.title) : null;

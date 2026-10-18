@@ -44,7 +44,7 @@ import { CoverageBar, openAdoration, useNow } from '../../adoration-ui';
 import type { Palette } from '../../appearance';
 import { AllowNotifications, ExactAlarmNote, useReminderPermission } from '../../gathering-ui';
 import { NeedProfile, openGroup, useGroupGate } from '../../group-ui';
-import { firstParam } from '../../groups';
+import { firstParam, isGoneMessage } from '../../groups';
 import { haptic } from '../../haptics';
 import { Button } from '../../profile-ui';
 import { animateNext, Chevron, Collapsible } from '../../recurrence-ui';
@@ -79,7 +79,8 @@ export default function AdorationChaineScreen() {
       const result = await getChain(id);
       if (!result.ok) {
         setError(result.message);
-        setChain((previous) => previous ?? null);
+        // Supprimée ou accès retiré : on n'affiche plus l'ancien contenu. Échec passager : on le garde.
+        setChain((previous) => (isGoneMessage(result.message) ? null : (previous ?? null)));
         return;
       }
       setError(result.chain ? null : 'Cette chaîne d’adoration n’existe plus, ou tu n’as pas accès à ce groupe.');
@@ -413,6 +414,7 @@ export default function AdorationChaineScreen() {
         <Button label="Voir les semaines suivantes" kind="secondary" busy={loadingMore} onPress={() => void more()} />
       ) : null}
 
+      {error ? <Text style={styles.noticeError}>{error}</Text> : null}
       {notice ? <Text style={styles.noticeError}>{notice}</Text> : null}
 
       {chain.canManage ? (

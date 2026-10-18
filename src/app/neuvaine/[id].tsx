@@ -10,7 +10,7 @@ import { prayerById } from '../../data/prayers';
 import { dayLabel } from '../../dates';
 import { AllowNotifications, ExactAlarmNote, useReminderPermission } from '../../gathering-ui';
 import { NeedProfile, openGroup, useGroupGate } from '../../group-ui';
-import { firstParam } from '../../groups';
+import { firstParam, isGoneMessage } from '../../groups';
 import { haptic } from '../../haptics';
 import { closeExtract } from '../../journey-screen';
 import { TimeSteppers } from '../../novena-ui';
@@ -65,7 +65,8 @@ export default function NeuvaineScreen() {
     const result = await getNovena(id);
     if (!result.ok) {
       setError(result.message);
-      setNovena((previous) => previous ?? null);
+      // Supprimée ou accès retiré : on n'affiche plus l'ancien contenu. Échec passager : on le garde.
+      setNovena((previous) => (isGoneMessage(result.message) ? null : (previous ?? null)));
       return;
     }
     setError(result.novena ? null : 'Cette neuvaine n’existe plus, ou tu n’as pas accès à ce groupe.');
@@ -386,6 +387,7 @@ export default function NeuvaineScreen() {
         </Pressable>
       ) : null}
 
+      {error ? <Text style={styles.noticeError}>{error}</Text> : null}
       {notice ? <Text style={styles.noticeError}>{notice}</Text> : null}
 
       {reading && passage ? (

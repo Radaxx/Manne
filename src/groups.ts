@@ -374,8 +374,35 @@ export function updateGroup(id: string, name: string, description: string) {
   return call('update_group', { p_id: id, p_name: name.trim(), p_description: description.trim() });
 }
 
+/**
+ * Quitter ou supprimer un groupe fait disparaître ses rendez-vous, neuvaines, Rosaires vivants et chaînes d'adoration :
+ * les rappels locaux correspondants doivent être reprogrammés. Imports différés : ces modules importent déjà `groups`.
+ */
+async function remindersChanged(): Promise<void> {
+  try {
+    const [g, n, r, a] = await Promise.all([
+      import('./gatherings'),
+      import('./novenas'),
+      import('./living-rosary'),
+      import('./adoration-chain'),
+    ]);
+    g.gatheringsChanged();
+    n.novenasChanged();
+    r.rosariesChanged();
+    a.adorationChanged();
+  } catch {
+    // Les rappels se resynchroniseront à la prochaine ouverture.
+  }
+}
+
+async function callThenRemindersChanged(fn: string, args: Record<string, unknown>): Promise<Result> {
+  const result = await call(fn, args);
+  if (result.ok) void remindersChanged();
+  return result;
+}
+
 export function deleteGroup(id: string) {
-  return call('delete_group', { p_id: id });
+  return callThenRemindersChanged('delete_group', { p_id: id });
 }
 
 /** Un nouveau code : `data` est le code. L'ancien code, et donc l'ancien lien, ne marche plus. */
@@ -448,7 +475,7 @@ export function removeMember(id: string, handle: string) {
 }
 
 export function leaveGroup(id: string) {
-  return call('leave_group', { p_id: id });
+  return callThenRemindersChanged('leave_group', { p_id: id });
 }
 
 export function listGroupIntentions(id: string) {
@@ -514,3 +541,17 @@ export function listBans(id: string) {
 }
 
 export type { GroupBan, GroupReport };
+
+/**
+ * Vrai si le message d'échec d'un appel dit que l'élément n'existe plus ou que l'accès est refusé (supprimé, retiré du
+ * groupe, banni) : l'écran doit alors cesser d'afficher son contenu. Faux pour un échec passager (réseau, serveur).
+ */
+export function isGoneMessage(message: string): boolean {
+  return (
+    message.includes('n’existe plus') ||
+    message.includes('pas accès à ce groupe') ||
+    message.includes('tu n’en fais pas partie') ||
+    message.includes('Tu n’as pas le droit') ||
+    message.includes('n’est plus disponible')
+  );
+}

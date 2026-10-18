@@ -8,7 +8,7 @@ import { MYSTERIES } from '../../data/prayers';
 import { AllowNotifications, ExactAlarmNote, useReminderPermission } from '../../gathering-ui';
 import { deviceTimeZone } from '../../gatherings';
 import { NeedProfile, openGroup, useGroupGate } from '../../group-ui';
-import { firstParam } from '../../groups';
+import { firstParam, isGoneMessage } from '../../groups';
 import { haptic } from '../../haptics';
 import {
   cancelRosary,
@@ -62,7 +62,8 @@ export default function RosaireScreen() {
     const result = await getRosary(id);
     if (!result.ok) {
       setError(result.message);
-      setRosary((previous) => previous ?? null);
+      // Supprimé ou accès retiré : on n'affiche plus l'ancien contenu. Échec passager : on le garde.
+      setRosary((previous) => (isGoneMessage(result.message) ? null : (previous ?? null)));
       return;
     }
     setError(result.rosary ? null : 'Ce Rosaire vivant n’existe plus, ou tu n’as pas accès à ce groupe.');
@@ -413,6 +414,7 @@ export default function RosaireScreen() {
         </Pressable>
       ) : null}
 
+      {error ? <Text style={styles.noticeError}>{error}</Text> : null}
       {notice ? <Text style={styles.noticeError}>{notice}</Text> : null}
     </ScrollView>
   );
