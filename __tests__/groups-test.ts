@@ -129,9 +129,9 @@ describe('code d’invitation', () => {
   it('formate, fait le lien et le message à partager', () => {
     expect(formatInviteCode('abcdefgh')).toBe('ABCD-EFGH');
     expect(formatInviteCode('ab')).toBe('AB');
-    expect(inviteLink('abcd-efgh')).toBe('manne://rejoindre/ABCDEFGH');
+    expect(inviteLink('abcd-efgh')).toBe('https://radaxx.github.io/Manne/rejoindre.html#ABCDEFGH');
     const message = inviteMessage('  Fraternité Saint-Joseph ', 'ABCDEFGH');
-    expect(message).toContain('manne://rejoindre/ABCDEFGH');
+    expect(message).toContain('https://radaxx.github.io/Manne/rejoindre.html#ABCDEFGH');
     expect(message).toContain('ABCD-EFGH');
     expect(message).toContain('« Fraternité Saint-Joseph »');
   });

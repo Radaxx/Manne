@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex">
+<title>Rejoindre un groupe — Manne</title>
+<meta name="description" content="Une invitation à rejoindre un groupe de prière sur Manne.">
+<style>
+  :root {
+    --bg: #f6f2ea; --card: #ffffff; --text: #1d1b17; --muted: #5d574c; --line: #ddd5c6;
+    --gold: #8a5a00; --on-gold: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0e12; --card: #16181f; --text: #ece8de; --muted: #a29d90; --line: #2a2d37;
+      --gold: #f2b544; --on-gold: #1d1b17;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 32rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+  h1 { font: 700 2rem/1.2 Georgia, "Times New Roman", serif; margin: .25rem 0 .75rem; }
+  p { margin: .5rem 0; }
+  a { color: var(--gold); }
+  .kicker { color: var(--gold); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem; margin: 1.25rem 0; }
+  .code { font: 700 1.9rem/1.2 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .12em; margin: .25rem 0 .5rem; }
+  .button {
+    display: block; text-align: center; text-decoration: none; font-weight: 800;
+    background: var(--gold); color: var(--on-gold); border-radius: 999px; padding: .9rem 1rem; margin: 1rem 0 .5rem;
+  }
+  .button.secondary { background: transparent; color: var(--gold); border: 1px solid var(--line); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <p class="kicker">Manne</p>
+  <h1>Tu es invité à rejoindre un groupe de prière</h1>
+
+  <div id="valid" hidden>
+    <a id="open" class="button" href="#">Ouvrir dans Manne</a>
+    <div class="card">
+      <p class="muted">Code d’invitation</p>
+      <p id="code" class="code"></p>
+      <p class="muted">Si le bouton ne fait rien, ouvre Manne, va dans Communauté → Rejoindre avec un code, et saisis ce code.</p>
+    </div>
+    <p>Pas encore Manne ?</p>
+    <a class="button secondary" href="https://play.google.com/store/apps/details?id=com.radaxx.manne">Télécharger sur Google Play</a>
+    <p class="muted">Une fois l’app installée, reviens sur ce lien ou saisis le code.</p>
+  </div>
+
+  <div id="invalid" class="card" hidden>
+    <p>Ce lien d’invitation est incomplet. Demande à la personne qui t’a invité de te renvoyer le lien, ou le code à 8 caractères.</p>
+  </div>
+</main>
+<script>
+  // Le code arrive après le « # » : cette partie de l'adresse n'est jamais envoyée au serveur.
+  (function () {
+    var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var raw = decodeURIComponent(location.hash.slice(1) || new URLSearchParams(location.search).get('code') || '');
+    var code = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var ok = code.length === 8 && code.split('').every(function (c) { return ALPHABET.indexOf(c) !== -1; });
+    document.getElementById(ok ? 'valid' : 'invalid').hidden = false;
+    if (!ok) return;
+    document.getElementById('code').textContent = code.slice(0, 4) + '-' + code.slice(4);
+    var deep = 'manne://rejoindre/' + code;
+    var android = /Android/i.test(navigator.userAgent);
+    // Sur Android, un lien « intent » ouvre l'app si elle est installée, sinon le Play Store.
+    var store = 'https://play.google.com/store/apps/details?id=com.radaxx.manne';
+    var href = android
+      ? 'intent://rejoindre/' + code + '#Intent;scheme=manne;package=com.radaxx.manne;S.browser_fallback_url=' + encodeURIComponent(store) + ';end'
+      : deep;
+    var open = document.getElementById('open');
+    open.href = href;
+    // Une seule tentative automatique, sur Android : ailleurs, un schéma inconnu afficherait une erreur.
+    if (android) location.href = href;
+  })();
+</script>
+</body>
+</html>

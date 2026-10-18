@@ -187,9 +187,15 @@ export function formatInviteCode(value: string): string {
   return code.length > 4 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 }
 
-/** Le lien d'invitation : il ouvre l'écran « Rejoindre » de l'app (schéma `manne`). */
+/**
+ * Le lien d'invitation, en https pour être cliquable dans les messageries (un lien `manne://` ne l'est presque jamais).
+ * La page ouvre l'app sur `manne://rejoindre/<code>`, ou propose le Play Store. Le code est après « # » : il n'est
+ * jamais envoyé au serveur qui héberge la page.
+ */
+export const INVITE_PAGE = 'https://radaxx.github.io/Manne/rejoindre.html';
+
 export function inviteLink(value: string): string {
-  return `manne://rejoindre/${normalizeInviteCode(value)}`;
+  return `${INVITE_PAGE}#${normalizeInviteCode(value)}`;
 }
 
 /** Le message à partager : le lien et le code en clair. */
