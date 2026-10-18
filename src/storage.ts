@@ -5,6 +5,7 @@ import { pruneAelfCache } from './aelf';
 import { type AppearanceSettings, DEFAULT_APPEARANCE, normalizeAppearance } from './appearance';
 import { bookMeta, clampChapter, DEFAULT_TRANSLATION, isBook, isTranslation, type TranslationId } from './bible';
 import { queueLike } from './community';
+import { CONFESSION_SECURE_AVAILABLE, loadConfessionItems, saveConfessionItems } from './confession-store';
 import { type Passage, type Theme, VERSES } from './data/content';
 import { MYSTERIES } from './data/prayers';
 import { localDate } from './dates';
@@ -51,7 +52,7 @@ export type Progress = {
    * fin de session. La synchro s'en sert pour savoir qui a le dernier mot ; sans elle, une fusion
    * ne ferait que des unions et des « plus avancé gagne », et rien ne pourrait être retiré ni reculé.
    * Clés : liked:<id>, saved:<id>, pin:<id>, prayer:<id>, intent:<id>, plan:<id>, pos:<livre>, scores, rosary, adoration, appearance,
-   * translation, culture, journey:<parcours>:<date>.
+   * translation, culture, name, journey:<parcours>:<date>. pos:/plan: sont aussi datés par une lecture qui change de chapitre.
    */
   stamps: Record<string, number>;
 };
@@ -157,7 +158,7 @@ function sealDay(p: Progress): DayLog {
     office: prev.office,
     rosary: prev.rosary,
     adoration: prev.adoration,
-    reading: readingDone(p.plans, verses, p.day, p.translation),
+    reading: prev.reading || readingDone(p.plans, verses, p.day, p.translation),
   };
 }
 
@@ -168,7 +169,7 @@ function ensureToday(p: Progress): Progress {
   return { ...p, day: d, readToday: [], chaptersToday: [], days, streak: streakFrom(days, d) };
 }
 
-/** Met à jour le journal du jour et la série. Les drapeaux de prière ne reviennent pas en arrière. */
+/** Met à jour le journal du jour et la série. Les drapeaux (prière, lecture) ne reviennent pas en arrière dans la journée. */
 function touchDay(p: Progress, patch?: Partial<Pick<DayLog, 'gospel' | 'office' | 'rosary' | 'adoration'>>): Progress {
   const rolled = ensureToday(p);
   const prev = rolled.days[rolled.day] ?? EMPTY_DAY;
@@ -179,7 +180,7 @@ function touchDay(p: Progress, patch?: Partial<Pick<DayLog, 'gospel' | 'office' 
     office: prev.office || !!patch?.office,
     rosary: prev.rosary || !!patch?.rosary,
     adoration: prev.adoration || !!patch?.adoration,
-    reading: readingDone(rolled.plans, verses, rolled.day, rolled.translation),
+    reading: prev.reading || readingDone(rolled.plans, verses, rolled.day, rolled.translation),
   };
   if (
     rolled === p &&
@@ -208,24 +209,53 @@ function withChapterRead(p: Progress, book: number, chapter: number): Progress {
 
 /** Remet une progression lue du disque ou du cloud dans la forme actuelle, sans encore changer de jour. */
 export function prepareStored(raw: unknown): Progress {
-  const stored = { ...initial(), ...(raw && typeof raw === 'object' ? (raw as Partial<Progress>) : {}) };
-  stored.rosary = { ...initial().rosary, ...(stored.rosary ?? {}) };
-  stored.adoration = { ...initial().adoration, ...(stored.adoration ?? {}) };
-  stored.confession = { ...initial().confession, ...(stored.confession ?? {}) };
-  stored.reminder = { ...initial().reminder, ...(stored.reminder ?? {}) };
+  const base = initial();
+  const stored = { ...base, ...(isRecord(raw) ? (raw as Partial<Progress>) : {}) };
+  const rosary: Record<string, unknown> = isRecord(stored.rosary) ? stored.rosary : {};
+  stored.rosary = {
+    session: validRosarySession(rosary.session),
+    last: typeof rosary.last === 'string' ? rosary.last : null,
+    count: count(rosary.count),
+    fatima: typeof rosary.fatima === 'boolean' ? rosary.fatima : base.rosary.fatima,
+    texts: typeof rosary.texts === 'boolean' ? rosary.texts : base.rosary.texts,
+    view3d: typeof rosary.view3d === 'boolean' ? rosary.view3d : base.rosary.view3d,
+  };
+  const adoration: Record<string, unknown> = isRecord(stored.adoration) ? stored.adoration : {};
+  stored.adoration = {
+    session: validAdorationSession(adoration.session),
+    last: typeof adoration.last === 'string' ? adoration.last : null,
+    count: count(adoration.count),
+    mode: adoration.mode === 'contemplative' || adoration.mode === 'guided' ? adoration.mode : base.adoration.mode,
+    minutes:
+      typeof adoration.minutes === 'number' && Number.isFinite(adoration.minutes) && adoration.minutes > 0
+        ? adoration.minutes
+        : base.adoration.minutes,
+    intentions: (Array.isArray(adoration.intentions) ? (adoration.intentions as unknown[]) : []).filter(isNote),
+  };
+  const confession: Record<string, unknown> = isRecord(stored.confession) ? stored.confession : {};
+  stored.confession = {
+    items: (Array.isArray(confession.items) ? (confession.items as unknown[]) : []).filter(isNote),
+    lastConfession: typeof confession.lastConfession === 'string' ? confession.lastConfession : null,
+  };
+  stored.reminder = { ...base.reminder, ...(isRecord(stored.reminder) ? stored.reminder : {}) };
   stored.appearance = normalizeAppearance(stored.appearance);
   stored.translation = isTranslation(stored.translation) ? stored.translation : DEFAULT_TRANSLATION;
   stored.cultureCalendar = typeof stored.cultureCalendar === 'boolean' ? stored.cultureCalendar : true;
-  stored.days = stored.days && typeof stored.days === 'object' && !Array.isArray(stored.days) ? stored.days : {};
-  stored.stamps = stored.stamps && typeof stored.stamps === 'object' && !Array.isArray(stored.stamps) ? stored.stamps : {};
-  stored.seenMilestones = Array.isArray(stored.seenMilestones) ? stored.seenMilestones : [];
+  stored.confessionLock = typeof stored.confessionLock === 'boolean' ? stored.confessionLock : true;
+  stored.day = typeof stored.day === 'string' && DAY.test(stored.day) ? stored.day : today();
+  stored.streak = typeof stored.streak === 'number' && Number.isFinite(stored.streak) && stored.streak >= 0 ? stored.streak : 0;
+  stored.lastActiveDay = typeof stored.lastActiveDay === 'string' ? stored.lastActiveDay : null;
+  stored.days = validDays(stored.days);
+  stored.stamps = validStamps(stored.stamps);
+  stored.themeScores = validScores(stored.themeScores);
+  stored.seenMilestones = strings(stored.seenMilestones);
   stored.displayName = typeof stored.displayName === 'string' ? stored.displayName : '';
   stored.lastOffice = typeof stored.lastOffice === 'string' ? stored.lastOffice : null;
   stored.liked = strings(stored.liked);
   stored.chaptersRead = strings(stored.chaptersRead);
   stored.readToday = strings(stored.readToday);
   stored.chaptersToday = strings(stored.chaptersToday);
-  stored.pinnedPrayers = Array.isArray(stored.pinnedPrayers) ? strings(stored.pinnedPrayers) : initial().pinnedPrayers;
+  stored.pinnedPrayers = Array.isArray(stored.pinnedPrayers) ? strings(stored.pinnedPrayers) : base.pinnedPrayers;
   stored.customPrayers = (Array.isArray(stored.customPrayers) ? (stored.customPrayers as unknown[]) : []).filter(
     (c): c is CustomPrayer =>
       isRecord(c) &&
@@ -234,13 +264,7 @@ export function prepareStored(raw: unknown): Progress {
       typeof c.text === 'string' &&
       typeof c.updatedAt === 'number',
   );
-  stored.confession.items = (Array.isArray(stored.confession.items) ? (stored.confession.items as unknown[]) : []).filter(isNote);
-  stored.adoration.intentions = (Array.isArray(stored.adoration.intentions) ? (stored.adoration.intentions as unknown[]) : []).filter(
-    isNote,
-  );
   stored.journeys = validJourneys(stored.journeys);
-  stored.rosary.session = validRosarySession(stored.rosary.session);
-  stored.adoration.session = validAdorationSession(stored.adoration.session);
   // Un livre ou une position hors de la Bible ferait planter l'accueil et la lecture.
   stored.currentBook = validBook(stored.currentBook) ? stored.currentBook : FIRST_BOOK;
   const positions: Progress['positions'] = {};
@@ -254,20 +278,63 @@ export function prepareStored(raw: unknown): Progress {
   stored.saved = (Array.isArray(stored.saved) ? (stored.saved as (Passage | string)[]) : [])
     .map((s) => (typeof s === 'string' ? VERSES.find((v) => v.id === s) : s))
     .filter((s): s is Passage => !!s && typeof s === 'object' && typeof s.id === 'string');
-  stored.plans = isRecord(stored.plans) ? stored.plans : {};
-  for (const [id, state] of Object.entries(stored.plans as Record<string, PlanState & { done?: string[] }>)) {
+  stored.plans = validPlans(stored.plans, stored.translation);
+  return stored;
+}
+
+/** Plans lus du disque ou du cloud, dans un nouvel objet. Un plan inconnu (venu d'une version plus récente) reste tel quel. */
+function validPlans(v: unknown, translation: TranslationId): Progress['plans'] {
+  const plans: Progress['plans'] = {};
+  for (const [id, state] of Object.entries(isRecord(v) ? v : {})) {
+    if (!isRecord(state) || typeof state.start !== 'string' || !DAY.test(state.start)) continue;
     const plan = planById(id);
-    if (!plan || !isRecord(state) || typeof state.start !== 'string') delete stored.plans[id];
-    else if (state.pos === undefined) {
-      const done = new Set(state.done ?? []);
-      const chapters = planChapters(plan, stored.translation);
+    const start = state.start;
+    if (state.pos === undefined) {
+      // Ancien format : la liste des chapitres faits. Impossible à relire sans le plan.
+      if (!plan) continue;
+      const done = new Set(strings(state.done));
+      const chapters = planChapters(plan, translation);
       const pos = chapters.findIndex((c) => !done.has(c.key));
-      stored.plans[id] = { start: state.start, pos: pos === -1 ? chapters.length : pos, verse: 1 };
-    } else if (!Number.isInteger(state.pos) || state.pos < 0 || !Number.isInteger(state.verse) || state.verse < 1) {
-      stored.plans[id] = { start: state.start, pos: Math.max(0, Math.floor(Number(state.pos)) || 0), verse: 1 };
+      plans[id] = { start, pos: pos === -1 ? chapters.length : pos, verse: 1 };
+    } else if (!Number.isInteger(state.pos) || (state.pos as number) < 0 || !Number.isInteger(state.verse) || (state.verse as number) < 1) {
+      plans[id] = { start, pos: Math.max(0, Math.floor(Number(state.pos)) || 0), verse: 1 };
+    } else {
+      plans[id] = { start, pos: state.pos as number, verse: state.verse as number };
     }
   }
-  return stored;
+  return plans;
+}
+
+const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+
+function validDays(v: unknown): Progress['days'] {
+  const days: Progress['days'] = {};
+  for (const [date, log] of Object.entries(isRecord(v) ? v : {})) {
+    if (!DAY.test(date) || !isRecord(log) || typeof log.verses !== 'number' || !Number.isFinite(log.verses) || log.verses < 0) continue;
+    days[date] = {
+      verses: log.verses,
+      gospel: log.gospel === true,
+      office: log.office === true,
+      rosary: log.rosary === true,
+      adoration: log.adoration === true,
+      reading: log.reading === true,
+    };
+  }
+  return days;
+}
+
+function validStamps(v: unknown): Progress['stamps'] {
+  const stamps: Progress['stamps'] = {};
+  for (const [key, at] of Object.entries(isRecord(v) ? v : {})) if (typeof at === 'number' && Number.isFinite(at)) stamps[key] = at;
+  return stamps;
+}
+
+function validScores(v: unknown): Progress['themeScores'] {
+  const scores: Record<string, number> = {};
+  for (const [theme, score] of Object.entries(isRecord(v) ? v : {})) {
+    if (typeof score === 'number' && Number.isFinite(score)) scores[theme] = score;
+  }
+  return scores as Progress['themeScores'];
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -298,7 +365,8 @@ function validJourneys(v: unknown): Progress['journeys'] {
   const journeys: Progress['journeys'] = {};
   for (const [id, days] of Object.entries(isRecord(v) ? v : {})) {
     const valid = [...new Set(strings(days).filter((d) => DAY.test(d)))].sort();
-    if (/^[a-z]+-\d{4}$/.test(id) && valid.length) journeys[id] = valid;
+    // Un parcours inconnu (d'une version plus récente) reste : seuls les identifiants vides ou absurdes sont écartés.
+    if (id.length > 0 && id.length <= 64 && valid.length) journeys[id] = valid;
   }
   return journeys;
 }
@@ -326,35 +394,196 @@ function validAdorationSession(s: unknown): AdorationSession | null {
   return { mode: s.mode, minutes: s.minutes, step: s.step as number, day: typeof s.day === 'string' ? s.day : today() };
 }
 
+export function advanceReadingState(p: Progress, passage: Passage, chapterEnd: boolean): Progress {
+  const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 }, p.translation);
+  // Un changement de chapitre est daté, comme un geste : le dernier appareil à avoir lu l'emporte à la fusion.
+  const changed = p.positions[next.book]?.chapter !== next.chapter;
+  const moved = {
+    ...p,
+    currentBook: next.book,
+    positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } },
+    stamps: changed ? stamped(p, `pos:${next.book}`) : p.stamps,
+  };
+  return touchDay(chapterEnd ? withChapterRead(moved, passage.book, passage.chapter) : moved);
+}
+
+export function advancePlanState(
+  p: Progress,
+  id: string,
+  passage: Pick<Passage, 'book' | 'chapter' | 'to'>,
+  chapterEnd: boolean,
+): Progress {
+  const base = p.day === today() ? p : touchDay(p);
+  const plan = planById(id);
+  const state = base.plans[id];
+  if (!plan || !state) return base;
+  const idx = planIndex(plan, passage.book, passage.chapter, base.translation);
+  if (idx === -1) return base;
+  const pos = chapterEnd ? idx + 1 : idx;
+  const verse = chapterEnd ? 1 : passage.to + 1;
+  if (pos < state.pos || (pos === state.pos && verse <= state.verse))
+    return touchDay(chapterEnd ? withChapterRead(base, passage.book, passage.chapter) : base);
+  const updated = {
+    ...base,
+    plans: { ...base.plans, [id]: { ...state, pos, verse } },
+    stamps: pos !== state.pos ? stamped(base, `plan:${id}`) : base.stamps,
+  };
+  return touchDay(chapterEnd ? withChapterRead(updated, passage.book, passage.chapter) : updated);
+}
+
+export function setDisplayNameState(p: Progress, name: string): Progress {
+  const displayName = name.trim().slice(0, 40);
+  return p.displayName === displayName ? p : { ...p, displayName, stamps: stamped(p, 'name') };
+}
+
+/** Met à jour le journal du jour et la série (exporté pour les tests). */
+export const touchDayState = (p: Progress, patch?: Parameters<typeof touchDay>[1]) => touchDay(p, patch);
+
+/** Copie de sauvegarde d'une progression illisible, gardée à côté pour qu'on puisse la récupérer. */
+export const CORRUPT_KEY = `${KEY}.corrupt`;
+
+/** La progression telle qu'elle va dans AsyncStorage : sans la liste de confession, gardée dans l'espace sécurisé. */
+const withoutConfessionItems = (p: Progress): Progress => ({ ...p, confession: { ...p.confession, items: [] } });
+
+/**
+ * Lit la progression sur le disque. Une lecture qui échoue est retentée une fois. `writable` dit s'il est sûr d'y
+ * écrire ensuite : faux si le disque n'a pas pu être lu, ou si son contenu abîmé n'a pas pu être mis de côté.
+ *
+ * La liste de confession est lue dans l'espace sécurisé. Une liste encore présente dans la progression (versions
+ * précédentes) y est déplacée, et ne quitte la progression qu'une fois l'écriture sécurisée réussie.
+ * `secure` dit si la liste est confiée à l'espace sécurisé (lisible, hors web) ; `savedItems` est alors ce qu'il contient.
+ */
+export async function loadStored(): Promise<{
+  progress: Progress | null;
+  writable: boolean;
+  secure: boolean;
+  savedItems: string | null;
+}> {
+  let raw: string | null = null;
+  let read = false;
+  for (let attempt = 0; attempt < 2 && !read; attempt++) {
+    try {
+      raw = await AsyncStorage.getItem(KEY);
+      read = true;
+    } catch {}
+  }
+  if (!read) return { progress: null, writable: false, secure: false, savedItems: null };
+  let progress: Progress | null = null;
+  if (raw) {
+    try {
+      progress = prepareStored(JSON.parse(raw) as unknown);
+    } catch {
+      try {
+        await AsyncStorage.setItem(`${CORRUPT_KEY}-${Date.now()}`, raw);
+      } catch {
+        return { progress: null, writable: false, secure: false, savedItems: null };
+      }
+    }
+  }
+  if (!CONFESSION_SECURE_AVAILABLE) {
+    return { progress: progress && touchDay(progress), writable: true, secure: false, savedItems: null };
+  }
+  let stored = await loadConfessionItems();
+  // Sans progression sur le disque, l'app vient d'être installée : sur iOS, le trousseau survit à la désinstallation.
+  // Une liste laissée par une installation précédente est effacée, comme le promet la politique de confidentialité.
+  if (stored.ok && raw === null && stored.items.length > 0) {
+    stored = (await saveConfessionItems([])) ? { items: [], ok: true } : { items: [], ok: false };
+  }
+  if (!stored.ok) {
+    // Espace sécurisé illisible : la liste est inconnue, on n'y touche pas et elle reste dans la progression.
+    return { progress: progress && touchDay(progress), writable: true, secure: false, savedItems: null };
+  }
+  const legacy = progress?.confession.items ?? [];
+  const known = new Set(stored.items.map((i) => i.id));
+  const items = [...stored.items, ...legacy.filter((i) => !known.has(i.id))];
+  let savedItems: string | null = JSON.stringify(stored.items);
+  // Migration : sécurisé d'abord ; si cela échoue, la liste reste dans la progression et on réessaiera.
+  const moved = items.length === stored.items.length || (await saveConfessionItems(items));
+  if (moved) {
+    savedItems = JSON.stringify(items);
+    if (progress && legacy.length > 0) {
+      try {
+        await AsyncStorage.setItem(KEY, JSON.stringify(withoutConfessionItems(progress)));
+      } catch {}
+    }
+  }
+  const full = progress
+    ? { ...progress, confession: { ...progress.confession, items } }
+    : items.length > 0
+      ? prepareStored({ confession: { items } })
+      : null;
+  return { progress: full && touchDay(full), writable: true, secure: true, savedItems };
+}
+
 export function useProgress() {
   const [progress, setProgress] = useState<Progress>(initial);
+  const pristine = useRef(progress);
   const [loaded, setLoaded] = useState(false);
   const ref = useRef(progress);
   ref.current = progress;
 
+  // Tant que le disque n'a pas été relu (ou sauvegardé s'il était abîmé), on n'y écrit rien : un état vide
+  // ne doit jamais recouvrir une progression qu'on n'a pas pu lire.
+  const canWrite = useRef(false);
+  // La liste de confession va dans l'espace sécurisé quand il est lisible ; `savedItems` est ce qu'il contient.
+  const secure = useRef(false);
+  const savedItems = useRef<string | null>(null);
+
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then((raw) => {
-        if (!raw) return;
-        setProgress(touchDay(prepareStored(JSON.parse(raw) as unknown)));
+    let cancelled = false;
+    loadStored()
+      .then((result) => {
+        if (cancelled) return;
+        canWrite.current = result.writable;
+        secure.current = result.secure;
+        savedItems.current = result.savedItems;
+        const stored = result.progress;
+        if (stored) {
+          // Une action faite avant la fin de la lecture ne se perd pas : elle est fusionnée dans ce qui vient du disque.
+          setProgress((current) => {
+            if (current === pristine.current) return touchDay(stored);
+            const { mergeProgress } = require('./sync') as typeof import('./sync');
+            return touchDay(mergeProgress(stored, current));
+          });
+        }
       })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Dernier état écrit sur le disque, pour ne pas réécrire le même.
   const written = useRef<string | null>(null);
+  // Les écritures se suivent une à une : deux enregistrements ne se mélangent jamais.
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const persist = useCallback(() => {
-    const json = JSON.stringify(ref.current);
-    if (json === written.current) return;
-    written.current = json;
-    // Si le stockage est plein, on sacrifie le cache des textes liturgiques et on réessaie une fois.
-    AsyncStorage.setItem(KEY, json)
-      .catch(() => pruneAelfCache().then(() => AsyncStorage.setItem(KEY, json)))
-      .catch((e) => {
-        written.current = null;
-        console.warn('Progression non enregistrée', e);
-      });
+    queue.current = queue.current.then(async () => {
+      if (!canWrite.current) return;
+      const current = ref.current;
+      // La liste de confession est enregistrée à part (espace sécurisé) et ne quitte la progression qu'une fois
+      // cet enregistrement réussi : en cas d'échec, elle reste dans la progression plutôt que d'être perdue.
+      let strip = secure.current;
+      if (strip) {
+        const items = JSON.stringify(current.confession.items);
+        if (items !== savedItems.current) {
+          if (await saveConfessionItems(current.confession.items)) savedItems.current = items;
+          else strip = false;
+        }
+      }
+      const json = JSON.stringify(strip ? withoutConfessionItems(current) : current);
+      if (json === written.current) return;
+      written.current = json;
+      // Si le stockage est plein, on sacrifie le cache des textes liturgiques et on réessaie une fois.
+      await AsyncStorage.setItem(KEY, json)
+        .catch(() => pruneAelfCache().then(() => AsyncStorage.setItem(KEY, json)))
+        .catch((e) => {
+          written.current = null;
+          console.warn('Progression non enregistrée', e);
+        });
+    });
   }, []);
 
   // Lire en faisant défiler change la progression à chaque verset : on n'écrit qu'une fois le calme revenu,
@@ -400,15 +629,7 @@ export function useProgress() {
 
   /** Lecture libre : avance le marque-page juste après ce passage. N'a aucun effet sur les plans. */
   const advanceReading = useCallback((passage: Passage, chapterEnd: boolean) => {
-    setProgress((p) => {
-      const next = normalize({ book: passage.book, chapter: passage.chapter, verse: passage.to + 1 }, p.translation);
-      const moved = {
-        ...p,
-        currentBook: next.book,
-        positions: { ...p.positions, [next.book]: { chapter: next.chapter, verse: next.verse } },
-      };
-      return touchDay(chapterEnd ? withChapterRead(moved, passage.book, passage.chapter) : moved);
-    });
+    setProgress((p) => advanceReadingState(p, passage, chapterEnd));
   }, []);
 
   /**
@@ -416,20 +637,7 @@ export function useProgress() {
    * Tout ce qui précède la position atteinte compte comme lu, même si on a glissé vite.
    */
   const advancePlan = useCallback((id: string, passage: Pick<Passage, 'book' | 'chapter' | 'to'>, chapterEnd: boolean) => {
-    setProgress((p) => {
-      const base = p.day === today() ? p : touchDay(p);
-      const plan = planById(id);
-      const state = base.plans[id];
-      if (!plan || !state) return base;
-      const idx = planIndex(plan, passage.book, passage.chapter, base.translation);
-      if (idx === -1) return base;
-      const pos = chapterEnd ? idx + 1 : idx;
-      const verse = chapterEnd ? 1 : passage.to + 1;
-      if (pos < state.pos || (pos === state.pos && verse <= state.verse))
-        return touchDay(chapterEnd ? withChapterRead(base, passage.book, passage.chapter) : base);
-      const updated = { ...base, plans: { ...base.plans, [id]: { ...state, pos, verse } } };
-      return touchDay(chapterEnd ? withChapterRead(updated, passage.book, passage.chapter) : updated);
-    });
+    setProgress((p) => advancePlanState(p, id, passage, chapterEnd));
   }, []);
 
   const selectBook = useCallback((book: number, restart = false) => {
@@ -584,8 +792,7 @@ export function useProgress() {
   }, []);
 
   const setDisplayName = useCallback((name: string) => {
-    const displayName = name.trim().slice(0, 40);
-    setProgress((p) => (p.displayName === displayName ? p : { ...p, displayName }));
+    setProgress((p) => setDisplayNameState(p, name));
   }, []);
 
   const seeMilestone = useCallback((id: string) => {

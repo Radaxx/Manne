@@ -63,7 +63,7 @@ export function streakFrom(days: Record<string, DayLog>, date: string): number {
 export function liveLog(p: Progress, date = p.day): DayLog {
   const prev = p.days[date] ?? EMPTY_DAY;
   const verses = Math.max(prev.verses, date === p.day ? p.readToday.length : 0);
-  return { ...prev, verses, reading: readingDone(p.plans, verses, date, p.translation) };
+  return { ...prev, verses, reading: prev.reading || readingDone(p.plans, verses, date, p.translation) };
 }
 
 export function currentStreak(p: Progress, date = p.day): number {

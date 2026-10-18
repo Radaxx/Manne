@@ -122,7 +122,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     chaptersToday,
     days,
     seenMilestones: [...new Set([...here.seenMilestones, ...there.seenMilestones])],
-    displayName: here.displayName.trim() || there.displayName.trim(),
+    displayName: byStamp(here, there, 'name', here.displayName, there.displayName, (mine, theirs) => mine.trim() || theirs.trim()),
     lastOffice: later(here.lastOffice, there.lastOffice),
     lastActiveDay: later(here.lastActiveDay, there.lastActiveDay),
     currentBook: here.currentBook,
@@ -207,10 +207,16 @@ export function syncProgress(getLocal: () => Progress, apply: Apply): Promise<bo
     try {
       do {
         again = false;
-        const result = await once(getLocal());
+        // L'utilisateur est lu avant l'état local : si le compte change pendant l'aller-retour, le résultat est jeté.
+        const userId = await currentUserId();
+        if (!userId) {
+          ok = false;
+          continue;
+        }
+        const result = await once(userId, getLocal());
         ok = result.ok;
         const merged = result.merged;
-        if (merged) apply((local) => mergeProgress(local, merged));
+        if (merged && (await currentUserId()) === userId) apply((local) => mergeProgress(local, merged));
       } while (again);
       return ok;
     } finally {
@@ -220,11 +226,9 @@ export function syncProgress(getLocal: () => Progress, apply: Apply): Promise<bo
   return inflight;
 }
 
-async function once(local: Progress): Promise<{ ok: boolean; merged: Progress | null }> {
+async function once(userId: string, local: Progress): Promise<{ ok: boolean; merged: Progress | null }> {
   const client = supabase;
   if (!client) return { ok: false, merged: null };
-  const userId = await currentUserId();
-  if (!userId) return { ok: false, merged: null };
   const localJson = canonical(cloudState(local));
   if (lastPushed?.userId === userId && lastPushed.json === localJson) return { ok: true, merged: null };
   const { data, error } = await client.from('user_state').select('state').eq('user_id', userId).maybeSingle();
@@ -232,6 +236,8 @@ async function once(local: Progress): Promise<{ ok: boolean; merged: Progress | 
   const remote = data?.state ? prepareStored(data.state) : null;
   const merged = remote ? mergeProgress(local, remote) : local;
   const json = canonical(cloudState(merged));
+  // Changement de compte pendant la lecture : on n'écrit pas l'état de l'un dans la ligne de l'autre.
+  if ((await currentUserId()) !== userId) return { ok: false, merged: null };
   let ok = true;
   if (!data?.state || canonical(data.state) !== json) {
     const { error: writeError } = await client.from('user_state').upsert({

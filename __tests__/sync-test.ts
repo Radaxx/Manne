@@ -1,6 +1,20 @@
-import { type Progress, prepareStored, readingPosition, today } from '../src/storage';
-import { mergeProgress } from '../src/sync';
+import { currentUserId } from '../src/auth/session';
+import type { Passage } from '../src/data/content';
+import {
+  advancePlanState,
+  advanceReadingState,
+  type Progress,
+  prepareStored,
+  readingPosition,
+  setDisplayNameState,
+  today,
+} from '../src/storage';
+import { supabase } from '../src/supabase';
+import { mergeProgress, syncProgress } from '../src/sync';
 import { shiftDay } from '../src/today';
+
+jest.mock('../src/auth/session', () => ({ currentUserId: jest.fn() }));
+jest.mock('../src/supabase', () => ({ supabase: { from: jest.fn() } }));
 
 const NOW = Date.now();
 const progress = (patch: Partial<Progress> = {}) => prepareStored(patch);
@@ -120,11 +134,15 @@ describe('prepareStored', () => {
     expect(readingPosition(prepareStored({ ...joel4, translation: 'crampon' }))).toEqual({ book: 29, chapter: 4, verse: 3 });
   });
 
-  it('ne garde que des dates dans les parcours', () => {
+  it('ne garde que des dates dans les parcours, y compris ceux d’une version plus récente', () => {
     const p = prepareStored({
-      journeys: { 'avent-2026': ['2026-12-02', 'demain', '2026-12-01', '2026-12-01'], x: ['2026-12-01'] } as never,
+      journeys: {
+        'avent-2026': ['2026-12-02', 'demain', '2026-12-01', '2026-12-01'],
+        'toussaint-fete-2026': ['2026-11-01'],
+        vide: ['x'],
+      } as never,
     });
-    expect(p.journeys).toEqual({ 'avent-2026': ['2026-12-01', '2026-12-02'] });
+    expect(p.journeys).toEqual({ 'avent-2026': ['2026-12-01', '2026-12-02'], 'toussaint-fete-2026': ['2026-11-01'] });
   });
 
   it('met l’accent liturgique par défaut et écarte une valeur inconnue', () => {
@@ -155,5 +173,124 @@ describe('prepareStored', () => {
     });
     expect(p.customPrayers.map((c) => c.id)).toEqual(['perso-1']);
     expect(p.pinnedPrayers).toEqual(['notre-pere']);
+  });
+});
+
+const passage = (book: number, chapter: number): Passage =>
+  ({ id: `${book}:${chapter}`, book, bookName: '', chapter, from: 1, to: 1, reference: '', text: '' }) as Passage;
+
+describe('le dernier geste gagne, naturel ou explicite', () => {
+  it('une lecture plus récente l’emporte sur un ancien geste explicite de l’autre téléphone', () => {
+    const a = progress({ positions: { 40: { chapter: 5, verse: 1 } }, stamps: { 'pos:40': NOW - 2000 } });
+    const b = progress({ positions: { 40: { chapter: 25, verse: 1 } }, stamps: { 'pos:40': NOW - 1000 } });
+    expect(mergeProgress(a, b).positions[40].chapter).toBe(25);
+    expect(mergeProgress(b, a).positions[40].chapter).toBe(25);
+  });
+
+  it('un recommencement plus récent l’emporte sur la lecture de l’autre', () => {
+    const a = progress({ positions: { 40: { chapter: 1, verse: 1 } }, stamps: { 'pos:40': NOW - 1000 } });
+    const b = progress({ positions: { 40: { chapter: 25, verse: 1 } }, stamps: { 'pos:40': NOW - 2000 } });
+    expect(mergeProgress(a, b).positions[40].chapter).toBe(1);
+  });
+
+  it('date une lecture qui change de chapitre, pas chaque verset', () => {
+    const start = prepareStored({ positions: { 40: { chapter: 3, verse: 1 } }, currentBook: 40 });
+    const sameChapter = advanceReadingState(start, { ...passage(40, 3), from: 1, to: 4 }, false);
+    expect(sameChapter.stamps['pos:40']).toBeUndefined();
+    const nextChapter = advanceReadingState(start, { ...passage(40, 3), to: 9999 }, true);
+    expect(nextChapter.positions[40].chapter).toBe(4);
+    expect(nextChapter.stamps['pos:40']).toBeGreaterThanOrEqual(NOW);
+  });
+
+  it('date l’avancée d’un plan quand son chapitre change', () => {
+    const start = prepareStored({ plans: { 'psaumes-30': { start: today(), pos: 0, verse: 1 } } });
+    const ch = advancePlanState(start, 'psaumes-30', { book: 19, chapter: 1, to: 6 }, false);
+    expect(ch.stamps['plan:psaumes-30']).toBeUndefined();
+    const done = advancePlanState(start, 'psaumes-30', { book: 19, chapter: 1, to: 6 }, true);
+    expect(done.plans['psaumes-30'].pos).toBe(1);
+    expect(done.stamps['plan:psaumes-30']).toBeGreaterThanOrEqual(NOW);
+  });
+});
+
+describe('plans et parcours inconnus', () => {
+  it('garde un plan inconnu à la lecture et à la fusion', () => {
+    const start = today();
+    const x = { 'plan-du-futur': { start, pos: 2, verse: 1 } };
+    expect(prepareStored({ plans: x }).plans).toEqual(x);
+    const merged = mergeProgress(progress({ plans: x }), progress());
+    expect(merged.plans).toEqual(x);
+    expect(mergeProgress(progress(), progress({ plans: x })).plans).toEqual(x);
+  });
+
+  it('jette un plan inconnu mal formé, sans muter l’objet reçu', () => {
+    const raw = { plans: { 'plan-du-futur': { start: 'hier', pos: 1, verse: 1 }, 'psaumes-30': { start: today(), pos: 1, verse: 1 } } };
+    const copy = JSON.parse(JSON.stringify(raw));
+    expect(Object.keys(prepareStored(raw as never).plans)).toEqual(['psaumes-30']);
+    expect(raw).toEqual(copy);
+  });
+});
+
+describe('journal du jour', () => {
+  it('garde la lecture acquise même si le plan se termine', () => {
+    const d = today();
+    const p = prepareStored({
+      day: d,
+      days: { [d]: { verses: 0, gospel: false, office: false, rosary: false, adoration: false, reading: true } },
+      plans: { 'psaumes-30': { start: d, pos: 0, verse: 1 } },
+    });
+    expect(advancePlanState(p, 'psaumes-30', { book: 19, chapter: 1, to: 1 }, true).days[d].reading).toBe(true);
+    const finished = prepareStored({ ...p, plans: { 'psaumes-30': { start: d, pos: 9999, verse: 1 } } });
+    expect(advanceReadingState(finished, passage(41, 1), false).days[d].reading).toBe(true);
+  });
+});
+
+describe('nom affiché', () => {
+  it('le dernier renommage gagne', () => {
+    const a = setDisplayNameState(progress({ displayName: 'Ancien' }), 'Alexis');
+    const b = progress({ displayName: 'Autre', stamps: { name: NOW - 60_000 } });
+    expect(mergeProgress(a, b).displayName).toBe('Alexis');
+    expect(mergeProgress(b, a).displayName).toBe('Alexis');
+  });
+
+  it('à égalité de date, garde le nom d’ici sinon celui de l’autre', () => {
+    expect(mergeProgress(progress({ displayName: 'Ici' }), progress({ displayName: 'Là' })).displayName).toBe('Ici');
+    expect(mergeProgress(progress({ displayName: ' ' }), progress({ displayName: 'Là' })).displayName).toBe('Là');
+  });
+});
+
+describe('syncProgress et changement de compte', () => {
+  const user = currentUserId as jest.Mock;
+  const from = (supabase as unknown as { from: jest.Mock }).from;
+
+  it('jette le résultat si le compte a changé pendant la synchro', async () => {
+    const upsert = jest.fn().mockResolvedValue({ error: null });
+    const remote = progress({ liked: ['distant'] });
+    from.mockReturnValue({
+      select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { state: remote }, error: null }) }) }),
+      upsert,
+    });
+    user.mockReset();
+    user.mockResolvedValueOnce('u1').mockResolvedValue('u2');
+    const apply = jest.fn();
+    const ok = await syncProgress(() => progress({ liked: ['local'] }), apply);
+    expect(ok).toBe(false);
+    expect(upsert).not.toHaveBeenCalled();
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('applique et pousse quand le compte reste le même', async () => {
+    const upsert = jest.fn().mockResolvedValue({ error: null });
+    from.mockReturnValue({
+      select: () => ({
+        eq: () => ({ maybeSingle: () => Promise.resolve({ data: { state: progress({ liked: ['distant'] }) }, error: null }) }),
+      }),
+      upsert,
+    });
+    user.mockReset();
+    user.mockResolvedValue('u3');
+    const apply = jest.fn();
+    expect(await syncProgress(() => progress({ liked: ['local-2'] }), apply)).toBe(true);
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(apply).toHaveBeenCalledTimes(1);
   });
 });
