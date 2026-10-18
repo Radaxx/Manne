@@ -123,8 +123,8 @@ export default function NotificationsScreen() {
         value={value}
         disabled={disabled}
         onValueChange={onChange}
-        trackColor={{ true: C.gold, false: C.track }}
-        thumbColor="#fff"
+        trackColor={{ true: C.gold, false: C.switchOff }}
+        thumbColor={C.switchThumb}
         accessibilityLabel={label}
       />
     </View>

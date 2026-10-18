@@ -396,8 +396,8 @@ function Setup({ onStart, initial }: { onStart: (s: RosarySession) => void; init
             <Switch
               value={fatima}
               onValueChange={(v) => setRosaryPrefs({ fatima: v })}
-              trackColor={{ true: C.gold, false: '#3a3d47' }}
-              thumbColor="#fff"
+              trackColor={{ true: C.gold, false: C.switchOff }}
+              thumbColor={C.switchThumb}
             />
           </View>
           <View style={styles.row}>
@@ -408,8 +408,8 @@ function Setup({ onStart, initial }: { onStart: (s: RosarySession) => void; init
             <Switch
               value={progress.rosary.view3d}
               onValueChange={(v) => setRosaryPrefs({ view3d: v })}
-              trackColor={{ true: C.gold, false: '#3a3d47' }}
-              thumbColor="#fff"
+              trackColor={{ true: C.gold, false: C.switchOff }}
+              thumbColor={C.switchThumb}
             />
           </View>
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
@@ -420,8 +420,8 @@ function Setup({ onStart, initial }: { onStart: (s: RosarySession) => void; init
             <Switch
               value={texts}
               onValueChange={(v) => setRosaryPrefs({ texts: v })}
-              trackColor={{ true: C.gold, false: '#3a3d47' }}
-              thumbColor="#fff"
+              trackColor={{ true: C.gold, false: C.switchOff }}
+              thumbColor={C.switchThumb}
             />
           </View>
         </View>

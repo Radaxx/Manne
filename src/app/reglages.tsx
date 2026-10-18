@@ -145,7 +145,8 @@ export default function ReglagesScreen() {
         <Switch
           value={progress.cultureCalendar}
           onValueChange={setCultureCalendar}
-          trackColor={{ true: C.gold, false: C.faint }}
+          trackColor={{ true: C.gold, false: C.switchOff }}
+          thumbColor={C.switchThumb}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         />

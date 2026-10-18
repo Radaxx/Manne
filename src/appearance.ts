@@ -48,6 +48,10 @@ export type Palette = {
   line: string;
   /** Fond des barres de progression. */
   track: string;
+  /** Fond d'un interrupteur éteint (opaque). */
+  switchOff: string;
+  /** Pastille d'un interrupteur. */
+  switchThumb: string;
   /** Fond d'un passage mis en avant (verset cité, chapitre lu). */
   highlight: string;
   /** Carte translucide posée sur une scène (le chapelet 3D). */
@@ -73,6 +77,8 @@ export const DARK: Palette = {
   red: '#e07a6b',
   line: 'rgba(255,255,255,0.08)',
   track: 'rgba(255,255,255,0.08)',
+  switchOff: '#3a3d47',
+  switchThumb: '#ffffff',
   highlight: 'rgba(255,209,102,0.16)',
   overlay: 'rgba(23,25,31,0.92)',
   tabBar: '#08090c',
@@ -93,6 +99,8 @@ export const LIGHT: Palette = {
   red: '#b42318',
   line: 'rgba(28,25,21,0.1)',
   track: 'rgba(28,25,21,0.08)',
+  switchOff: '#c4bba8',
+  switchThumb: '#ffffff',
   highlight: 'rgba(122,79,14,0.12)',
   overlay: 'rgba(255,253,248,0.94)',
   tabBar: '#fffdf8',

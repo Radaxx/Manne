@@ -4,7 +4,7 @@ import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } fr
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { AppState, useColorScheme } from 'react-native';
+import { Appearance, AppState, useColorScheme } from 'react-native';
 import { onAdorationChanged } from '../adoration-chain';
 import { adorationChainIdFromUrl, syncAdorationReminders } from '../adoration-reminders';
 import { type Palette, paletteFor } from '../appearance';
@@ -367,6 +367,10 @@ function ThemedShell() {
   const { progress } = useApp();
   const system = useColorScheme();
   const { scheme, accent } = progress.appearance;
+  // Les éléments natifs (alertes, clavier, Face ID) suivent le thème choisi dans l'app ; « Système » les rend à l'OS.
+  useEffect(() => {
+    Appearance.setColorScheme(scheme === 'system' ? 'unspecified' : scheme);
+  }, [scheme]);
   // La couleur du jour vient du calendrier calculé sur le téléphone : elle ne dépend pas du réseau.
   const liturgical = accent === 'liturgique' ? liturgicalDay(progress.day).color : null;
   const palette = useMemo(() => paletteFor(scheme, system, liturgical), [scheme, system, liturgical]);

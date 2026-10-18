@@ -51,8 +51,8 @@ export function GroupNotificationsEntry({ groupId }: { groupId: string }) {
         value={muted === false}
         disabled={muted === null}
         onValueChange={(on) => void change(on)}
-        trackColor={{ true: C.gold, false: C.track }}
-        thumbColor="#fff"
+        trackColor={{ true: C.gold, false: C.switchOff }}
+        thumbColor={C.switchThumb}
         accessibilityLabel="Notifications de ce groupe"
       />
     </View>

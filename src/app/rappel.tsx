@@ -52,7 +52,12 @@ export default function ReminderScreen() {
         <>
           <View style={styles.card}>
             <Text style={styles.label}>Rappel quotidien</Text>
-            <Switch value={reminder.enabled} onValueChange={toggle} trackColor={{ true: C.gold, false: '#3a3d47' }} thumbColor="#fff" />
+            <Switch
+              value={reminder.enabled}
+              onValueChange={toggle}
+              trackColor={{ true: C.gold, false: C.switchOff }}
+              thumbColor={C.switchThumb}
+            />
           </View>
 
           {granted === false && (

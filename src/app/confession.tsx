@@ -268,8 +268,8 @@ export default function ConfessionScreen() {
               value={progress.confessionLock && availability !== 'none'}
               onValueChange={toggleLock}
               disabled={availability === 'none'}
-              trackColor={{ true: C.gold, false: '#3a3d47' }}
-              thumbColor="#fff"
+              trackColor={{ true: C.gold, false: C.switchOff }}
+              thumbColor={C.switchThumb}
             />
           </View>
         )}

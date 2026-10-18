@@ -43,8 +43,8 @@ export function ShowSwitch({
           value={on}
           onValueChange={(next) => void flip(next)}
           disabled={busy}
-          trackColor={{ false: C.line, true: C.gold }}
-          thumbColor={C.text}
+          trackColor={{ false: C.switchOff, true: C.gold }}
+          thumbColor={C.switchThumb}
           accessibilityLabel={label}
         />
       </View>
