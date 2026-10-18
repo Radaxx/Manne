@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
@@ -187,6 +188,8 @@ export default function ReglagesScreen() {
           </Pressable>
         </>
       ) : null}
+
+      {Constants.expoConfig?.version ? <Text style={styles.version}>Manne {Constants.expoConfig.version}</Text> : null}
     </ScrollView>
   );
 }
@@ -245,4 +248,5 @@ const stylesFor = (C: Palette) =>
     rowLabel: { color: C.text, fontSize: 16, fontWeight: '700' },
     rowHint: { color: C.muted, fontSize: 13, marginTop: 2 },
     pressed: { opacity: 0.75 },
+    version: { color: C.faint, fontSize: 13, textAlign: 'center', marginTop: 32 },
   });
