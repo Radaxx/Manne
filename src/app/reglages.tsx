@@ -33,8 +33,8 @@ export default function ReglagesScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
-        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir et les
-        notifications.
+        Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir, les
+        notifications et le guide de l’app.
       </Text>
 
       <Text style={styles.section}>Apparence</Text>
@@ -160,6 +160,16 @@ export default function ReglagesScreen() {
               ? `Rappel quotidien à ${formatTime(reminder.hour, reminder.minute)}, rappels de groupe, communauté`
               : 'Rappels, communauté et groupes'}
           </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.faint} />
+      </Pressable>
+
+      <Text style={styles.section}>Aide</Text>
+      <Pressable onPress={() => router.push('/guide')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+        <Ionicons name="help-circle-outline" size={22} color={C.gold} />
+        <View style={styles.rowBody}>
+          <Text style={styles.rowLabel}>Guide de l’app</Text>
+          <Text style={styles.rowHint}>Comment utiliser chaque onglet</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={C.faint} />
       </Pressable>

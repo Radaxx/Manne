@@ -1,6 +1,6 @@
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
-import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef } from 'react';
@@ -31,6 +31,7 @@ import { supabase } from '../supabase';
 import { syncProgress } from '../sync';
 import { PaletteProvider } from '../theme';
 import { dayComplete, liveLog } from '../today';
+import { markTourSeen, tourSeen } from '../tour';
 
 function navigationTheme(palette: Palette) {
   const base = palette.statusBar === 'light' ? DarkTheme : DefaultTheme;
@@ -278,6 +279,28 @@ function NotificationLinks() {
   return null;
 }
 
+/**
+ * La visite de bienvenue s'ouvre une seule fois par téléphone, une fois la progression chargée. On ne la montre que si l'app
+ * s'ouvre sur l'accueil : un lien, un rappel touché ou l'inscription ne sont pas détournés. Elle est notée comme vue dès qu'on
+ * l'ouvre, pour ne jamais revenir.
+ */
+function TourGate() {
+  const { loaded } = useApp();
+  const pathname = usePathname();
+  const checked = useRef(false);
+  useEffect(() => {
+    if (!loaded || checked.current) return;
+    checked.current = true;
+    if (pathname !== '/') return;
+    void tourSeen().then((seen) => {
+      if (seen) return;
+      void markTourSeen();
+      router.push('/bienvenue');
+    });
+  }, [loaded, pathname]);
+  return null;
+}
+
 function ThemedShell() {
   const { progress } = useApp();
   const system = useColorScheme();
@@ -299,6 +322,7 @@ function ThemedShell() {
         <NotificationLinks />
         <ProgressSync />
         <ShowcaseSync />
+        <TourGate />
         <EchoHost />
         <Stack
           screenOptions={{
@@ -355,6 +379,8 @@ function ThemedShell() {
           <Stack.Screen name="reglages" options={{ title: 'Réglages' }} />
           <Stack.Screen name="moderation" options={{ title: 'Modération' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
+          <Stack.Screen name="guide" options={{ title: 'Guide de l’app' }} />
+          <Stack.Screen name="bienvenue" options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>
     </PaletteProvider>
