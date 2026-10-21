@@ -368,8 +368,9 @@ function ThemedShell() {
   const system = useColorScheme();
   const { scheme, accent } = progress.appearance;
   // Les éléments natifs (alertes, clavier, Face ID) suivent le thème choisi dans l'app ; « Système » les rend à l'OS.
+  // Sur le web, React Native Web n'implémente pas `setColorScheme` : il n'y a pas d'éléments natifs à accorder.
   useEffect(() => {
-    Appearance.setColorScheme(scheme === 'system' ? 'unspecified' : scheme);
+    Appearance.setColorScheme?.(scheme === 'system' ? 'unspecified' : scheme);
   }, [scheme]);
   // La couleur du jour vient du calendrier calculé sur le téléphone : elle ne dépend pas du réseau.
   const liturgical = accent === 'liturgique' ? liturgicalDay(progress.day).color : null;
