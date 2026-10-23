@@ -1,10 +1,10 @@
 // Données de test pour le développement : comptes, profils, abonnements, vitrine, intentions, groupes de prière, rendez-vous, neuvaines et Rosaire vivant de groupe,
 // écrits avec la clé service_role (qui contourne la RLS).
-// `seed`, `reset` et `code` visent la base LOCALE (`npm run db:local`). Ils refusent le projet de production.
+// `seed`, `reset`, `code` et `streak` visent la base LOCALE (`npm run db:local`). Ils refusent le projet de production.
 // `reviewer` et `reviewer-remove` visent uniquement la production (compte Play), via `.env.production.local`.
 //
 // Variables (chargées par les scripts npm via --env-file) :
-//   seed / reset / code : EXPO_PUBLIC_SUPABASE_URL dans .env, SUPABASE_SERVICE_ROLE_KEY et SEED_EMAIL dans .env.local
+//   seed / reset / code / streak : EXPO_PUBLIC_SUPABASE_URL dans .env, SUPABASE_SERVICE_ROLE_KEY et SEED_EMAIL dans .env.local
 //   reviewer            : les trois dans .env.production.local
 //   SEED_EMAIL          : votre adresse ; les comptes de test en dérivent (a@b.fr -> a+manne-dev_marie@b.fr)
 //
@@ -12,6 +12,7 @@
 //         (avec --me, seed fait aussi de votre compte un MODÉRATEUR ÉDITEUR, sur la base locale seulement : table app_moderators)
 //         node scripts/seed-dev.mjs reset                  supprime les comptes et les groupes de test
 //         node scripts/seed-dev.mjs code <pseudo>          code de connexion d'un compte de test
+//         node scripts/seed-dev.mjs streak <pseudo>        écrit un historique de série dans la progression de votre compte (base locale seulement)
 //         node scripts/seed-dev.mjs reviewer               crée ou met à jour le compte de démonstration de Google Play
 //         node scripts/seed-dev.mjs reviewer-remove        le supprime
 import { randomBytes, randomInt } from 'node:crypto';
@@ -494,7 +495,7 @@ function setup() {
   return { admin, base, host: new URL(url).host };
 }
 
-/** `seed`, `reset` et `code` restent sur la base locale. Le compte Play reste sur la production. */
+/** `seed`, `reset`, `code` et `streak` restent sur la base locale. Le compte Play reste sur la production. */
 function assertTarget(command, host) {
   const prod = host.split(':')[0] === PRODUCTION_HOST;
   const reviewer = command === 'reviewer' || command === 'reviewer-remove';
@@ -504,6 +505,86 @@ function assertTarget(command, host) {
   if (!prod && reviewer) {
     fail(`« ${command} » n’écrit que sur ${PRODUCTION_HOST}. Le script charge .env.production.local.`);
   }
+}
+
+// Historique de série pour tester la flamme : 12 jours d’affilée jusqu’à hier (surtout un seul geste, trois journées
+// complètes dans les 7 derniers jours), un jour vide, puis 5 jours d’affilée. Aujourd’hui reste vide.
+const STREAK_RECENT = [
+  // [jours en arrière, geste(s)] ; « all » = journée complète (Évangile + lecture + chapelet)
+  [1, 'all'],
+  [2, 'gospel'],
+  [3, 'all'],
+  [4, 'rosary'],
+  [5, 'all'],
+  [6, 'reading'],
+  [7, 'office'],
+  [8, 'gospel'],
+  [9, 'adoration'],
+  [10, 'reading'],
+  [11, 'rosary'],
+  [12, 'gospel'],
+];
+const STREAK_GAP = 13;
+const STREAK_OLDER = [
+  [14, 'gospel'],
+  [15, 'rosary'],
+  [16, 'reading'],
+  [17, 'office'],
+  [18, 'gospel'],
+];
+const STREAK_BEFORE = 19; // laissé vide, pour que la série ancienne fasse bien 5 jours
+
+const EMPTY_DAY = { verses: 0, gospel: false, office: false, rosary: false, adoration: false, reading: false };
+const DAY_LOGS = {
+  all: { verses: 30, gospel: true, reading: true, rosary: true },
+  gospel: { gospel: true },
+  reading: { verses: 30, reading: true },
+  rosary: { rosary: true },
+  office: { office: true },
+  adoration: { adoration: true },
+};
+
+/** AAAA-MM-JJ à Paris, comme localDate() sur le téléphone. */
+function parisToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+    new Date(),
+  );
+}
+
+async function streak(admin, handle) {
+  if (!handle) fail('streak demande un pseudo (le vôtre, par exemple radaxx).');
+  const { data: profile, error } = await admin.from('profiles').select('id, handle').eq('handle', handle.toLowerCase()).maybeSingle();
+  check(error, 'Recherche du profil');
+  if (!profile) {
+    const { data: all } = await admin.from('profiles').select('handle').not('handle', 'like', `${PREFIX}%`).order('handle');
+    fail(`Aucun profil au pseudo « ${handle} ». Pseudos existants : ${(all ?? []).map((p) => p.handle).join(', ') || '(aucun)'}.`);
+  }
+  const { data: row, error: readError } = await admin.from('user_state').select('state').eq('user_id', profile.id).maybeSingle();
+  check(readError, 'Lecture de la progression');
+  const state = row?.state && typeof row.state === 'object' ? row.state : {};
+  const today = parisToday();
+  const days = { ...(state.days ?? {}) };
+  const set = (ago, kind) => {
+    days[shiftIso(today, -ago)] = { ...EMPTY_DAY, ...DAY_LOGS[kind] };
+  };
+  for (const [ago, kind] of [...STREAK_RECENT, ...STREAK_OLDER]) set(ago, kind);
+  for (const ago of [STREAK_GAP, STREAK_BEFORE]) days[shiftIso(today, -ago)] = { ...EMPTY_DAY };
+  delete days[today];
+  const yesterday = shiftIso(today, -1);
+  const next = {
+    ...state,
+    days,
+    streak: STREAK_RECENT.length,
+    lastActiveDay: typeof state.lastActiveDay === 'string' && state.lastActiveDay > yesterday ? state.lastActiveDay : yesterday,
+  };
+  const { error: writeError } = await admin
+    .from('user_state')
+    .upsert({ user_id: profile.id, state: next, updated_at: new Date().toISOString() });
+  check(writeError, 'Écriture de la progression');
+  console.log(`Série écrite pour « ${profile.handle} » (aujourd’hui : ${today}, heure de Paris) :`);
+  const rows = [...STREAK_RECENT, [STREAK_GAP, 'vide'], ...STREAK_OLDER].map(([ago, kind]) => `  ${shiftIso(today, -ago)}  ${kind}`);
+  console.log(`  ${today}  (aujourd’hui, vide)\n${rows.join('\n')}`);
+  console.log(`\nSérie en cours : ${STREAK_RECENT.length} jours. Journées complètes sur 7 : 3 (hier, J-3, J-5).`);
 }
 
 async function seed(admin, base, meHandle, rdvIn, host) {
@@ -1290,13 +1371,14 @@ function help() {
                          --rdv-in : « Prière de test » commence dans ce nombre de minutes (${RDV_IN_MIN} à ${RDV_IN_MAX}, ${RDV_IN_DEFAULT} par défaut)
   reset                  supprime les comptes de test et tout ce qui s’y rattache
   code <pseudo>          code de connexion d’un compte de test
+  streak <pseudo>        écrit un historique de série (12 jours jusqu’à hier, un jour vide, 5 jours avant ; aujourd’hui vide) dans la progression de ce compte
   reviewer               crée ou met à jour le compte de démonstration de Google Play, sur la production seulement
   reviewer-remove        supprime le compte de démonstration, sur la production seulement
 Via npm : npm run db:local   |   npm run seed -- --me votre_pseudo   |   npm run seed:reset`);
 }
 
 const [command, ...args] = process.argv.slice(2);
-if (!['seed', 'reset', 'code', 'reviewer', 'reviewer-remove'].includes(command)) {
+if (!['seed', 'reset', 'code', 'streak', 'reviewer', 'reviewer-remove'].includes(command)) {
   help();
   process.exit(command ? 1 : 0);
 }
@@ -1316,6 +1398,8 @@ if (command === 'seed') {
   await seed(admin, base, i === -1 ? null : args[i + 1].toLowerCase(), rdvIn, host);
 } else if (command === 'reset') {
   await reset(admin, base);
+} else if (command === 'streak') {
+  await streak(admin, args[0]);
 } else if (command === 'reviewer') {
   await reviewer(admin, base);
 } else if (command === 'reviewer-remove') {

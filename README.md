@@ -113,6 +113,7 @@ Le développement parle à une base Supabase **locale** (Docker), jamais au proj
 npm run db:local                    # démarre la base locale et pointe .env dessus
 npm run seed -- --me votre_pseudo   # crée ou met à jour les comptes et les groupes ; ils suivent votre profil (sauf dev_therese) et vous entrez dans la fraternité de test **comme modérateur** (inscrit à ses deux rendez-vous ; une intention de `dev_pierre` y est signalée pour spam par `dev_claire` et `dev_marie`, de quoi voir la file « Signalements » dans les réglages du groupe) et dans « Neuvaine de test » (neuvaine en cours) (pas dans la paroisse : testez la demande). Rien d’autre n’est écrit à votre nom : ni jour de neuvaine coché, ni rappel de neuvaine, ni place dans le Rosaire vivant, ni créneau d’adoration
 npm run seed -- --me votre_pseudo --rdv-in 40   # « Prière de test » commence dans 40 minutes (15 par défaut, de 2 à 240)
+npm run seed:streak -- votre_pseudo   # écrit dans VOTRE progression (base locale) une série de 12 jours jusqu’à hier (surtout un seul geste par jour, 3 journées complètes sur les 7 derniers jours), un jour vide, puis 5 jours d’affilée ; aujourd’hui reste vide. Relancez l’app (fermée puis rouverte) pour que la synchronisation la fusionne avec l’état du téléphone
 npm run seed:reset                  # supprime les comptes de test, leurs groupes et leurs données
 node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-dev.mjs code dev_marie   # code de connexion
 ```
