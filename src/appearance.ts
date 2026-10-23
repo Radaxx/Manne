@@ -45,6 +45,10 @@ export type Palette = {
   /** Texte et icônes posés sur un fond doré. */
   onGold: string;
   red: string;
+  /** Flamme de la série quand la journée est complète (Évangile, lecture et prière). */
+  flameComplete: string;
+  /** Fond rond de cette flamme. */
+  flameCompleteBg: string;
   line: string;
   /** Fond des barres de progression. */
   track: string;
@@ -75,6 +79,8 @@ export const DARK: Palette = {
   gold: '#ffd166',
   onGold: '#0d0e12',
   red: '#e07a6b',
+  flameComplete: '#ff7a3d',
+  flameCompleteBg: 'rgba(255,122,61,0.18)',
   line: 'rgba(255,255,255,0.08)',
   track: 'rgba(255,255,255,0.08)',
   switchOff: '#3a3d47',
@@ -97,6 +103,8 @@ export const LIGHT: Palette = {
   gold: '#7a4f0e',
   onGold: '#fffaf3',
   red: '#b42318',
+  flameComplete: '#c2410c',
+  flameCompleteBg: 'rgba(194,65,12,0.13)',
   line: 'rgba(28,25,21,0.1)',
   track: 'rgba(28,25,21,0.08)',
   switchOff: '#c4bba8',

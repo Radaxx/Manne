@@ -10,7 +10,7 @@ import { SectionHead } from '../section';
 import { today, useApp } from '../storage';
 import { Text } from '../text';
 import { useThemed } from '../theme';
-import { agoPhrase, bibleShare, bookShares, reachedSteps, todayTasks, weekStrip } from '../today';
+import { agoPhrase, bibleShare, bookShares, dayComplete, liveLog, reachedSteps, todayTasks, weekStrip } from '../today';
 
 /** Une ligne qui mène ailleurs : une icône, un titre et une précision. */
 function NavRow({
@@ -54,6 +54,7 @@ export default function CompteScreen() {
   });
   const steps = reachedSteps(progress);
   const { streak, saved, customPrayers } = progress;
+  const fullDay = dayComplete(liveLog(progress));
 
   const open = (href: string, book?: number) => {
     if (book) selectBook(book);
@@ -71,13 +72,20 @@ export default function CompteScreen() {
         {/* La série et la semaine, en grand : c'est ce qui motive */}
         <View style={styles.hero}>
           <View style={styles.heroTop}>
-            <View style={styles.flame}>
-              <Ionicons name="flame" size={28} color={C.gold} />
+            <View
+              style={[styles.flame, fullDay && styles.flameFull]}
+              accessible={fullDay}
+              accessibilityLabel={fullDay ? 'Journée complète : Évangile, lecture et prière' : undefined}
+            >
+              <Ionicons name="flame" size={28} color={fullDay ? C.flameComplete : C.gold} />
             </View>
             <Text style={styles.streakValue}>
               {streak} <Text style={styles.streakLabel}>jour{streak > 1 ? 's' : ''} de suite</Text>
             </Text>
           </View>
+          <Text style={styles.streakRule}>
+            Un geste par jour suffit : l’Évangile, la lecture ou une prière. Les trois font une journée complète.
+          </Text>
           <View
             style={styles.week}
             accessibilityLabel={`Cette semaine : ${week.filter((cell) => cell.complete).length} jours complets sur 7`}
@@ -257,6 +265,8 @@ const stylesFor = (C: Palette) =>
     hero: { backgroundColor: C.card, borderRadius: 24, borderWidth: 1, borderColor: C.line, padding: 20, marginTop: 20, gap: 18 },
     heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     flame: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
+    flameFull: { backgroundColor: C.flameCompleteBg },
+    streakRule: { color: C.muted, fontSize: 13, lineHeight: 19 },
     streakValue: { color: C.text, fontFamily: SERIF, fontSize: 44, lineHeight: 48, fontWeight: '700', flexShrink: 1 },
     streakLabel: { color: C.muted, fontFamily: undefined, fontSize: 16, fontWeight: '700' },
     week: { flexDirection: 'row', justifyContent: 'space-between' },

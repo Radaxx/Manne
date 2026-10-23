@@ -12,7 +12,7 @@ import { localDate } from './dates';
 import { movePlan, type PlanState, planById, planChapters, planIndex } from './plans';
 import { normalize, type Position } from './reading';
 import { DEFAULT_REMINDER, type ReminderSettings } from './reminder';
-import { DAILY_GOAL, type DayLog, EMPTY_DAY, readingDone, streakFrom } from './today';
+import { currentStreak, DAILY_GOAL, type DayLog, EMPTY_DAY, readingDone, streakFrom } from './today';
 
 export { DAILY_GOAL };
 
@@ -279,6 +279,8 @@ export function prepareStored(raw: unknown): Progress {
     .map((s) => (typeof s === 'string' ? VERSES.find((v) => v.id === s) : s))
     .filter((s): s is Passage => !!s && typeof s === 'object' && typeof s.id === 'string');
   stored.plans = validPlans(stored.plans, stored.translation);
+  // Donnée dérivée : recalculée à chaque lecture, pour suivre la règle en vigueur sans attendre un geste.
+  stored.streak = currentStreak(stored);
   return stored;
 }
 

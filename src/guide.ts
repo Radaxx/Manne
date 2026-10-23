@@ -99,7 +99,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     entries: [
       {
         title: 'Ta journée',
-        body: 'Une journée est faite quand tu as lu l’Évangile, fait ta lecture du jour (30 versets, ou les chapitres de ton plan) et prié : un office, le chapelet ou l’adoration. La ligne avec la flamme montre ta série ; touche-la pour ouvrir Mon chemin.',
+        body: 'Un geste par jour fait avancer ta série : l’Évangile, ta lecture du jour (30 versets, ou les chapitres de ton plan) ou une prière (un office, le chapelet ou l’adoration). Les trois font une journée complète, et la flamme change de couleur. La ligne avec la flamme montre ta série ; touche-la pour ouvrir Mon chemin.',
         route: '/compte',
       },
       {

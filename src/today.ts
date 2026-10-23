@@ -48,11 +48,16 @@ export function dayComplete(log: DayLog | undefined): boolean {
   return !!log && log.gospel && log.reading && prayed(log);
 }
 
-/** Série de jours complets. Aujourd'hui incomplet ne la casse pas : on compte jusqu'à hier. */
+/** Un geste suffit pour la série : l'Évangile, la lecture du jour ou une prière. */
+export function dayActive(log: DayLog | undefined): boolean {
+  return !!log && (log.gospel || log.reading || prayed(log));
+}
+
+/** Série de jours actifs (un geste). Aujourd'hui sans geste ne la casse pas : on compte jusqu'à hier. */
 export function streakFrom(days: Record<string, DayLog>, date: string): number {
-  let cursor = dayComplete(days[date]) ? date : shiftDay(date, -1);
+  let cursor = dayActive(days[date]) ? date : shiftDay(date, -1);
   let n = 0;
-  while (dayComplete(days[cursor]) && n < 2000) {
+  while (dayActive(days[cursor]) && n < 2000) {
     n += 1;
     cursor = shiftDay(cursor, -1);
   }

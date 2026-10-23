@@ -16,13 +16,14 @@ import { useMyShowcase } from '../../showcase-store';
 import { useApp } from '../../storage';
 import { Text, TextInput } from '../../text';
 import { useThemed } from '../../theme';
-import { weekStrip } from '../../today';
+import { dayComplete, liveLog, weekStrip } from '../../today';
 
 const days = (n: number) => (n === 0 ? 'Pas encore de jours de suite' : `${n} jour${n > 1 ? 's' : ''} de suite`);
 
 export default function ProfilScreen() {
   const { C, styles } = useThemed(stylesFor);
   const { progress, setDisplayName } = useApp();
+  const fullDay = dayComplete(liveLog(progress));
   const { configured, status, profile, profileLoaded, profileOffline, refreshProfile } = useAuth();
   const account = useAccount();
   const mine = useMyShowcase();
@@ -119,11 +120,11 @@ export default function ProfilScreen() {
           onPress={() => router.push('/compte')}
           style={({ pressed }) => [styles.chemin, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel={`Mon chemin, ${days(progress.streak)}`}
+          accessibilityLabel={`Mon chemin, ${days(progress.streak)}${fullDay ? '. Journée complète : Évangile, lecture et prière' : ''}`}
         >
           <View style={styles.cheminHead}>
-            <View style={styles.flame}>
-              <Ionicons name="flame" size={22} color={C.gold} />
+            <View style={[styles.flame, fullDay && styles.flameFull]}>
+              <Ionicons name="flame" size={22} color={fullDay ? C.flameComplete : C.gold} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cheminTitle}>{days(progress.streak)}</Text>
@@ -208,6 +209,7 @@ const stylesFor = (C: Palette) =>
     countValue: { color: C.text, fontFamily: SERIF, fontSize: 26, lineHeight: 30, fontWeight: '700' },
     chemin: { backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line, padding: 18, gap: 14 },
     cheminHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    flameFull: { backgroundColor: C.flameCompleteBg },
     flame: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.highlight, alignItems: 'center', justifyContent: 'center' },
     cheminTitle: { color: C.text, fontSize: 17, fontWeight: '800' },
     bars: { flexDirection: 'row', gap: 8 },
