@@ -6,8 +6,11 @@
 --   seulement, sinon 'interdit').
 --   Ce qui part : le type (bug, idée, autre), le message, une adresse facultative pour répondre, la version de l'app, le
 --   système (android, ios, web) et sa version. Rien de la progression ni de la liste de confession.
---   Supprimer son compte efface ses retours (on delete cascade). adopt_account (002/003) ne les déplace pas : ils
---   restent attachés à la session anonyme d'origine.
+--   Supprimer son compte efface ses retours (on delete cascade).
+--
+-- adopt_account (002/003) : redéfini en fin de fichier, même corps que 003, pour déplacer aussi les retours de
+--   l'anonyme vers le compte. Sans cela, ils resteraient sur la session anonyme d'origine et survivraient à la
+--   suppression du compte.
 --
 -- Limites : 2 000 caractères pour le message, 200 pour l'adresse, 5 retours par tranche de 10 minutes et 30 par jour et
 --   par compte.
@@ -149,3 +152,74 @@ $$;
 
 revoke all on function public.mod_resolve_feedback(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.mod_resolve_feedback(uuid, boolean) to authenticated;
+
+-- Même corps que 003, plus le déplacement des retours. Les droits d'exécution de la fonction sont conservés.
+create or replace function public.adopt_account(p_nonce uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  src uuid;
+begin
+  if uid is null then
+    raise exception 'auth';
+  end if;
+  select from_user into src
+  from account_adoptions
+  where nonce = p_nonce and expires_at > now();
+  if src is null then
+    raise exception 'nonce';
+  end if;
+  if src = uid then
+    delete from account_adoptions where nonce = p_nonce;
+    return;
+  end if;
+
+  delete from likes l
+  where l.user_id = src
+    and exists (select 1 from likes mine where mine.user_id = uid and mine.target = l.target);
+  update likes set user_id = uid where user_id = src;
+
+  delete from echoes e
+  where e.user_id = src
+    and exists (select 1 from echoes mine where mine.user_id = uid and mine.target = e.target);
+  update echoes set user_id = uid where user_id = src;
+
+  update intentions set user_id = uid where user_id = src;
+
+  delete from carries c
+  where c.user_id = src
+    and exists (select 1 from carries mine where mine.user_id = uid and mine.intention_id = c.intention_id);
+  update carries set user_id = uid where user_id = src;
+
+  delete from reports r
+  where r.user_id = src
+    and (
+      (r.echo_id is not null and exists (select 1 from reports mine where mine.user_id = uid and mine.echo_id = r.echo_id))
+      or (r.intention_id is not null and exists (select 1 from reports mine where mine.user_id = uid and mine.intention_id = r.intention_id))
+    );
+  update reports set user_id = uid where user_id = src;
+
+  -- Ce que set_carry, report_echo et report_intention refusent d'ordinaire : porter ou signaler le sien.
+  delete from carries c
+  using intentions i
+  where c.intention_id = i.id and c.user_id = uid and i.user_id = uid;
+
+  delete from reports r
+  using echoes e
+  where r.echo_id = e.id and r.user_id = uid and e.user_id = uid;
+
+  delete from reports r
+  using intentions i
+  where r.intention_id = i.id and r.user_id = uid and i.user_id = uid;
+
+  update daily_posts set user_id = uid where user_id = src;
+  update feedback set user_id = uid where user_id = src;
+
+  delete from user_state where user_id = src;
+  delete from account_adoptions where nonce = p_nonce;
+end;
+$$;
