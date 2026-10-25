@@ -66,6 +66,8 @@ on conflict do nothing;
 
 Pour le retirer : `delete from public.app_moderators where user_id = (select id from auth.users where email = 'vous@exemple.fr');`. Un modérateur éditeur voit l’auteur de chaque élément signalé, y compris les échos et les intentions publiés sans nom dans le fil commun.
 
+**Retours des testeurs** (`supabase/migrations/019_feedback.sql`) : Réglages > Aide > « Envoyer un retour » ouvre un formulaire (un bug, une idée, autre chose ; le message, 2 000 caractères au plus, et une adresse facultative pour répondre). Le retour part avec la version de l’app et le système du téléphone, depuis n’importe quelle session, anonyme comprise (5 retours par tranche de 10 minutes, 30 par jour). Rien de la progression ni de la confession ne part, et supprimer son compte efface ses retours. Les modérateurs de l’éditeur les lisent dans Réglages > Modération, onglet « Retours » (les non lus d’abord, avec le pseudo de l’auteur s’il a un profil) et les marquent comme lus. On peut aussi les lire dans le dashboard Supabase : `select * from public.feedback order by created_at desc;`.
+
 Le chemin (marque-pages, plans, journal et série, favoris, prières personnelles, chapelet et adoration en cours, intentions d’adoration, réglages d’apparence, traduction, jours vécus des parcours) est synchronisé avec Supabase dès qu’une session existe, anonyme au départ, puis reliée à un compte. Seules la liste de confession, son verrou et l’heure du rappel restent sur le téléphone. Sans projet Supabase configuré, tout reste sur le téléphone et la lecture continue ; les compteurs et les textes communs restent silencieux.
 
 ## Texte
@@ -227,7 +229,8 @@ Tant que ces deux secrets ou pg_net manquent, rien ne casse : les notifications 
 - `src/today.ts` : journée faite (Évangile, lecture, prière), série, reprise, étapes
 - `src/supabase.ts` / `src/auth.ts` / `src/sync.ts` / `src/community.ts` / `src/echoes.tsx` : session anonyme, rattachement du compte, synchro, j’aime, échos et intentions
 - `src/moderation.ts` / `src/moderation-ui.tsx` / `src/group-moderation-ui.tsx` : motifs de signalement et leur feuille de choix, file de signalements et personnes bannies d’un groupe
-- `src/publisher-moderation.ts` / `src/publisher-moderation-ui.tsx` / `src/app/moderation.tsx` : modération éditeur (file globale, suspensions, journal), bandeau de suspension
+- `src/publisher-moderation.ts` / `src/publisher-moderation-ui.tsx` / `src/app/moderation.tsx` : modération éditeur (file globale, retours, suspensions, journal), bandeau de suspension
+- `src/feedback.ts` / `src/app/retour.tsx` : retours des testeurs (formulaire des réglages, lecture par la modération)
 - `supabase/tests/` : tests pgTAP des règles d’accès (`supabase test db`)
 - `supabase/migrations/` : schéma communautaire et progression du compte ; toute évolution passe par une nouvelle migration numérotée
 - `__tests__/` : tests Jest
