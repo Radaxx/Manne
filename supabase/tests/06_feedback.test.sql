@@ -1,11 +1,11 @@
--- Retours des testeurs (019) : envoi par toute session, limites, lecture et classement réservés aux modérateurs éditeur,
+-- Retours des testeurs (019) : envoi par toute session, limites, lecture et classement réservés aux modérateurs éditeur, adoption,
 -- table illisible directement, suppression avec le compte.
 -- Lancer : supabase test db   (base locale ; tout est annulé à la fin).
 begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(17);
 
 -- 1 : compte relié avec profil ; 2 : anonyme ; 3 : modérateur éditeur.
 insert into auth.users (id, aud, role, email, is_anonymous) values
@@ -67,8 +67,23 @@ select lives_ok(
 );
 select isnt((select resolved_at from public.mod_feedback() where kind = 'bug'), null, 'retour marqué comme lu');
 
--- 15. Supprimer le compte efface ses retours.
+-- 15..16. Le compte qui adopte la session anonyme reprend ses retours.
 reset role;
+insert into public.account_adoptions (nonce, from_user, expires_at) values
+  ('d0000000-0000-0000-0000-0000000000ad', 'd0000000-0000-0000-0000-000000000002', now() + interval '10 minutes');
+select set_config('request.jwt.claims', '{"sub":"d0000000-0000-0000-0000-000000000001","role":"authenticated","is_anonymous":false}', true);
+set local role authenticated;
+select lives_ok($$select public.adopt_account('d0000000-0000-0000-0000-0000000000ad')$$, 'compte relié : session anonyme adoptée');
+reset role;
+select results_eq(
+  $$select user_id, count(*)::int from public.feedback
+    where user_id in ('d0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002')
+    group by user_id$$,
+  $$values ('d0000000-0000-0000-0000-000000000001'::uuid, 6)$$,
+  'adoption : les retours de l''anonyme passent au compte'
+);
+
+-- 17. Supprimer le compte efface ses retours, y compris ceux envoyés avant l'adoption.
 delete from auth.users where id = 'd0000000-0000-0000-0000-000000000001';
 select is((select count(*)::int from public.feedback where user_id = 'd0000000-0000-0000-0000-000000000001'), 0,
   'compte supprimé : retours effacés');
