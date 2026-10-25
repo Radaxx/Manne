@@ -2,6 +2,15 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import type { Palette } from '../appearance';
+import {
+  type Feedback,
+  feedbackAuthor,
+  feedbackDevice,
+  feedbackKindLabel,
+  modFeedback,
+  modResolveFeedback,
+  openFeedbackLabel,
+} from '../feedback';
 import { haptic } from '../haptics';
 import { reasonSummary } from '../moderation';
 import { openProfile } from '../profile-ui';
@@ -34,11 +43,12 @@ import { type SuspendRequest, SuspendSheet } from '../publisher-moderation-ui';
 import { Text } from '../text';
 import { useThemed } from '../theme';
 
-type Tab = 'traiter' | 'suspensions' | 'journal';
+type Tab = 'traiter' | 'retours' | 'suspensions' | 'journal';
 type Gate = 'checking' | 'denied' | 'ok';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'traiter', label: 'À traiter' },
+  { id: 'retours', label: 'Retours' },
   { id: 'suspensions', label: 'Suspensions' },
   { id: 'journal', label: 'Journal' },
 ];
@@ -52,6 +62,7 @@ export default function ModerationScreen() {
   const [items, setItems] = useState<ModItem[] | null>(null);
   const [suspensions, setSuspensions] = useState<Suspension[] | null>(null);
   const [entries, setEntries] = useState<LogEntry[] | null>(null);
+  const [feedback, setFeedback] = useState<Feedback[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -64,12 +75,13 @@ export default function ModerationScreen() {
       return;
     }
     setGate('ok');
-    const [queue, list, log] = await Promise.all([modQueue(), modSuspensions(), modLog(100)]);
-    const failure = [queue, list, log].find((result) => !result.ok);
+    const [queue, list, log, notes] = await Promise.all([modQueue(), modSuspensions(), modLog(100), modFeedback(100)]);
+    const failure = [queue, list, log, notes].find((result) => !result.ok);
     setError(failure && !failure.ok ? failure.message : null);
     if (queue.ok) setItems(queue.items);
     if (list.ok) setSuspensions(list.suspensions);
     if (log.ok) setEntries(log.entries);
+    if (notes.ok) setFeedback(notes.items);
   }, []);
 
   useFocusEffect(
@@ -166,7 +178,9 @@ export default function ModerationScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
               >
-                <Text style={[styles.segmentText, on && styles.segmentTextOn]}>{entry.label}</Text>
+                <Text style={[styles.segmentText, on && styles.segmentTextOn]} numberOfLines={1} adjustsFontSizeToFit>
+                  {entry.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -248,6 +262,62 @@ export default function ModerationScreen() {
           </>
         ) : null}
 
+        {tab === 'retours' ? (
+          <>
+            <Text style={styles.muted}>
+              {feedback === null
+                ? ''
+                : `${openFeedbackLabel(feedback.filter((item) => !item.resolvedAt).length)}. Les 100 derniers retours des testeurs, les non lus d’abord.`}
+            </Text>
+            {feedback === null ? <ActivityIndicator color={C.gold} style={{ marginTop: 16 }} /> : null}
+            {feedback?.map((item) => {
+              const key = `retour:${item.id}`;
+              const device = feedbackDevice(item);
+              return (
+                <View key={item.id} style={[styles.card, item.resolvedAt ? styles.read : null]}>
+                  <View style={styles.head}>
+                    <Text style={styles.kind}>{feedbackKindLabel(item.kind)}</Text>
+                    <Text style={styles.meta}>{stamp(item.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.body} selectable>
+                    {item.body}
+                  </Text>
+                  {item.handle ? (
+                    <Pressable onPress={() => openProfile(item.handle as string)} accessibilityRole="button" hitSlop={6}>
+                      <Text style={styles.author}>{feedbackAuthor(item)}</Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={styles.meta}>{feedbackAuthor(item)}</Text>
+                  )}
+                  {item.contact ? (
+                    <Text style={styles.meta} selectable>
+                      Répondre à : {item.contact}
+                    </Text>
+                  ) : null}
+                  {device ? <Text style={styles.meta}>{device}</Text> : null}
+                  <View style={styles.actions}>
+                    <Pressable
+                      onPress={() =>
+                        void run(
+                          key,
+                          () => modResolveFeedback(item.id, !item.resolvedAt),
+                          item.resolvedAt ? 'Retour remis à lire.' : 'Retour marqué comme lu.',
+                        )
+                      }
+                      disabled={!!busy}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.action}>{item.resolvedAt ? 'Remettre à lire' : 'Marquer comme lu'}</Text>
+                    </Pressable>
+                  </View>
+                  {busy === key ? <ActivityIndicator color={C.gold} /> : null}
+                </View>
+              );
+            })}
+          </>
+        ) : null}
+
         {tab === 'suspensions' ? (
           <>
             <Text style={styles.muted}>
@@ -311,14 +381,15 @@ const stylesFor = (C: Palette) =>
     scroll: { padding: 20, paddingBottom: 48, gap: 10 },
     center: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', padding: 24 },
     segment: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 14, padding: 4, gap: 4 },
-    segmentItem: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 11 },
+    segmentItem: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 11 },
     segmentOn: { backgroundColor: C.gold },
-    segmentText: { color: C.text, fontSize: 14, fontWeight: '700' },
+    segmentText: { color: C.text, fontSize: 13, fontWeight: '700' },
     segmentTextOn: { color: C.onGold },
     muted: { color: C.muted, fontSize: 14, lineHeight: 20 },
     error: { color: C.red, fontSize: 14, lineHeight: 20 },
     notice: { color: C.text, fontSize: 14, lineHeight: 20, backgroundColor: C.card, borderRadius: 12, padding: 12 },
     card: { backgroundColor: C.card, borderRadius: 14, padding: 14, gap: 6 },
+    read: { opacity: 0.6 },
     head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     kind: { color: C.gold, fontSize: 13, fontWeight: '800' },
     flag: { color: C.red, fontSize: 12, fontWeight: '700' },

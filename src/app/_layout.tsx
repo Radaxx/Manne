@@ -448,6 +448,7 @@ function ThemedShell() {
           <Stack.Screen name="moderation" options={{ title: 'Modération' }} />
           <Stack.Screen name="passages" options={{ title: 'Passages gardés' }} />
           <Stack.Screen name="guide" options={{ title: 'Guide de l’app' }} />
+          <Stack.Screen name="retour" options={{ title: 'Envoyer un retour' }} />
           <Stack.Screen name="bienvenue" options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>

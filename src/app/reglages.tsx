@@ -35,7 +35,7 @@ export default function ReglagesScreen() {
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
       <Text style={styles.intro}>
         Le thème et l’accent de l’app, la matière du chapelet, la traduction et le fond de la lecture, les œuvres de Découvrir, les
-        notifications et le guide de l’app.
+        notifications, le guide de l’app et tes retours.
       </Text>
 
       <Text style={styles.section}>Apparence</Text>
@@ -175,6 +175,14 @@ export default function ReglagesScreen() {
         </View>
         <Ionicons name="chevron-forward" size={18} color={C.faint} />
       </Pressable>
+      <Pressable onPress={() => router.push('/retour')} style={({ pressed }) => [styles.row, styles.rowNext, pressed && styles.pressed]}>
+        <Ionicons name="chatbubble-ellipses-outline" size={22} color={C.gold} />
+        <View style={styles.rowBody}>
+          <Text style={styles.rowLabel}>Envoyer un retour</Text>
+          <Text style={styles.rowHint}>Un bug, une idée, une remarque sur l’app</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={C.faint} />
+      </Pressable>
 
       {moderator ? (
         <>
@@ -245,6 +253,7 @@ const stylesFor = (C: Palette) =>
       borderRadius: 14,
       padding: 14,
     },
+    rowNext: { marginTop: 10 },
     rowBody: { flex: 1 },
     rowLabel: { color: C.text, fontSize: 16, fontWeight: '700' },
     rowHint: { color: C.muted, fontSize: 13, marginTop: 2 },
