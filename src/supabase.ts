@@ -1,60 +1,23 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { AppState, Platform } from 'react-native';
+import { chunkedStore } from './chunked-store';
 
-/** Sous la limite historique du trousseau iOS, pour y loger une session découpée. */
-const CHUNK = 1800;
+const native = chunkedStore({
+  get: (key) => SecureStore.getItemAsync(key),
+  set: (key, value) => SecureStore.setItemAsync(key, value),
+  remove: (key) => SecureStore.deleteItemAsync(key),
+});
 
-async function secureGet(key: string): Promise<string | null> {
-  if (Platform.OS === 'web') return globalThis.localStorage?.getItem(key) ?? null;
-  const parts = await SecureStore.getItemAsync(`${key}.n`);
-  if (parts != null) {
-    const n = Number(parts);
-    let out = '';
-    for (let i = 0; i < n; i++) {
-      const part = await SecureStore.getItemAsync(`${key}.${i}`);
-      if (part == null) return null;
-      out += part;
-    }
-    return out;
-  }
-  return SecureStore.getItemAsync(key);
-}
-
-async function secureRemove(key: string) {
-  if (Platform.OS === 'web') {
-    globalThis.localStorage?.removeItem(key);
-    return;
-  }
-  const parts = await SecureStore.getItemAsync(`${key}.n`);
-  const n = parts == null ? 0 : Number(parts);
-  await SecureStore.deleteItemAsync(key).catch(() => {});
-  await SecureStore.deleteItemAsync(`${key}.n`).catch(() => {});
-  for (let i = 0; i < n; i++) await SecureStore.deleteItemAsync(`${key}.${i}`).catch(() => {});
-}
-
-async function secureSet(key: string, value: string) {
-  if (Platform.OS === 'web') {
-    globalThis.localStorage?.setItem(key, value);
-    return;
-  }
-  await secureRemove(key);
-  if (value.length <= CHUNK) {
-    await SecureStore.setItemAsync(key, value);
-    return;
-  }
-  const n = Math.ceil(value.length / CHUNK);
-  for (let i = 0; i < n; i++) {
-    await SecureStore.setItemAsync(`${key}.${i}`, value.slice(i * CHUNK, (i + 1) * CHUNK));
-  }
-  await SecureStore.setItemAsync(`${key}.n`, String(n));
-}
-
-const storage = {
-  getItem: (key: string) => secureGet(key),
-  setItem: (key: string, value: string) => secureSet(key, value),
-  removeItem: (key: string) => secureRemove(key),
-};
+/** La session, découpée dans le trousseau (voir chunked-store) ; le localStorage suffit sur le web. */
+const storage =
+  Platform.OS === 'web'
+    ? {
+        getItem: async (key: string) => globalThis.localStorage?.getItem(key) ?? null,
+        setItem: async (key: string, value: string) => globalThis.localStorage?.setItem(key, value),
+        removeItem: async (key: string) => globalThis.localStorage?.removeItem(key),
+      }
+    : native;
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
